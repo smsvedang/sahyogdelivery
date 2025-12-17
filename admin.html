@@ -477,7 +477,7 @@
     async function loadBusinessSettings() { // Loads when tab is opened
         const resDiv=document.getElementById('settings-result'),logoPre=document.getElementById('logo-preview'); if(!resDiv||!logoPre)return;
         resDiv.textContent='Loading...';resDiv.className='message';
-        try{const r=await fetch('/admin/settings',{headers});if(r.status===401){window.location.href='/login';return}if(!r.ok)throw new Error(`HTTP ${r.status}`); const s=await r.json(); businessSettings=s;
+        try{const r=await fetch(`${API_BASE}/admin/settings`, { headers });if(r.status===401){window.location.href='/login';return}if(!r.ok)throw new Error(`HTTP ${r.status}`); const s=await r.json(); businessSettings=s;
         const nameEl=document.getElementById('business-name'),addrEl=document.getElementById('business-address'),phoneEl=document.getElementById('business-phone'),logoUrlEl=document.getElementById('business-logo-url'),upiIdEl=document.getElementById('upi-id'),upiNameEl=document.getElementById('upi-name');
         if(nameEl)nameEl.value=s.businessName||''; if(addrEl)addrEl.value=s.businessAddress||''; if(phoneEl)phoneEl.value=s.businessPhone||''; if(logoUrlEl)logoUrlEl.value=s.logoUrl||''; if(upiIdEl)upiIdEl.value=s.upiId||''; if(upiNameEl)upiNameEl.value=s.upiName||'';
         if(s.logoUrl){logoPre.src=s.logoUrl;logoPre.style.display='block'}else{logoPre.style.display='none'} resDiv.textContent='';
@@ -507,7 +507,7 @@
         e.preventDefault(); const btn=e.target.querySelector('button[type="submit"]'),resDiv=document.getElementById('settings-result'),logoPre=document.getElementById('logo-preview'); if(!btn||!resDiv||!logoPre)return;
         btn.disabled=true;btn.textContent='Saving...';resDiv.textContent='';resDiv.className='message';
         const data={businessName:e.target.elements['business-name'].value,businessAddress:e.target.elements['business-address'].value,businessPhone:e.target.elements['business-phone'].value,logoUrl:e.target.elements['business-logo-url'].value,upiId:e.target.elements['upi-id'].value,upiName:e.target.elements['upi-name'].value};
-        try{const r=await fetch('/admin/settings',{method:'PUT',headers,body:JSON.stringify(data)}); const d=await r.json();
+        try{const r=await fetch(`${API_BASE}/admin/settings`,{method:'PUT',headers,body:JSON.stringify(data)}); const d=await r.json();
         if(r.ok){resDiv.textContent=d.message||'Saved!';resDiv.className='message success';businessSettings=d.settings||data; if(businessSettings.logoUrl){logoPre.src=businessSettings.logoUrl;logoPre.style.display='block'}else{logoPre.style.display='none'}}
         else{resDiv.textContent=`Error: ${d.message||'Save failed.'}`;resDiv.className='message error'}
         }catch(e){console.error("Save settings error:",e);resDiv.textContent=`Server error: ${e.message}`;resDiv.className='message error'}
@@ -720,11 +720,11 @@
     }
     async function handleBulkCancel(){
         const ids=getSelectedDeliveryIds(); if(ids.length===0){alert("Select deliveries.");return} if(!confirm(`Cancel ${ids.length} deliveries?`))return; console.log("Cancelling:", ids);
-        try{const r=await fetch('/admin/deliveries/bulk-cancel',{method:'POST',headers,body:JSON.stringify({deliveryIds:ids})}); const d=await r.json(); if(!r.ok)throw new Error(d.message||'Bulk cancel failed'); alert(`Cancelled ${d.cancelledCount||0}.`); loadAllDeliveries(); const sa=document.getElementById('select-all-checkbox');if(sa)sa.checked=false;updateSelectionCount();}catch(e){console.error("Bulk cancel:",e);alert(`Error: ${e.message}`)}
+        try{const r=await fetch(`${API_BASE}/admin/deliveries/bulk-cancel`,{method:'POST',headers,body:JSON.stringify({deliveryIds:ids})}); const d=await r.json(); if(!r.ok)throw new Error(d.message||'Bulk cancel failed'); alert(`Cancelled ${d.cancelledCount||0}.`); loadAllDeliveries(); const sa=document.getElementById('select-all-checkbox');if(sa)sa.checked=false;updateSelectionCount();}catch(e){console.error("Bulk cancel:",e);alert(`Error: ${e.message}`)}
     }
     async function handleBulkDelete(){
         const ids=getSelectedDeliveryIds(); if(ids.length===0){alert("Select deliveries.");return} if(!confirm(`DELETE ${ids.length} records permanently?`))return; console.log("Deleting:", ids);
-        try{const r=await fetch('/admin/deliveries/bulk-delete',{method:'POST',headers,body:JSON.stringify({deliveryIds:ids})}); const d=await r.json(); if(!r.ok)throw new Error(d.message||'Bulk delete failed'); alert(`Deleted ${d.deletedCount||0}.`); loadAllDeliveries(); const sa=document.getElementById('select-all-checkbox');if(sa)sa.checked=false;updateSelectionCount();}catch(e){console.error("Bulk delete:",e);alert(`Error: ${e.message}`)}
+        try{const r=await fetch(`${API_BASE}/admin/deliveries/bulk-delete`,{method:'POST',headers,body:JSON.stringify({deliveryIds:ids})}); const d=await r.json(); if(!r.ok)throw new Error(d.message||'Bulk delete failed'); alert(`Deleted ${d.deletedCount||0}.`); loadAllDeliveries(); const sa=document.getElementById('select-all-checkbox');if(sa)sa.checked=false;updateSelectionCount();}catch(e){console.error("Bulk delete:",e);alert(`Error: ${e.message}`)}
     }
     
     // --- (NEW) 13. Google Sheet Sync Handler ---
