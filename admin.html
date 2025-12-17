@@ -483,13 +483,26 @@
         if(s.logoUrl){logoPre.src=s.logoUrl;logoPre.style.display='block'}else{logoPre.style.display='none'} resDiv.textContent='';
         }catch(e){console.error("Load settings error:",e);resDiv.textContent=`Error: ${e.message}`;resDiv.className='message error'}
     }
-    async function loadBusinessSettingsOnLoad() { // Loads once on page load
-        try {
-            fetch(`${API_BASE}/admin/settings`, { headers });
-            if (response.ok) { businessSettings = await response.json(); console.log("Initial settings loaded:", businessSettings); }
-            else { console.error("Failed initial settings load"); }
-        } catch (err) { console.error("Initial settings load error:", err); }
+    async function loadBusinessSettingsOnLoad() {
+    try {
+        const response = await fetch(`${API_BASE}/admin/settings`, { headers });
+
+        if (response.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        businessSettings = await response.json();
+        console.log("Initial settings loaded:", businessSettings);
+
+    } catch (err) {
+        console.error("Initial settings load error:", err);
     }
+}
     async function handleBusinessSettingsSubmit(e) {
         e.preventDefault(); const btn=e.target.querySelector('button[type="submit"]'),resDiv=document.getElementById('settings-result'),logoPre=document.getElementById('logo-preview'); if(!btn||!resDiv||!logoPre)return;
         btn.disabled=true;btn.textContent='Saving...';resDiv.textContent='';resDiv.className='message';
