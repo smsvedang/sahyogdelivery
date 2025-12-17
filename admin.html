@@ -272,6 +272,7 @@
     </div>
 
  <script>
+    const API_BASE = 'https://sahyogdeliverybackend.onrender.com';
     // --- 1. Global Variables & Constants ---
     const token = localStorage.getItem('authToken');
     const role = localStorage.getItem('userRole');
@@ -484,7 +485,7 @@
     }
     async function loadBusinessSettingsOnLoad() { // Loads once on page load
         try {
-            const response = await fetch('/admin/settings', { headers });
+            fetch(`${API_BASE}/admin/settings`, { headers });
             if (response.ok) { businessSettings = await response.json(); console.log("Initial settings loaded:", businessSettings); }
             else { console.error("Failed initial settings load"); }
         } catch (err) { console.error("Initial settings load error:", err); }
@@ -510,7 +511,7 @@
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="11">Loading deliveries...</td></tr>';
         try {
-            const response = await fetch('/admin/deliveries', { headers });
+            const response = await fetch(`${API_BASE}/admin/deliveries`, { headers });
             if (response.status === 401) { window.location.href = '/login'; return; }
             if (!response.ok) throw new Error(`HTTP error ${response.status}`);
             const deliveries = await response.json();
@@ -565,7 +566,7 @@
         console.log("Submitting:", formData);
         
         try { 
-            const response = await fetch('/book', { method: 'POST', headers, body: JSON.stringify(formData) });
+            const response = await fetch(`${API_BASE}/book`, { method: 'POST', headers, body: JSON.stringify(formData) });
             let data; 
             try { const txt = await response.text(); data = JSON.parse(txt); } 
             catch (e) { data = { message: `Err ${response.status}. Invalid JSON.` }; }
@@ -609,7 +610,7 @@
             return;
         }
         try {
-            const response = await fetch('/admin/managers', { headers });
+            const response = await fetch(`${API_BASE}/admin/managers`, { headers });
             if (response.status === 401) { window.location.href = '/login'; return; }
             if (!response.ok) throw new Error(`HTTP error ${response.status}`);
             
@@ -638,14 +639,14 @@
 
     async function loadAllUsers() {
         const tbody = document.getElementById('users-body'); if (!tbody) return; tbody.innerHTML = '<tr><td colspan="6">Loading users...</td></tr>';
-        try { const r = await fetch('/admin/users',{headers}); if(r.status===401){window.location.href='/login';return} if(!r.ok)throw new Error(`HTTP ${r.status}`); const users = await r.json(); allUsersData = users; tbody.innerHTML=''; if(users.length===0){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;">No users.</td></tr>';return}
+        try { const r = await fetch(`${API_BASE}/admin/users`, { headers }); if(r.status===401){window.location.href='/login';return} if(!r.ok)throw new Error(`HTTP ${r.status}`); const users = await r.json(); allUsersData = users; tbody.innerHTML=''; if(users.length===0){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;">No users.</td></tr>';return}
             users.forEach(u=>{const row=tbody.insertRow(),sClass=u.isActive?'status-active':'status-inactive',btnTxt=u.isActive?'Deactivate':'Activate',btnClass=u.isActive?'btn-warning':'btn-success'; row.insertCell().textContent=u.name; row.insertCell().textContent=u.email; row.insertCell().textContent=u.phone||'N/A'; row.insertCell().textContent=u.role; row.insertCell().innerHTML=`<span class="${sClass}">${u.isActive?'Active':'Inactive'}</span>`; row.insertCell().innerHTML=`<button class="btn-secondary btn-sm" onclick="openEditUserModal('${u._id}')">Edit</button><button class="${btnClass} btn-sm" onclick="toggleUserActive('${u._id}')">${btnTxt}</button>`; });
         } catch (e) { console.error("Load users error:", e); tbody.innerHTML=`<tr><td colspan="6" style="color:red;text-align:center;">Error: ${e.message}</td></tr>`; }
     }
     
     async function handleAddUserSubmit(e) {
         e.preventDefault(); const resDiv = document.getElementById('add-user-result'); if(!resDiv)return; resDiv.textContent='Creating...';resDiv.className='message'; const formData={name:e.target.elements['add-user-name'].value,email:e.target.elements['add-user-email'].value,phone:e.target.elements['add-user-phone'].value,password:e.target.elements['add-user-password'].value,role:e.target.elements['add-user-role'].value};
-        try{const r=await fetch('/admin/create-user',{method:'POST',headers,body:JSON.stringify(formData)}); const d=await r.json(); if(r.ok){resDiv.textContent=d.message;resDiv.className='message success';e.target.reset();loadAllUsers();if(formData.role==='manager')loadManagersForDropdown();setTimeout(()=>closeModal('add-user-modal'),1500)} else{resDiv.textContent=`Error: ${d.message}`;resDiv.className='message error'} }catch(e){console.error("Add user error:",e);resDiv.textContent='Server error.';resDiv.className='message error'}
+        try{const r=await fetch(`${API_BASE}/admin/create-user`,{method:'POST',headers,body:JSON.stringify(formData)}); const d=await r.json(); if(r.ok){resDiv.textContent=d.message;resDiv.className='message success';e.target.reset();loadAllUsers();if(formData.role==='manager')loadManagersForDropdown();setTimeout(()=>closeModal('add-user-modal'),1500)} else{resDiv.textContent=`Error: ${d.message}`;resDiv.className='message error'} }catch(e){console.error("Add user error:",e);resDiv.textContent='Server error.';resDiv.className='message error'}
     }
     
     function openEditUserModal(userId) {
@@ -655,12 +656,12 @@
     
     async function handleEditUserSubmit(e) {
         e.preventDefault(); const userId=document.getElementById('edit-user-id').value,resDiv=document.getElementById('edit-user-result'); if(!userId||!resDiv)return; resDiv.textContent='Saving...';resDiv.className='message'; const uData={name:e.target.elements['edit-user-name'].value,email:e.target.elements['edit-user-email'].value,phone:e.target.elements['edit-user-phone'].value,role:e.target.elements['edit-user-role'].value}; const newPass=e.target.elements['edit-user-password'].value;
-        try{const rDet=await fetch(`/admin/user/${userId}`,{method:'PUT',headers,body:JSON.stringify(uData)}); if(!rDet.ok){const d=await rDet.json();throw new Error(d.message||'Update failed')} if(newPass&&newPass.trim()!==''){const rPass=await fetch(`/admin/user/${userId}/password`,{method:'PATCH',headers,body:JSON.stringify({password:newPass})}); if(!rPass.ok){const d=await rPass.json();throw new Error(d.message||'Pass update failed')}} resDiv.textContent='Updated!';resDiv.className='message success'; loadAllUsers();loadManagersForDropdown(); setTimeout(()=>closeModal('user-edit-modal'),1500);
+        try{const rDet=await fetch(`${API_BASE}/admin/user/${userId}`,{method:'PUT',headers,body:JSON.stringify(uData)}); if(!rDet.ok){const d=await rDet.json();throw new Error(d.message||'Update failed')} if(newPass&&newPass.trim()!==''){const rPass=await fetch(`${API_BASE}/admin/user/${userId}/password`,{method:'PATCH',headers,body:JSON.stringify({password:newPass})}); if(!rPass.ok){const d=await rPass.json();throw new Error(d.message||'Pass update failed')}} resDiv.textContent='Updated!';resDiv.className='message success'; loadAllUsers();loadManagersForDropdown(); setTimeout(()=>closeModal('user-edit-modal'),1500);
         }catch(e){console.error("Edit user error:",e);resDiv.textContent=`Error: ${e.message}`;resDiv.className='message error'}
     }
     
     async function toggleUserActive(userId) {
-        try{const r=await fetch(`/admin/user/${userId}/toggle-active`,{method:'PATCH',headers}); if(!r.ok){const d=await r.json();throw new Error(d.message||'Toggle failed')} const d=await r.json();console.log(d.message);loadAllUsers();loadManagersForDropdown();}
+        try{const r=await fetch(`${API_BASE}/admin/user/${userId}/toggle-active`,{method:'PATCH',headers}); if(!r.ok){const d=await r.json();throw new Error(d.message||'Toggle failed')} const d=await r.json();console.log(d.message);loadAllUsers();loadManagersForDropdown();}
         catch(e){console.error("Toggle active error:",e);alert(`Error: ${e.message}`)}
     }
 
@@ -673,10 +674,10 @@
         printSingleLabel(delivery.customerName, delivery.customerAddress, delivery.trackingId, delivery.paymentMethod, delivery.customerPhone, delivery.billAmount);
     }
     async function cancelDelivery(deliveryId) {
-        if(!confirm('Cancel this delivery?'))return; try{const r=await fetch(`/admin/delivery/${deliveryId}/cancel`,{method:'PATCH',headers}); const d=await r.json(); if(!r.ok)throw new Error(d.message||'Cancel failed'); alert(d.message);loadAllDeliveries();}catch(e){console.error("Cancel err:",e);alert(`Error: ${e.message}`)}
+        if(!confirm('Cancel this delivery?'))return; try{const r=await fetch(`${API_BASE}/admin/delivery/${deliveryId}/cancel`,{method:'PATCH',headers}); const d=await r.json(); if(!r.ok)throw new Error(d.message||'Cancel failed'); alert(d.message);loadAllDeliveries();}catch(e){console.error("Cancel err:",e);alert(`Error: ${e.message}`)}
     }
     async function deleteDelivery(deliveryId) {
-        if(!confirm('DELETE record permanently?'))return; try{const r=await fetch(`/admin/delivery/${deliveryId}`,{method:'DELETE',headers}); const d=await r.json(); if(!r.ok)throw new Error(d.message||'Delete failed'); alert(d.message);loadAllDeliveries();}catch(e){console.error("Delete err:",e);alert(`Error: ${e.message}`)}
+        if(!confirm('DELETE record permanently?'))return; try{const r=await fetch(`${API_BASE}/admin/delivery/${deliveryId}`,{method:'DELETE',headers}); const d=await r.json(); if(!r.ok)throw new Error(d.message||'Delete failed'); alert(d.message);loadAllDeliveries();}catch(e){console.error("Delete err:",e);alert(`Error: ${e.message}`)}
     }
 
     // --- 11. Bulk Action Helper Functions ---
@@ -736,7 +737,7 @@
         resultSpan.textContent = '';
 
         try {
-            const response = await fetch('/admin/sync-to-google-sheet', {
+            const response = await fetch(`${API_BASE}/admin/sync-to-google-sheet`, {
                 method: 'POST',
                 headers
             });
