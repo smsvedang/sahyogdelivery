@@ -73,13 +73,13 @@
                     // Redirect based on the role received from the server
                     if (data.role === 'admin') {
                         console.log("Redirecting to /admin");
-                        window.location.href = '/admin'; // Redirect to admin page
+                        window.location.href = '/admin.html'; // Redirect to admin page
                     } else if (data.role === 'delivery') {
                         console.log("Redirecting to /delivery");
-                        window.location.href = '/delivery'; // Redirect to delivery page
+                        window.location.href = '/delivery.html'; // Redirect to delivery page
                     } else if (data.role === 'manager') {
                         console.log("Redirecting to /manager");
-                        window.location.href = '/manager'; // Redirect to manager page
+                        window.location.href = '/manager.html'; // Redirect to manager page
                     } else {
                         // Handle unexpected roles
                         console.error("Unknown user role received:", data.role);
