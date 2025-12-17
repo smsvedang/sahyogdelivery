@@ -310,12 +310,12 @@ app.use(express.static(path.join(__dirname)));
 
 
 // --- 6. HTML Page Routes --- (No changes)
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'track.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('/delivery', (req, res) => res.sendFile(path.join(__dirname, 'delivery.html')));
-app.get('/manager', (req, res) => res.sendFile(path.join(__dirname, 'manager.html')));
+//app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+//---app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'track.html')));
+//app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+//app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+//app.get('/delivery', (req, res) => res.sendFile(path.join(__dirname, 'delivery.html')));
+//app.get('/manager', (req, res) => res.sendFile(path.join(__dirname, 'manager.html')));
 app.get('/service-worker.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.sendFile(path.join(__dirname, 'service-worker.js'));
