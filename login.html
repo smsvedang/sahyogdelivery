@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="google-site-verification" content="sUd2hKr4JhoLKMQku6aNRgVeSmyvtjQcuT6ZB4aagRQ" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sahyog Medical</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+
+    <meta name="theme-color" content="#f1c27d">
+    <link rel="manifest" href="/manifest.json">
+    
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f7f6; }
+        .login-card { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 300px; }
+        .login-card h2 { text-align: center; margin-top: 0; }
+        .login-card label { display: block; margin-bottom: 5px; font-weight: 600; }
+        .login-card input { width: 93%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .login-card button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        #message { margin-top: 15px; text-align: center; color: red; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Login</h2>
+        <form id="login-form">
+            <label for="email">Username (Email):</label>
+            <input type="text" id="email" required>
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" required>
+            
+            <button type="submit">Login</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+
+            if (!messageDiv) return; // Exit if message element is missing
+
+            messageDiv.textContent = 'Logging in...';
+            messageDiv.style.color = 'black'; // Reset color
+
+            try {
+                const response = await fetch('https://sahyogdeliverybackend.onrender.com/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json(); // Always try to parse JSON
+
+                if (response.ok) {
+                    messageDiv.style.color = 'green';
+                    messageDiv.textContent = data.message || 'Login successful!'; // Use server message or default
+
+                    // Log the received data for debugging
+                    console.log("Login successful, received data:", data);
+
+                    // Save token and user info to localStorage
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userName', data.name);
+                    localStorage.setItem('userRole', data.role); // Crucial for role checks
+
+                    // Redirect based on the role received from the server
+                    if (data.role === 'admin') {
+                        console.log("Redirecting to /admin");
+                        window.location.href = 'admin.html'; // Redirect to admin page
+                    } else if (data.role === 'delivery') {
+                        console.log("Redirecting to /delivery");
+                        window.location.href = 'delivery.html'; // Redirect to delivery page
+                    } else if (data.role === 'manager') {
+                        console.log("Redirecting to /manager");
+                        window.location.href = 'manager.html'; // Redirect to manager page
+                    } else {
+                        // Handle unexpected roles
+                        console.error("Unknown user role received:", data.role);
+                        messageDiv.style.color = 'red';
+                        messageDiv.textContent = 'Login successful, but role is unknown! Cannot redirect.';
+                    }
+                } else {
+                    // Handle login errors (e.g., wrong password, user not found)
+                    console.error("Login failed:", data);
+                    messageDiv.style.color = 'red';
+                    messageDiv.textContent = `Error: ${data.message || `Server responded with ${response.status}`}`; // Show server error message
+                }
+            } catch (err) {
+                // Handle network errors or issues connecting to the server
+                console.error("Network or fetch error during login:", err);
+                messageDiv.style.color = 'red';
+                messageDiv.textContent = 'Error connecting to the server. Please try again.';
+            }
+        });
+    </script>
+<div class="footer" style="text-align: center; margin-top: 30px; color: #888; font-size: 0.9em;">
+        Copyright © <span id="copyright-year"></span> Sahyog Medical. All Rights Reserved.
+    </div>
+     <script> document.getElementById('copyright-year').textContent = new Date().getFullYear(); </script>
+</body>
+</html>

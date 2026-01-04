@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Completed Deliveries Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f9;
+    padding:20px;
+}
+
+/* Header */
+h2{
+    text-align:center;
+    margin-bottom:15px;
+}
+
+/* Top Controls */
+.filter-box{
+    display:flex;
+    flex-wrap: wrap;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.filter-box input,.filter-box select{
+    padding:10px;
+    border:1px solid #ccc;
+    width:200px;
+    border-radius:5px;
+}
+
+button{
+    padding:10px 15px;
+    cursor:pointer;
+    border:none;
+    border-radius:5px;
+    background:#007bff;
+    color:white;
+}
+
+button.secondary{ background:#28a745; }
+button.print{ background:#6c757d; }
+
+/* Table */
+table{
+    width:100%;
+    border-collapse: collapse;
+    background:white;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+th,td{
+    padding:10px;
+    border:1px solid #ddd;
+    text-align:left;
+}
+
+th{ background:#e9ecef; }
+
+@media print{
+    button,.filter-box{ display:none; }
+    body{ background:white; }
+}
+
+</style>
+</head>
+<body>
+
+<h2>📦 Completed Delivery Records</h2>
+
+<div class="filter-box">
+    <input type="text" id="searchTrack" placeholder="Search Tracking ID" onkeyup="applyFilter()">
+    
+    <input type="date" id="searchDate" onchange="applyFilter()">
+
+    <select id="paymentFilter" onchange="applyFilter()">
+        <option value="">All Payments</option>
+        <option value="COD">Cash on Delivery</option>
+        <option value="Prepaid">Prepaid</option>
+    </select>
+
+    <button onclick="exportExcel()">Export Excel</button>
+    <button class="print" onclick="window.print()">Print</button>
+</div>
+
+<table>
+<thead>
+    <tr>
+        <th>Tracking ID</th>
+        <th>Booking Date</th>
+        <th>Delivery Date</th>
+        <th>Payment</th>
+    </tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<script>
+let deliveries = JSON.parse(localStorage.getItem("completedDeliveries")) || [];
+let filtered = deliveries;
+
+function loadTable(list){
+    let tbody=document.getElementById("tableBody");
+    tbody.innerHTML="";
+
+    list.forEach(d=>{
+        tbody.innerHTML+=`
+        <tr>
+            <td>${d.trackingId}</td>
+            <td>${d.createdAt? new Date(d.createdAt).toLocaleDateString() : "-"}</td>
+            <td>${d.completedAt? formatDateToYYYYMMDD(d.completedAt) : "-"}</td>
+            <td>${d.paymentMethod||"-"}</td>
+        </tr>`;
+    });
+}
+
+function applyFilter(){
+    let t=document.getElementById("searchTrack").value.toLowerCase();
+    let date=document.getElementById("searchDate").value;
+    let p=document.getElementById("paymentFilter").value;
+
+    filtered = deliveries.filter(d=>{
+        let matchTrack = d.trackingId.toLowerCase().includes(t);
+        let formattedCompletedAt = formatDateToYYYYMMDD(d.completedAt);
+        let mDate = !date || (formattedCompletedAt && formattedCompletedAt === date);
+        let mPay = !p || d.paymentMethod===p;
+        return matchTrack && mDate && mPay;
+    });
+
+    loadTable(filtered);
+}
+
+function exportExcel(){
+    let csv="Tracking ID,Booking Date,Delivery Date,Payment\n";
+    filtered.forEach(d=>{
+        csv+=`${d.trackingId},${formatDateToYYYYMMDD(d.createdAt)},${formatDateToYYYYMMDD(d.completedAt) || "-"},${d.paymentMethod}\n`;
+    });
+
+    let blob=new Blob([csv],{type:"text/csv"});
+    let url=URL.createObjectURL(blob);
+    let a=document.createElement("a");
+    a.href=url;
+    a.download="Completed_Deliveries.csv";
+    a.click();
+}
+
+function formatDateToYYYYMMDD(dateString) {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null; // Check for "Invalid Date"
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+loadTable(deliveries); // load at start
+</script>
+
+</body>
+</html>

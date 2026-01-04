@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+<script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyDRcvcvaYSsw19ZmcOikz-FBReqJTtI03s",
+  authDomain: "sahyogdelivery.firebaseapp.com",
+  projectId: "sahyogdelivery",
+  storageBucket: "sahyogdelivery.firebasestorage.app",
+  messagingSenderId: "1049559335650",
+  appId: "1:1049559335650:web:2cb13685ce3c01b93e94bb",
+  measurementId: "G-6BSBHNQHYM"
+};
+    </script>
+    <script>
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+</script>
+<script>
+function askForNotificationPermission() {
+  Notification.requestPermission().then(permission => {
+    if (permission === "granted") {
+      console.log("Notification allowed ✅");
+      getPushToken();
+    } else {
+      console.log("Notification denied ❌");
+    }
+  });
+}
+</script>
+<script>
+function getPushToken() {
+  messaging.getToken({
+    vapidKey: "BIaBWwpMVcg8M1uGRb-f_fpoHXLTXWrSMVgJnpfcE3ggEUvksFvPOIRCb_EZRiU4UjIc2xCFSW7rAf1-gQ29kSs"
+  }).then(token => {
+    if (token) {
+      console.log("Push Token:", token);
+      saveTokenToServer(token);
+    } else {
+      console.log("No token received");
+    }
+  }).catch(err => {
+    console.error("Token error:", err);
+  });
+}
+</script>
+<script>
+function saveTokenToServer(token) {
+  fetch(`${API_BASE}/save-fcm-token`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${localStorage.getItem("authToken")}`
+  },
+  body: JSON.stringify({ token })
+});
+}
+</script>
+
+<head>
+    <meta name="google-site-verification" content="sUd2hKr4JhoLKMQku6aNRgVeSmyvtjQcuT6ZB4aagRQ" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Panel - Sahyog</title>
+ <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+
+    <meta name="theme-color" content="#f1c27d">
+    <link rel="manifest" href="/manifest.json">
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        /* General Styles */
+        .tab-content{ display:none; }
+#tab-completed{ display:none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; }
+        h1, h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .header button { padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button { cursor: pointer; border-radius: 5px; padding: 10px 15px; border: none; margin: 5px 0; }
+        button.btn-primary { background-color: #007bff; color: white; }
+        button.btn-secondary { background-color: #6c757d; color: white; }
+        button.btn-success { background-color: #28a745; color: white; }
+        input[type="text"], input[type="password"] { padding: 10px; width: calc(100% - 22px); max-width: 300px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        .message { padding: 10px; margin-top: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .footer { text-align: center; margin-top: 30px; color: #888; font-size: 0.9em; }
+        
+        /* Card Layout */
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; border: 1px solid #dee2e6; }
+        
+        /* Scanner Section */
+        #reader { width: 100%; max-width: 350px; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+        
+        /* Delivery List Section */
+        #delivery-list-container { padding: 0; }
+        .delivery-item {
+            list-style: none;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-left: 5px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+        .delivery-item .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .delivery-item .item-header .tracking-id { font-weight: bold; font-size: 1.1em; color: #007bff; }
+        .delivery-item .item-header .serial-no { font-size: 1.1em; font-weight: bold; color: #888; }
+        .delivery-item .item-body { font-size: 0.95em; color: #333; line-height: 1.5; }
+        .delivery-item .item-body strong { color: #000; }
+        .delivery-item .item-footer { margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+        .delivery-item .item-footer button { font-size: 0.9em; padding: 5px 10px; background-color: #17a2b8; color: white; }
+
+        .pagination-controls { text-align: center; margin-top: 20px; }
+        #pagination-info { color: #666; margin-bottom: 10px; }
+        #show-more-btn { background-color: #007bff; color: white; width: 100%; max-width: 350px; }
+        #show-more-btn:disabled { background-color: #ccc; }
+
+        /* Payment QR Modal */
+        #qr-modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center;
+        }
+        #qr-modal-content {
+            background-color: #fefefe; padding: 20px; border-radius: 8px; width: 300px; text-align: center;
+            position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #qr-modal-content .close-button {
+            position: absolute; top: 10px; right: 15px; font-size: 28px;
+            font-weight: bold; color: #aaa; cursor: pointer;
+        }
+        #payment-qrcode { width: 256px; height: 256px; margin: 15px auto; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Delivery Panel (Welcome, <span id="delivery-name"></span>)</h1>
+        <button id="logout-btn" class="btn-danger">Logout</button>
+        <button onclick="askForNotificationPermission()">
+  Enable Notifications 🔔
+</button>
+    </div>
+    <button onclick="openTab(event,'tab-completed')">Completed Deliveries</button>
+    <div id="tab-completed" class="tab-content">
+ <div class="card" style="text-align:center;padding:30px;">
+     <button onclick="openCompletedPage()" class="btn-primary" style="font-size:18px;">
+        📦 View Completed Deliveries
+     </button>
+     <p style="color:#666;margin-top:10px;">All completed orders are available on full report page only.</p>
+ </div>
+</div>
+ </div>
+</div>
+
+    <div class="card">
+        <h2>Update Status (Scan QR)</h2>
+        <p>Scan QR code on label to update status (Picked Up / Out for Delivery / Complete).</p>
+        <div id="reader"></div>
+        <div id="scan-result" class="message" style="display:none;"></div>
+        <button id="manual-entry-toggle-btn" class="btn-secondary" style="margin-top: 10px;">QR Not Working? Enter Manually</button>
+    </div>
+
+    <div class="card" id="manual-entry-card" style="display:none;">
+        <h2>Manual Update / Complete</h2>
+        <label for="manual-tracking-id">Tracking ID:</label>
+        <input type="text" id="manual-tracking-id" onblur="checkIfCod(this.value)">
+        
+        <button id="manual-update-btn" class="btn-primary">Update Status (Picked/Out)</button>
+        <div id="manual-result" class="message" style="display:none;"></div>
+
+        <hr style="margin: 20px 0;">
+        
+        <label for="complete-otp-code">Customer OTP:</label>
+        <input type="password" id="complete-otp-code" placeholder="Enter OTP to complete">
+        
+        <div id="cod-payment-options" style="display:none; margin-top:10px; background: #fffbe6; padding: 10px; border-radius: 5px;">
+            <strong>Payment Received:</strong><br>
+            <input type="radio" id="pay-cash" name="paymentReceivedMethod" value="cash" required>
+            <label for="pay-cash">By Cash</label><br>
+            <input type="radio" id="pay-online" name="paymentReceivedMethod" value="online">
+            <label for="pay-online">By Online (QR)</label>
+        </div>
+
+        <button id="complete-btn" class="btn-success" style="margin-top: 10px;">Mark as Delivered (with OTP)</button>
+        <div id="complete-result" class="message" style="display:none;"></div>
+    </div>
+
+    <input type="text" id="searchPending" placeholder="Search Tracking ID..." 
+       style="width:100%;padding:10px;margin-top:10px;margin-bottom:15px;border:1px solid #ccc;"
+       onkeyup="searchPendingList()">
+    <div class="card">
+        <h2>My Assigned Deliveries</h2>
+        <button id="refresh-btn" class="btn-secondary">Refresh List</button>
+        <ul id="pending-list">
+            </ul>
+        <div class="pagination-controls">
+            <div id="pagination-info">Loading...</div>
+            <button id="show-more-btn" class="btn-primary" style="display:none;">Show More (5)</button>
+        </div>
+    </div>
+
+    <div id="qr-modal">
+        <div id="qr-modal-content">
+            <span class="close-button" id="close-qr-modal">&times;</span>
+            <h3>Scan to Pay (Amount: ₹<span id="qr-amount">0.00</span>)</h3>
+            <div id="payment-qrcode"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Copyright © <span id="copyright-year"></span> Sahyog Medical. All Rights Reserved.
+    </div>
+
+   <script>
+        // --- 1. Global Variables ---
+        const token = localStorage.getItem('authToken');
+        const API_BASE = 'https://sahyogdeliverybackend.onrender.com';
+        const role = localStorage.getItem('userRole');
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        const html5QrCode = new Html5Qrcode("reader");
+        let businessSettings = {}; // UPI ID ke liye
+        let currentPage = 1;
+        let totalDeliveries = 0;
+        let isLoading = false; // "Show More" ko double-click se rokne ke liye
+        
+        // --- (YAHI THI Galti) YEH LINE MISSING THI ---
+        let currentDeliveries = []; 
+        // ---------------------------------------------
+
+        // --- DOM Elements ---
+        const pendingList = document.getElementById('pending-list');
+        const paginationInfo = document.getElementById('pagination-info');
+        const showMoreBtn = document.getElementById('show-more-btn');
+        const scanResultDiv = document.getElementById('scan-result');
+        const manualResultDiv = document.getElementById('manual-result');
+        const completeResultDiv = document.getElementById('complete-result');
+
+
+        let completedData=[];
+
+async function loadCompleted(){
+   const r = await fetch(`${API_BASE}/delivery/completed`,{headers});
+   completedData = await r.json();
+   renderCompleted(completedData);
+}
+
+function renderCompleted(list){
+    const tbody=document.getElementById('completed-delivery-body');
+    tbody.innerHTML="";
+    list.forEach(d=>{
+        tbody.innerHTML+=`
+        <tr>
+         <td>${d.trackingId}</td>
+         <td>${d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "-"}</td>
+         <td>${d.completedAt ? new Date(d.completedAt).toLocaleDateString() : "-"}</td>
+         <td>${d.paymentMethod}</td>
+        </tr>`;
+    })
+}
+
+function searchCompleted(){
+   let q=document.getElementById('searchTrack').value.toLowerCase();
+   renderCompleted(completedData.filter(x=>x.trackingId.toLowerCase().includes(q)));
+}
+
+function searchPendingList(){
+   let q=document.getElementById("searchPending").value.toLowerCase();
+   let list = currentDeliveries.filter(x=>x.trackingId.toLowerCase().includes(q));
+   pendingList.innerHTML="";
+   list.forEach(d=>{
+       pendingList.innerHTML+=`
+        <li class="delivery-item">
+            <div class="item-header"><span>${d.trackingId}</span></div>
+            <div>${d.customerName}</div>
+        </li>`;
+   })
+}
+
+function filterByDate(){
+   let date=document.getElementById('filterDate').value;
+   if(!date) return renderCompleted(completedData);
+
+   let filtered = completedData.filter(d=>{
+      let delivered = d.completedAt ? new Date(d.completedAt).toLocaleDateString('en-CA') : "";
+      return delivered === date;
+   });
+   renderCompleted(filtered);
+}
+
+function openCompletedPage(){
+    localStorage.setItem("completedDeliveries",JSON.stringify(completedData));
+window.location.href = "completed-delivery-view.html";
+window.open("completed-delivery-view.html","_blank");
+}
+
+function openTab(event, tabName){
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display='none');
+
+    // Show clicked tab
+    document.getElementById(tabName).style.display='block';
+
+    // When completed tab opens -> load completed deliveries
+    if(tabName === 'tab-completed') loadCompleted();
+}
+
+async function loadCompletedDeliveries(){
+    const res = await fetch(`${API_BASE}/manager/completed-deliveries`,{headers});
+    const data = await res.json();
+    document.getElementById('completed-body').innerHTML =
+    data.map(d=>`
+        <tr>
+        <td>${d.trackingId}</td>
+        <td>${new Date(d.createdAt).toLocaleDateString()}</td>
+        <td>${new Date(d.updatedAt).toLocaleDateString()}</td>
+        <td>${d.assignedTo?.name||'--'}</td>
+        <td>${d.paymentMethod}</td>
+        </tr>
+    `).join('');
+}
+
+        // --- 2. Initial Load & Security ---
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!token || role !== 'delivery') {
+                localStorage.clear(); window.location.href = 'login.html'; return;
+            }
+            document.getElementById('delivery-name').textContent = localStorage.getItem('userName');
+            document.getElementById('copyright-year').textContent = new Date().getFullYear();
+            document.getElementById('tab-completed').style.display="none"; // hidden default
+            
+            setupEventListeners();
+            loadInitialData();
+            startScanner();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('logout-btn').onclick = logoutHandler;
+            document.getElementById('enable-notifications').onclick = enableNotificationsHandler;
+            document.getElementById('refresh-btn').onclick = () => loadAssignedDeliveries(true); // Refresh
+            document.getElementById('show-more-btn').onclick = () => loadAssignedDeliveries(false); // Show More
+            document.getElementById('manual-entry-toggle-btn').onclick = toggleManualEntry;
+            document.getElementById('manual-update-btn').onclick = handleManualUpdate;
+            document.getElementById('complete-btn').onclick = handleCompleteDelivery;
+            document.getElementById('close-qr-modal').onclick = () => { document.getElementById('qr-modal').style.display = 'none'; };
+        }
+
+        async function loadInitialData() {
+            await loadBusinessSettings(); // Pehle settings load karein
+            await loadAssignedDeliveries(true); // Phir pehla page load karein
+        }
+
+        // --- 3. Business Settings (UPI ke liye) ---
+        async function loadBusinessSettings() {
+    try {
+        const response = await fetch(`${API_BASE}/public/settings`, {
+            method: 'GET',
+            headers
+        });
+        const data = await response.json();
+        if (response.ok) {
+            businessSettings = data;
+            console.log('Business settings loaded:', businessSettings);
+        }
+    } catch (error) {
+        console.error('Error fetching business settings:', error);
+    }
+}
+        // --- 4. Load Deliveries (Pagination ke saath) ---
+        async function loadAssignedDeliveries(isRefresh = false) {
+            if (isLoading) return; // Double-click rokein
+            isLoading = true;
+            
+            if (isRefresh) {
+                currentPage = 1;
+                totalDeliveries = 0;
+                if (pendingList) pendingList.innerHTML = '<li>Loading...</li>';
+            }
+            
+            if(showMoreBtn) {
+                showMoreBtn.disabled = true;
+                showMoreBtn.textContent = 'Loading...';
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/delivery/my-deliveries?page=${currentPage}`, { headers });
+                if (response.status === 401) { window.location.href = 'login.html'; return; }
+                if (!response.ok) throw new Error(`Server error: ${response.status}`);
+                
+                const data = await response.json();
+                const deliveriesArray = data.deliveries;
+                totalDeliveries = data.totalDeliveries;
+
+                if (isRefresh && pendingList) pendingList.innerHTML = ''; // Loading hatayein
+
+                if (deliveriesArray.length === 0 && isRefresh) {
+                    if (pendingList) pendingList.innerHTML = '<li>No pending deliveries assigned to you.</li>';
+                }
+
+                deliveriesArray.forEach((d, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'delivery-item';
+                    
+                    if(d.currentStatus === 'Picked Up') li.style.borderLeftColor = '#ffc107';
+                    if(d.currentStatus === 'Out for Delivery') li.style.borderLeftColor = '#17a2b8';
+
+                    const serialNumber = (currentPage - 1) * 5 + index + 1;
+                    let paymentInfo = `<strong>Payment:</strong> ${d.paymentMethod}`;
+                    let paymentButton = '';
+                    if (d.paymentMethod === 'COD') {
+                        paymentInfo += ` (<strong>₹${d.billAmount}</strong>)`;
+                        if (d.currentStatus === 'Out for Delivery') {
+                            paymentButton = `<button onclick="showPaymentQr('${d.billAmount}', '${d.trackingId}')">Show Payment QR</button>`;
+                        }
+                    }
+
+                    li.innerHTML = `
+                        <div class="item-header">
+                            <span class="tracking-id">${d.trackingId}</span>
+                            <span class="serial-no">#${serialNumber}</span>
+                        </div>
+                        <div class="item-body">
+                            <strong>Customer:</strong> ${d.customerName}<br>
+                            <strong>Address:</strong> ${d.customerAddress}<br>
+                            <strong>Phone:</strong> ${d.customerPhone || 'N/A'}<br>
+                            ${paymentInfo}
+                        </div>
+                        <div class="item-footer">
+                            <strong>Status:</strong> ${d.currentStatus}
+                            ${paymentButton}
+                        </div>
+                    `;
+                    if (pendingList) pendingList.appendChild(li);
+                });
+
+                // (Ab yeh line kaam karegi)
+                currentDeliveries = (isRefresh) ? deliveriesArray : [...currentDeliveries, ...deliveriesArray];
+
+                const loadedCount = currentDeliveries.length;
+                if (paginationInfo) paginationInfo.textContent = `Showing ${loadedCount} of ${totalDeliveries} deliveries.`;
+
+                if (loadedCount < totalDeliveries && data.currentPage < data.totalPages) {
+                    if (showMoreBtn) {
+                        showMoreBtn.style.display = 'block';
+                        showMoreBtn.disabled = false;
+                        showMoreBtn.textContent = 'Show More (5)';
+                    }
+                    currentPage++;
+                } else {
+                    if (showMoreBtn) showMoreBtn.style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error("Error loading deliveries:", err);
+                if (pendingList) pendingList.innerHTML = `<li>Error loading deliveries: ${err.message}</li>`;
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        // --- 5. QR Scanner Logic ---
+        function startScanner() {
+             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+             html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                .catch(err => console.log("Scanner start error:", err));
+        }
+       
+        const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
+            try {
+                await html5QrCode.stop();
+            } catch (err) {
+                console.warn("Scanner stop failed.", err);
+            }
+            
+            if (scanResultDiv) {
+                scanResultDiv.style.display = 'block';
+                scanResultDiv.className = 'message';
+                scanResultDiv.innerHTML = `Scanned: ${decodedText}. Processing...`;
+            }
+
+            // (Ab yeh line kaam karegi)
+            const delivery = currentDeliveries.find(d => d.trackingId === decodedText);
+
+            if (delivery && delivery.currentStatus === 'Out for Delivery') {
+                if (scanResultDiv) {
+                    scanResultDiv.innerHTML = `Scanned ${decodedText}. Please enter Customer OTP below to complete.`;
+                    scanResultDiv.className = 'message success';
+                }
+                document.getElementById('manual-entry-card').style.display = 'block';
+                document.getElementById('manual-tracking-id').value = decodedText;
+                checkIfCod(decodedText);
+                document.getElementById('complete-otp-code').focus();
+            } else {
+                 updateDeliveryStatus(decodedText, scanResultDiv);
+            }
+             setTimeout(startScanner, 4000);
+        };
+        
+        async function updateDeliveryStatus(trackingId, resultDivElement) {
+            resultDivElement.innerHTML = `Updating status for ${trackingId}...`;
+            resultDivElement.className = 'message';
+             try {
+                const response = await fetch(`${API_BASE}/delivery/update-status`, {
+                    method: 'POST', headers: headers, body: JSON.stringify({ trackingId: trackingId })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    resultDivElement.className = 'message success';
+                    resultDivElement.innerHTML = `Success! ${data.trackingId} is now ${data.status}.`;
+                    loadAssignedDeliveries(true); // Refresh list
+                } else {
+                    resultDivElement.className = 'message error';
+                    resultDivElement.innerHTML = `Error: ${data.message || `Server error ${response.status}`}`;
+                }
+            } catch (err) {
+                resultDivElement.className = 'message error';
+                resultDivElement.innerHTML = `Error: Could not connect to server.`;
+            }
+        }
+
+        // --- 6. Manual Entry & Completion Logic ---
+        function toggleManualEntry() {
+            const manualDiv = document.getElementById('manual-entry-card');
+            manualDiv.style.display = (manualDiv.style.display === 'none' || manualDiv.style.display === '') ? 'block' : 'none';
+        }
+        
+        function handleManualUpdate() {
+             const trackingId = document.getElementById('manual-tracking-id').value;
+             if (!trackingId) {
+                 manualResultDiv.textContent = 'Please enter Tracking ID.';
+                 manualResultDiv.className = 'message error';
+                 manualResultDiv.style.display = 'block';
+                 return;
+             }
+             manualResultDiv.style.display = 'block';
+             updateDeliveryStatus(trackingId, manualResultDiv);
+        }
+        
+        async function handleCompleteDelivery() {
+    const trackingId = document.getElementById('manual-tracking-id').value;
+    const otp = document.getElementById('complete-otp-code').value;
+
+    const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
+
+    completeResultDiv.style.display = 'block';
+    completeResultDiv.className = 'message';
+    completeResultDiv.innerHTML = 'Verifying OTP...';
+
+    if (!delivery) {
+        completeResultDiv.className = 'message error';
+        completeResultDiv.innerHTML = 'Delivery not found in your assigned list.';
+        return;
+    }
+
+    if (delivery.currentStatus !== 'Out for Delivery') {
+        completeResultDiv.className = 'message error';
+        completeResultDiv.innerHTML = 'Please update status to "Out for Delivery" before completing.';
+        return;
+    }
+            let paymentReceivedMethod = null;
+            const codOptionsDiv = document.getElementById('cod-payment-options');
+             if (codOptionsDiv.style.display === 'block') {
+                 if (document.getElementById('pay-cash').checked) paymentReceivedMethod = 'cash';
+                 else if (document.getElementById('pay-online').checked) paymentReceivedMethod = 'online';
+                 else {
+                     completeResultDiv.className = 'message error';
+                     completeResultDiv.innerHTML = 'Please select payment method (Cash or Online).';
+                     return;
+                 }
+             }
+             if (!trackingId || !otp) {
+                 completeResultDiv.className = 'message error';
+                 completeResultDiv.innerHTML = 'Please enter Tracking ID and OTP.';
+                 return;
+             }
+
+             try {
+                const response = await fetch(`${API_BASE}/delivery/complete`, {
+                    method: 'POST', headers: headers,
+                    body: JSON.stringify({ trackingId, otp, paymentReceivedMethod })
+                });
+                const data = await response.json();
+                 if (response.ok) {
+                    completeResultDiv.className = 'message success';
+                    completeResultDiv.innerHTML = `Success! ${data.trackingId} is ${data.status}.`;
+                    loadAssignedDeliveries(true); // Refresh list
+                    document.getElementById('manual-tracking-id').value = '';
+                    document.getElementById('complete-otp-code').value = '';
+                    codOptionsDiv.style.display = 'none';
+                    if(document.getElementById('pay-cash')) document.getElementById('pay-cash').checked = false;
+                    if(document.getElementById('pay-online')) document.getElementById('pay-online').checked = false;
+                 } else {
+                    completeResultDiv.className = 'message error';
+                    completeResultDiv.innerHTML = `Error: ${data.message || `Server error ${response.status}`}`;
+                 }
+             } catch (err) {
+                completeResultDiv.className = 'message error';
+                completeResultDiv.innerHTML = 'Error connecting to server.';
+             }
+        }
+        
+        async function checkIfCod(trackingId) {
+            const codOptions = document.getElementById('cod-payment-options');
+            if (!codOptions) return;
+            codOptions.style.display = 'none';
+            if (!trackingId) return;
+            
+            // (Ab yeh line kaam karegi)
+            const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
+            if (delivery) {
+                if (delivery.paymentMethod === 'COD' && delivery.currentStatus === 'Out for Delivery') {
+                     codOptions.style.display = 'block';
+                }
+            } else {
+                try {
+                    const response = await fetch(`https://sahyogdeliverybackend.onrender.com/track/${trackingId}`);
+                    const data = await response.json();
+                    if (data.paymentMethod === 'COD' && data.currentStatus === 'Out for Delivery') {
+                         codOptions.style.display = 'block';
+                    }
+                } catch (err) { console.error("Error checking COD status via fallback:", err); }
+            }
+        }
+
+        // --- 7. Payment QR Modal (Dynamic UPI) ---
+        function showPaymentQr(amount, trackingId) {
+            const qrModal = document.getElementById('qr-modal');
+            const qrAmountEl = document.getElementById('qr-amount');
+            const qrCodeEl = document.getElementById('payment-qrcode');
+            
+            const upiID = businessSettings.upiId;
+            const merchantName = (businessSettings.upiName || 'Sahyog Medical').replace(/ /g, '%20');
+            
+            if (!upiID) {
+                alert('UPI ID not set. Please contact admin.');
+                return;
+            }
+            
+            const validAmount = parseFloat(amount);
+            if (isNaN(validAmount) || validAmount <= 0) {
+                 alert("Cannot generate QR code for invalid amount.");
+                 return;
+            }
+            const upiQrString = `upi://pay?pa=${upiID}&pn=${merchantName}&am=${validAmount.toFixed(2)}&cu=INR&tn=Order-${trackingId}`;
+            
+            qrAmountEl.textContent = validAmount.toFixed(2);
+            qrCodeEl.innerHTML = ''; // Purana QR saaf karein
+            try {
+                new QRCode(qrCodeEl, { text: upiQrString, width: 256, height: 256 });
+                qrModal.style.display = 'flex';
+            } catch(e) {
+                alert("Could not generate payment QR code.");
+            }
+        }
+
+        // --- 8. Push Notification ---
+        async function enableNotificationsHandler() {
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                try {
+                    const reg = await navigator.serviceWorker.register('/service-worker.js');
+                    const sub = await reg.pushManager.getSubscription();
+                    if (sub) {
+                        alert('Notifications are already enabled.');
+                    } else {
+                        const publicKeyRes = await fetch(`${API_BASE}/vapid-public-key`);
+                        if (!publicKeyRes.ok) throw new Error("Could not fetch VAPID key");
+                        const publicKey = await publicKeyRes.text();
+                        
+                        const newSub = await reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: publicKey
+                        });
+                        
+                        const subscribeResponse = await fetch('/subscribe', { method: 'POST', headers: headers, body: JSON.stringify(newSub) });
+                         if (!subscribeResponse.ok) throw new Error("Failed to save subscription on server");
+                        alert('Notifications enabled successfully!');
+                    }
+                } catch (err) {
+                     console.error("Notification enabling error:", err);
+                     alert('Failed to enable notifications. See console for details.');
+                }
+            } else {
+                alert('Push notifications are not supported on this browser.');
+            }
+        };
+
+        // --- 9. Logout ---
+        function logoutHandler() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        };
+    </script>
+</body>
+</html>

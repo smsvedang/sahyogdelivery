@@ -1,0 +1,21 @@
+# Dependencies
+/node_modules
+
+# Environment Variables
+.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# 🔥 Firebase / Google secrets (VERY IMPORTANT)
+firebase-service-account.json
+firebase-messaging-sw.js
+*-service-account.json
+*.pem
+*.key
