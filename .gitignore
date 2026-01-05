@@ -15,7 +15,7 @@ Thumbs.db
 
 # 🔥 Firebase / Google secrets (VERY IMPORTANT)
 firebase-service-account.json
-firebase-messaging-sw.js
+# firebase-messaging-sw.js
 *-service-account.json
 *.pem
 *.key
