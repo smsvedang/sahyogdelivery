@@ -10,12 +10,22 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage(payload => {
-  self.registration.showNotification(
-    payload.notification.title,
-    {
-      body: payload.notification.body,
-      icon: '/favicon.png'
-    }
+self.addEventListener('push', function(event) {
+  if (!event.data) return;
+
+  const data = event.data.json();
+  const notification = data.notification || {};
+
+  event.waitUntil(
+    self.registration.showNotification(
+      notification.title || 'Sahyog Delivery',
+      {
+        body: notification.body || '',
+        icon: '/favicon.png',
+        badge: '/favicon.png',
+        requireInteraction: true
+      }
+    )
   );
 });
+
