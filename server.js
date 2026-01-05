@@ -92,6 +92,12 @@ const auth = (roles = []) => {
     };
 };
 
+// --- 3.1. FCM Token Save Endpoint ---
+app.post('/save-fcm-token', auth(['admin','manager','delivery']), async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: "FCM token missing" });
   }
 
   await User.findByIdAndUpdate(req.user.userId, {
@@ -320,33 +326,6 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ message: 'Server error during login' });
   }
 });
-
-// 5.2. Auth Middleware (Moved to top)
-const auth = (roles = []) => {
-    return (req, res, next) => {
-        try {
-            if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
-                return res.status(401).json({ message: 'Authentication failed: No token provided' });
-            }
-            const token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, JWT_SECRET);
-            req.user = decoded; 
-            if (roles.length > 0 && !roles.includes(decoded.role)) {
-                return res.status(403).json({ message: 'Forbidden: Insufficient role' });
-            }
-            next(); 
-        } catch (error) {
-            if (error.name === 'TokenExpiredError') {
-                 res.status(401).json({ message: 'Authentication failed: Token expired' });
-            } else if (error.name === 'JsonWebTokenError') {
-                 res.status(401).json({ message: 'Authentication failed: Invalid token signature' });
-            } else {
-                 console.error("Auth Middleware Error:", error);
-                 res.status(401).json({ message: 'Authentication failed: Invalid token' });
-            }
-        }
-    };
-};
 
 // --- (NEW) 5.5. Static File Server ---
 // Yeh manifest.json, style.css, etc. jaisi files ko serve karega
