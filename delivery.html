@@ -142,7 +142,7 @@ function saveTokenToServer(token) {
     <div class="header">
         <h1>Delivery Panel (Welcome, <span id="delivery-name"></span>)</h1>
         <button id="logout-btn" class="btn-danger">Logout</button>
-        <button onclick="askForNotificationPermission()">
+        <button id="enable-notifications">
   Enable Notifications 🔔
 </button>
     </div>
@@ -341,13 +341,17 @@ async function loadCompletedDeliveries(){
 
         function setupEventListeners() {
             document.getElementById('logout-btn').onclick = logoutHandler;
-            document.getElementById('enable-notifications').onclick = enableNotificationsHandler;
+           // document.getElementById('enable-notifications').onclick = enableNotificationsHandler;
             document.getElementById('refresh-btn').onclick = () => loadAssignedDeliveries(true); // Refresh
             document.getElementById('show-more-btn').onclick = () => loadAssignedDeliveries(false); // Show More
             document.getElementById('manual-entry-toggle-btn').onclick = toggleManualEntry;
             document.getElementById('manual-update-btn').onclick = handleManualUpdate;
             document.getElementById('complete-btn').onclick = handleCompleteDelivery;
             document.getElementById('close-qr-modal').onclick = () => { document.getElementById('qr-modal').style.display = 'none'; };
+            const enableBtn = document.getElementById('enable-notifications');
+if (enableBtn) {
+  enableBtn.onclick = askForNotificationPermission;
+}
         }
 
         async function loadInitialData() {
