@@ -22,6 +22,14 @@ admin.initializeApp({
   })
 });
 
+function getISTTime() {
+  return new Date().toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 // --- 1. Environment Variables ---
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -941,15 +949,15 @@ app.patch('/manager/assign-delivery/:deliveryId', auth(['manager']), async (req,
       Urgency: "high"
     },
     notification: {
-      title: "📦 Sahyog Delivery",
-      body: `Tracking ID: ${delivery.trackingId} | ${new Date().toLocaleTimeString()}`,
+      title: "🔥 Kaam Ready Hai , Parcel lene aajao",
+      body: `Pickup ke liye ready ho jao 💪 Tracking ID: ${trackingId} | ${getISTTime()}`,
       icon: "https://sahyogdelivery.vercel.app/favicon.png",
       badge: "https://sahyogdelivery.vercel.app/favicon.png",
       tag: `delivery-${Date.now()}`,
       requireInteraction: true
     },
     fcmOptions: {
-      link: "https://sahyogdelivery.vercel.app"
+      link: "https://sahyogdelivery.vercel.app/login.html"
     }
   }
 });
@@ -1045,8 +1053,8 @@ if (manager && manager.fcmToken) {
       Urgency: "high"
     },
     notification: {
-      title: "📦 Sahyog Delivery",
-      body: `Tracking ID: ${delivery.trackingId} | ${new Date().toLocaleTimeString()}`,
+      title: "📦 Delivered Successfully",
+      body: `Manager saahab parcel successfully deliver ho gaya. Tracking ID: ${delivery.trackingId} | ${getISTTime()}`,
       icon: "https://sahyogdelivery.vercel.app/favicon.png",
       badge: "https://sahyogdelivery.vercel.app/favicon.png",
       tag: `delivery-${Date.now()}`,
@@ -1077,8 +1085,8 @@ for (const a of admins) {
       Urgency: "high"
     },
     notification: {
-      title: "📦 Sahyog Delivery",
-      body: `Tracking ID: ${delivery.trackingId} | ${new Date().toLocaleTimeString()}`,
+      title: "📦 Sahyog Delivery Complete",
+      body: `Sahyog Medical aapka ye parcel maine de diya. Tracking ID: ${delivery.trackingId} | ${getISTTime()}`,
       icon: "https://sahyogdelivery.vercel.app/favicon.png",
       badge: "https://sahyogdelivery.vercel.app/favicon.png",
       tag: `delivery-${Date.now()}`,
