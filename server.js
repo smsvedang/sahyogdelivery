@@ -300,7 +300,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 5.2. Auth Middleware
+// 5.2. Auth Middleware (Moved to top)
 const auth = (roles = []) => {
     return (req, res, next) => {
         try {
