@@ -381,6 +381,34 @@ app.post('/book', auth(['admin']), async (req, res) => {
         // --- AUTO-SYNC (CREATE) ---
         syncSingleDeliveryToSheet(newDelivery._id, 'create').catch(console.error);
 
+        // 🔔 NOTIFY MANAGER ON BOOKING
+if (managerId) {
+  const manager = await User.findById(managerId);
+
+  if (manager && manager.fcmToken) {
+    await admin.messaging().send({
+      token: manager.fcmToken,
+      webpush: {
+        headers: { Urgency: "high" },
+        notification: {
+          title: "🆕 New Delivery Booked",
+          body: `Manager saahab aapko ek nayi picup request mili hai ise jaldi se delivery waale bhaiya ko assign kar dijiye.  
+Tracking ID: ${trackingId} | ${getISTTime()}`,
+          icon: "https://sahyogdelivery.vercel.app/favicon.png",
+          tag: `booking-${trackingId}`,
+          requireInteraction: true
+        },
+        fcmOptions: {
+          link: "https://sahyogdelivery.vercel.app/login.html"
+        }
+      }
+    });
+
+    console.log("🔔 FCM SENT → MANAGER (BOOKING)");
+  }
+}
+
+
         res.status(201).json({ message: 'Courier booked successfully!', trackingId: trackingId, otp: otp }); 
     } catch (error) {
          console.error("Booking Error:", error);
@@ -949,8 +977,9 @@ app.patch('/manager/assign-delivery/:deliveryId', auth(['manager']), async (req,
       Urgency: "high"
     },
     notification: {
-      title: "🔥 Kaam Ready Hai , Parcel lene aajao",
-      body: `Pickup ke liye ready ho jao 💪 Tracking ID: ${trackingId} | ${getISTTime()}`,
+      title: "Ooo Bhaiya ye picup lene aajao 🚀",
+      body: `Pickup ke liye ready ho jao 💪 
+      Tracking ID: ${trackingId} | ${getISTTime()}`,
       icon: "https://sahyogdelivery.vercel.app/favicon.png",
       badge: "https://sahyogdelivery.vercel.app/favicon.png",
       tag: `delivery-${Date.now()}`,
@@ -1054,7 +1083,8 @@ if (manager && manager.fcmToken) {
     },
     notification: {
       title: "📦 Delivered Successfully",
-      body: `Manager saahab parcel successfully deliver ho gaya. Tracking ID: ${delivery.trackingId} | ${getISTTime()}`,
+      body: `Manager saahab parcel successfully deliver ho gaya. 
+      Tracking ID: ${delivery.trackingId} | ${getISTTime()}`,
       icon: "https://sahyogdelivery.vercel.app/favicon.png",
       badge: "https://sahyogdelivery.vercel.app/favicon.png",
       tag: `delivery-${Date.now()}`,
@@ -1086,7 +1116,8 @@ for (const a of admins) {
     },
     notification: {
       title: "📦 Sahyog Delivery Complete",
-      body: `Sahyog Medical aapka ye parcel maine de diya. Tracking ID: ${delivery.trackingId} | ${getISTTime()}`,
+      body: `Sahyog Medical aapka ye parcel maine de diya. 
+      Tracking ID: ${delivery.trackingId} | ${getISTTime()}`,
       icon: "https://sahyogdelivery.vercel.app/favicon.png",
       badge: "https://sahyogdelivery.vercel.app/favicon.png",
       tag: `delivery-${Date.now()}`,
