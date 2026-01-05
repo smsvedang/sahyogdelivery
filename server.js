@@ -93,7 +93,7 @@ const auth = (roles = []) => {
 };
 
 // --- 3.1. FCM Token Save Endpoint ---
-app.post('/save-fcm-token', auth(['admin','manager','delivery']), async (req, res) => {
+app.post('/api/save-fcm-token', auth(['admin','manager','delivery']), async (req, res) => {
   const { token } = req.body;
 
   if (!token) {
