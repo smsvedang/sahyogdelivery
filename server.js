@@ -935,7 +935,7 @@ app.patch('/manager/assign-delivery/:deliveryId', auth(['manager']), async (req,
         if (boy.fcmToken) {
   try {
     const response = await admin.messaging().send({
-  token: delivery.fcmToken,
+  token: boy.fcmToken,
   webpush: {
     headers: {
       Urgency: "high"
