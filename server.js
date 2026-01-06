@@ -1110,21 +1110,22 @@ app.post('/manager/reassign-delivery/:deliveryId', auth(['manager']), async (req
     }
 
     if (oldDeliveryBoy?.fcmTokens?.length) {
-  for (const token of oldDeliveryBoy.fcmTokens) {
-    await sendNotification(
-      token,
-      "Delivery Unassigned",
-      `Aapki ek delivery unassign ho gayi hai. Tracking ID: ${delivery.trackingId} | ${getISTTime()}`,
-      oldDeliveryBoy._id,
-      {
-        headers: { Urgency: "high" },
-        icon: "https://sahyogdelivery.vercel.app/favicon.png",
-        badge: "https://sahyogdelivery.vercel.app/favicon.png",
-        tag: `delivery-unassigned-${Date.now()}`,
-        requireInteraction: true
-      }
-    );
-  }
+      try {
+        for (const token of oldDeliveryBoy.fcmTokens) {
+          await sendNotification(
+            token,
+            "Delivery Unassigned",
+            `Aapki ek delivery unassign ho gayi hai. Tracking ID: ${delivery.trackingId} | ${getISTTime()}`,
+            oldDeliveryBoy._id,
+            {
+              headers: { Urgency: "high" },
+              icon: "https://sahyogdelivery.vercel.app/favicon.png",
+              badge: "https://sahyogdelivery.vercel.app/favicon.png",
+              tag: `delivery-unassigned-${Date.now()}`,
+              requireInteraction: true
+            }
+          );
+        }
         console.log("🔔 FCM SENT → OLD DELIVERY BOY (UNASSIGNED)");
       } catch (err) {
         console.error("❌ FCM FAILED → OLD DELIVERY BOY (UNASSIGNED):", err.code, err.message);
@@ -1184,40 +1185,13 @@ app.post('/delivery/complete', auth(['delivery']), async (req, res) => {
 const manager = await User.findById(delivery.assignedByManager);
 
 if (manager?.fcmTokens?.length) {
-  for (const token of manager.fcmTokens) {
-    await sendNotification(
-      token,
-      "📦 Delivered Successfully",
-      `Manager saahab parcel successfully deliver ho gaya.\nTracking ID: ${delivery.trackingId} | ${getISTTime()}`,
-      manager._id,
-      {
-        headers: { Urgency: "high" },
-        icon: "https://sahyogdelivery.vercel.app/favicon.png",
-        badge: "https://sahyogdelivery.vercel.app/favicon.png",
-        tag: `delivery-${Date.now()}`,
-        requireInteraction: true,
-        link: "https://sahyogdelivery.vercel.app"
-      }
-    );
-  }
-  console.log("🔔 FCM SENT → MANAGER:", response);
-  } catch (err) {
-    console.error("❌ FCM FAILED → MANAGER:", err.code, err.message);
-  }
-}
-
-
-// 🔔 FCM PUSH → Admins
-const admins = await User.find({ role: 'admin', fcmToken: { $ne: null } });
-
-for (const a of admins) {
-  if (a?.fcmTokens?.length) {
-    for (const token of a.fcmTokens) {
+  try {
+    for (const token of manager.fcmTokens) {
       await sendNotification(
         token,
-        "📦 Sahyog Delivery Complete",
-        `Sahyog Medical aapka ye parcel maine de diya.\nTracking ID: ${delivery.trackingId} | ${getISTTime()}`,
-        a._id,
+        "📦 Delivered Successfully",
+        `Manager saahab parcel successfully deliver ho gaya.\nTracking ID: ${delivery.trackingId} | ${getISTTime()}`,
+        manager._id,
         {
           headers: { Urgency: "high" },
           icon: "https://sahyogdelivery.vercel.app/favicon.png",
@@ -1228,13 +1202,38 @@ for (const a of admins) {
         }
       );
     }
+    console.log("🔔 FCM SENT → MANAGER");
+  } catch (err) {
+    console.error("❌ FCM FAILED → MANAGER:", err.code, err.message);
   }
 }
-});
 
-    console.log(`🔔 FCM SENT → ADMIN (${a.name}):`, response);
-  } catch (err) {
-    console.error(`❌ FCM FAILED → ADMIN (${a.name}):`, err.code, err.message);
+
+// 🔔 FCM PUSH → Admins
+const admins = await User.find({ role: 'admin' });
+for (const a of admins) {
+  if (a?.fcmTokens?.length) {
+    try {
+      for (const token of a.fcmTokens) {
+        await sendNotification(
+          token,
+          "📦 Sahyog Delivery Complete",
+          `Sahyog Medical aapka ye parcel maine de diya.\nTracking ID: ${delivery.trackingId} | ${getISTTime()}`,
+          a._id,
+          {
+            headers: { Urgency: "high" },
+            icon: "https://sahyogdelivery.vercel.app/favicon.png",
+            badge: "https://sahyogdelivery.vercel.app/favicon.png",
+            tag: `delivery-${Date.now()}`,
+            requireInteraction: true,
+            link: "https://sahyogdelivery.vercel.app"
+          }
+        );
+      }
+      console.log(`🔔 FCM SENT → ADMIN (${a.name})`);
+    } catch (err) {
+      console.error(`❌ FCM FAILED → ADMIN (${a.name}):`, err.code, err.message);
+    }
   }
 }
 
