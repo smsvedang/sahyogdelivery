@@ -260,20 +260,23 @@ function saveTokenToServer(token) {
  </div>
 </div>
 
-    <div id="reassign-modal" class="modal" style="display:none;align-items:center;justify-content:center;">
- <div style="background:white;padding:20px;border-radius:8px;width:350px;">
-  <h3>Reassign Delivery</h3>
+    <div id="reassign-modal" class="modal" style="display:none; position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:9999;">
+ <div style="background:white;padding:20px;border-radius:8px;width:90%;max-width:420px; box-shadow:0 8px 24px rgba(0,0,0,0.3); position:relative;">
+  <button onclick="document.getElementById('reassign-modal').style.display='none'" style="position:absolute;right:12px;top:10px;border:none;background:transparent;font-size:20px;cursor:pointer;">&times;</button>
+  <h3 style="margin-top:0;">Reassign Delivery</h3>
   <input type="hidden" id="reassign-delivery-id">
-  <p>Reassign Tracking ID: <span id="reassign-tracking-id"></span></p>
-  <p>Currently Assigned: <span id="current-assigned-boy"></span></p>
+  <p style="margin-bottom:6px;">Tracking ID: <strong><span id="reassign-tracking-id"></span></strong></p>
+  <p style="margin-top:0;margin-bottom:12px;">Currently Assigned: <span id="current-assigned-boy"></span></p>
 
   <label for="new-delivery-boy-select">New Delivery Boy</label>
   <select id="new-delivery-boy-select" style="width:100%; padding:10px; margin-bottom:15px; border-radius:5px;">
     <option value="">Select a boy</option>
   </select>
 
-  <button onclick="confirmReassignment()" class="btn-success" style="margin-top:10px;">Confirm Reassign</button>
-  <button onclick="document.getElementById('reassign-modal').style.display='none'" class="btn-danger">Close</button>
+  <div style="display:flex; gap:10px; justify-content:flex-end;">
+    <button onclick="confirmReassignment()" class="btn-success" style="margin-top:10px;">Confirm</button>
+    <button onclick="document.getElementById('reassign-modal').style.display='none'" class="btn-danger" style="margin-top:10px;">Cancel</button>
+  </div>
  </div>
 </div>
 
