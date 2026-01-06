@@ -158,6 +158,7 @@ function saveTokenToServer(token) {
                         <th>Status</th>
                         <th>Assigned Boy</th>
                         <th>Payment</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="all-pending-body">
@@ -256,6 +257,23 @@ function saveTokenToServer(token) {
 
   <button onclick="saveBoyEdit()" class="btn-success" style="margin-top:10px;">Save</button>
   <button onclick="document.getElementById('edit-boy-modal').style.display='none'" class="btn-danger">Close</button>
+ </div>
+</div>
+
+    <div id="reassign-modal" class="modal" style="display:none;align-items:center;justify-content:center;">
+ <div style="background:white;padding:20px;border-radius:8px;width:350px;">
+  <h3>Reassign Delivery</h3>
+  <input type="hidden" id="reassign-delivery-id">
+  <p>Reassign Tracking ID: <span id="reassign-tracking-id"></span></p>
+  <p>Currently Assigned: <span id="current-assigned-boy"></span></p>
+
+  <label for="new-delivery-boy-select">New Delivery Boy</label>
+  <select id="new-delivery-boy-select" style="width:100%; padding:10px; margin-bottom:15px; border-radius:5px;">
+    <option value="">Select a boy</option>
+  </select>
+
+  <button onclick="confirmReassignment()" class="btn-success" style="margin-top:10px;">Confirm Reassign</button>
+  <button onclick="document.getElementById('reassign-modal').style.display='none'" class="btn-danger">Close</button>
  </div>
 </div>
 
@@ -377,7 +395,12 @@ function saveTokenToServer(token) {
             if (!tbody) return;
             tbody.innerHTML = '<tr><td colspan="6">Loading pickups assigned to you...</td></tr>';
             try {
-                const response = await fetch(`${API_BASE}/manager/assigned-pickups`, { headers })
+                // Ensure myDeliveryBoys are loaded before proceeding
+                if (myDeliveryBoys.length === 0) {
+                    await loadMyBoys(); // Wait for boys to load
+                }
+
+                const response = await fetch(`${API_BASE}/manager/assigned-pickups`, { headers });
                 if (response.status === 401) { window.location.href = 'login.html'; return; }
                 if (!response.ok) throw new Error(`HTTP error ${response.status}`);
                 const deliveries = await response.json();
@@ -442,9 +465,20 @@ function saveTokenToServer(token) {
                     row.innerHTML = `
                         <td>${d.trackingId}</td>
                         <td>${d.customerName || 'N/A'}</td>
-                        <td><strong>${d.currentStatus}</strong></td>
-                        <td>${d.assignedTo ? d.assignedTo.name : (d.assignedBoyDetails ? d.assignedBoyDetails.name : 'N/A')}</td>
-                        <td>${d.paymentMethod}</td> 
+                        <td>
+                            <strong>${d.currentStatus}</strong>
+                            ${d.currentStatus === 'Reassigned' ? '<span style="background-color:#ffe0b2; padding: 3px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 5px;">Reassigned</span>' : ''}
+                        </td>
+                        <td>
+                            ${d.assignedTo ? `${d.assignedTo.name} (${d.assignedBoyDetails?.phone || 'N/A'})` : (d.assignedBoyDetails ? `${d.assignedBoyDetails.name} (${d.assignedBoyDetails.phone || 'N/A'})` : 'N/A')}
+                        </td>
+                        <td>${d.paymentMethod}</td>
+                        <td>
+                            ${d.currentStatus !== 'Delivered' && d.currentStatus !== 'Cancelled' ? 
+                                `<button class="btn-primary" onclick="openReassignModal('${d._id}', '${d.assignedTo ? d.assignedTo.name : 'N/A'}')">Reassign</button>` : 
+                                ''
+                            }
+                        </td>
                     `;
                     tbody.appendChild(row);
                 });
@@ -634,6 +668,60 @@ async function saveBoyEdit() {
     if(res.ok){
         document.getElementById('edit-boy-modal').style.display='none';
         loadMyBoys();
+    }
+}
+
+// --- Reassign Logic ---
+async function openReassignModal(deliveryId, currentAssignedName) {
+    document.getElementById('reassign-delivery-id').value = deliveryId;
+    document.getElementById('reassign-tracking-id').textContent = deliveries.find(d => d._id === deliveryId)?.trackingId || 'N/A';
+    document.getElementById('current-assigned-boy').textContent = currentAssignedName;
+    
+    const select = document.getElementById('new-delivery-boy-select');
+    select.innerHTML = '<option value="">Select a boy</option>';
+
+    if (myDeliveryBoys.length > 0) {
+        myDeliveryBoys.forEach(boy => {
+            if (boy.isActive) {
+                const option = document.createElement('option');
+                option.value = boy._id;
+                option.textContent = boy.name;
+                select.appendChild(option);
+            }
+        });
+    }
+    document.getElementById('reassign-modal').style.display = 'flex';
+}
+
+async function confirmReassignment() {
+    const deliveryId = document.getElementById('reassign-delivery-id').value;
+    const newDeliveryBoyId = document.getElementById('new-delivery-boy-select').value;
+
+    if (!newDeliveryBoyId) {
+        alert('Please select a new delivery boy.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/manager/reassign-delivery/${deliveryId}`, {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newDeliveryBoyId })
+        });
+
+        if (response.status === 401) { window.location.href = 'login.html'; return; }
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error ${response.status}`);
+        }
+
+        alert('Delivery reassigned successfully!');
+        document.getElementById('reassign-modal').style.display = 'none';
+        loadAllPendingDeliveries(); // Refresh the list
+
+    } catch (error) {
+        console.error("Reassignment failed:", error);
+        alert(`Failed to reassign delivery: ${error.message}`);
     }
 }
     </script>
