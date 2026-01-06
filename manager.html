@@ -290,6 +290,7 @@ function saveTokenToServer(token) {
         const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
         let myDeliveryBoys = []; // Store boys for assignment dropdown
         let deliveries = []; // For completed deliveries
+        let allPendingDeliveries = []; // For all pending deliveries
         let filtered = []; // For completed deliveries
 
         function formatDateToYYYYMMDD(dateString) {
@@ -453,6 +454,7 @@ function saveTokenToServer(token) {
                 if (!response.ok) throw new Error(`HTTP error ${response.status}`);
                 
                 const deliveries = await response.json();
+                allPendingDeliveries = deliveries; // Store globally
                 tbody.innerHTML = ''; // Clear loading
 
                 if (deliveries.length === 0) {
@@ -470,7 +472,7 @@ function saveTokenToServer(token) {
                             ${d.currentStatus === 'Reassigned' ? '<span style="background-color:#ffe0b2; padding: 3px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 5px;">Reassigned</span>' : ''}
                         </td>
                         <td>
-                            ${d.assignedTo ? `${d.assignedTo.name} (${d.assignedBoyDetails?.phone || 'N/A'})` : (d.assignedBoyDetails ? `${d.assignedBoyDetails.name} (${d.assignedBoyDetails.phone || 'N/A'})` : 'N/A')}
+                            ${d.assignedTo ? `${d.assignedTo.name} (${d.assignedTo.phone || (d.assignedBoyDetails?.phone || 'N/A')})` : (d.assignedBoyDetails ? `${d.assignedBoyDetails.name} (${d.assignedBoyDetails.phone || 'N/A'})` : 'N/A')}
                         </td>
                         <td>${d.paymentMethod}</td>
                         <td>
@@ -674,9 +676,29 @@ async function saveBoyEdit() {
 // --- Reassign Logic ---
 async function openReassignModal(deliveryId, currentAssignedName) {
     document.getElementById('reassign-delivery-id').value = deliveryId;
-    document.getElementById('reassign-tracking-id').textContent = deliveries.find(d => d._id === deliveryId)?.trackingId || 'N/A';
-    document.getElementById('current-assigned-boy').textContent = currentAssignedName;
-    
+
+    // Try to find locally cached pending delivery first
+    let delivery = allPendingDeliveries.find(d => d._id === deliveryId);
+    if (!delivery) {
+        // Fetch latest pending deliveries as fallback
+        try {
+            const resp = await fetch(`${API_BASE}/manager/all-pending-deliveries`, { headers });
+            if (resp.ok) {
+                const list = await resp.json();
+                allPendingDeliveries = list;
+                delivery = allPendingDeliveries.find(d => d._id === deliveryId);
+            }
+        } catch (e) {
+            console.error('Failed to fetch pending deliveries for modal:', e);
+        }
+    }
+
+    document.getElementById('reassign-tracking-id').textContent = delivery ? (delivery.trackingId || 'N/A') : 'N/A';
+
+    // Show current assigned boy with phone if available
+    const assignedText = delivery ? (delivery.assignedTo ? `${delivery.assignedTo.name} (${delivery.assignedTo.phone || (delivery.assignedBoyDetails?.phone || 'N/A')})` : (delivery.assignedBoyDetails ? `${delivery.assignedBoyDetails.name} (${delivery.assignedBoyDetails.phone || 'N/A'})` : 'N/A')) : currentAssignedName || 'N/A';
+    document.getElementById('current-assigned-boy').textContent = assignedText;
+
     const select = document.getElementById('new-delivery-boy-select');
     select.innerHTML = '<option value="">Select a boy</option>';
 
