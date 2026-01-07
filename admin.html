@@ -153,6 +153,21 @@ function saveTokenToServer(token) {
         /* Checkbox Size */
         #all-deliveries-table input[type="checkbox"] { transform: scale(1.5); margin: 0 5px 0 3px; cursor: pointer; }
         #select-all-checkbox { transform: scale(1.5); cursor: pointer; }
+
+        /* Users Accordion (Foldable) */
+        #user-controls { margin-bottom: 12px; display:flex; gap:10px; align-items:center; }
+        .role-section { margin-bottom: 12px; border: 1px solid #e9ecef; border-radius: 6px; background: #fff; overflow: hidden; }
+        .role-header { padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+        .role-title { font-weight:700; font-size:1.02em; }
+        .role-count { color:#666; margin-left: 8px; font-weight:600; }
+        .role-body { padding: 8px 14px 14px 14px; border-top:1px solid #f6f6f6; }
+        .user-card { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #f0f0f0; }
+        .user-left { display:flex; flex-direction:column; gap:2px; }
+        .user-meta { color:#666; font-size:0.9em; margin-left:10px; }
+        .user-actions button { margin-left:8px; }
+        .badge { display:inline-block; padding:4px 8px; border-radius:12px; font-size:0.8em; margin-left:8px; }
+        .badge-role { background:#e9ecef; color:#333; }
+        .no-users { color:#666; padding:8px 14px; }
     </style>
 </head>
 <body>
@@ -287,19 +302,15 @@ function saveTokenToServer(token) {
     </div>
 </div>
 
-<table id="users-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email (Username)</th>
-                        <th>Phone</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="users-body"></tbody>
-            </table>
+<div id="user-controls">
+    <input type="search" id="user-search" placeholder="Search name, email or phone" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:6px;">
+    <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:#555;"><input type="checkbox" id="show-inactive"> Show inactive</label>
+    <button id="collapse-all-btn" class="btn-secondary">Collapse All</button>
+    <button id="expand-all-btn" class="btn-secondary">Expand All</button>
+</div>
+
+<div id="users-accordion"></div>
+<p id="users-empty" class="no-users" style="display:none;">No users found.</p> 
         </div>
     </div>
 
@@ -851,11 +862,86 @@ ${window.location.origin}/track.html?tid=${trackingId}
     }
 
     async function loadAllUsers() {
-        const tbody = document.getElementById('users-body'); if (!tbody) return; tbody.innerHTML = '<tr><td colspan="6">Loading users...</td></tr>';
-        try { const r = await fetch(`${API_BASE}/admin/users`, { headers }); if(r.status===401){window.location.href='/login';return} if(!r.ok)throw new Error(`HTTP ${r.status}`); const users = await r.json(); allUsersData = users; tbody.innerHTML=''; if(users.length===0){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;">No users.</td></tr>';return}
-            users.forEach(u=>{const row=tbody.insertRow(),sClass=u.isActive?'status-active':'status-inactive',btnTxt=u.isActive?'Deactivate':'Activate',btnClass=u.isActive?'btn-warning':'btn-success'; row.insertCell().textContent=u.name; row.insertCell().textContent=u.email; row.insertCell().textContent=u.phone||'N/A'; row.insertCell().textContent=u.role; row.insertCell().innerHTML=`<span class="${sClass}">${u.isActive?'Active':'Inactive'}</span>`; row.insertCell().innerHTML=`<button class="btn-secondary btn-sm" onclick="openEditUserModal('${u._id}')">Edit</button><button class="${btnClass} btn-sm" onclick="toggleUserActive('${u._id}')">${btnTxt}</button>`; });
-        } catch (e) { console.error("Load users error:", e); tbody.innerHTML=`<tr><td colspan="6" style="color:red;text-align:center;">Error: ${e.message}</td></tr>`; }
+        const accordion = document.getElementById('users-accordion'); if(!accordion) return; accordion.innerHTML = '<div class="no-users">Loading users...</div>';
+        try {
+            const r = await fetch(`${API_BASE}/admin/users`, { headers });
+            if (r.status === 401) { window.location.href = '/login'; return }
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const users = await r.json(); allUsersData = users || [];
+            renderUsers();
+            loadManagersForDropdown(); // refresh manager list used by forms
+        } catch (e) {
+            console.error("Load users error:", e);
+            accordion.innerHTML = `<div class="no-users" style="color:red;">Error loading users: ${e.message}</div>`;
+        }
     }
+
+    function renderUsers() {
+        const q = (document.getElementById('user-search')?.value || '').trim().toLowerCase();
+        const showInactive = !!document.getElementById('show-inactive')?.checked;
+        const accordion = document.getElementById('users-accordion'); if(!accordion) return;
+        accordion.innerHTML = '';
+
+        const filtered = allUsersData.filter(u => {
+            if (!showInactive && !u.isActive) return false;
+            if (!q) return true;
+            const hay = `${u.name || ''} ${u.email || ''} ${u.phone || ''}`.toLowerCase();
+            return hay.includes(q);
+        });
+
+        if (filtered.length === 0) {
+            document.getElementById('users-empty').style.display = 'block';
+            return;
+        } else {
+            document.getElementById('users-empty').style.display = 'none';
+        }
+
+        const byRole = filtered.reduce((acc, u) => { acc[u.role] = acc[u.role] || []; acc[u.role].push(u); return acc; }, {});
+
+        const rolesOrder = ['admin','manager','delivery'];
+        rolesOrder.forEach(roleKey => {
+            const list = byRole[roleKey] || [];
+            const roleTitle = roleKey.charAt(0).toUpperCase() + roleKey.slice(1) + (roleKey==='delivery'?' Boys':'s');
+            const section = document.createElement('div'); section.className = 'role-section';
+            const header = document.createElement('div'); header.className = 'role-header';
+            header.innerHTML = `<div><span class="role-title">${roleTitle}</span><span class="role-count">${list.length}</span></div><div><button class="btn-secondary" data-role-toggle>Toggle</button></div>`;
+            header.querySelector('[data-role-toggle]').addEventListener('click', (e)=>{ e.stopPropagation(); body.style.display = (body.style.display === 'none') ? '' : 'none'; e.target.textContent = body.style.display === 'none' ? 'Expand' : 'Collapse'; });
+            header.addEventListener('click', ()=>{ body.style.display = (body.style.display === 'none') ? '' : 'none'; const btn = header.querySelector('[data-role-toggle]'); if(btn) btn.textContent = body.style.display === 'none' ? 'Expand' : 'Collapse'; });
+            section.appendChild(header);
+            const body = document.createElement('div'); body.className = 'role-body';
+
+            if (list.length === 0) {
+                body.innerHTML = `<div class="no-users">No ${roleTitle} found.</div>`;
+            } else {
+                list.forEach(u => {
+                    const card = document.createElement('div'); card.className = 'user-card';
+                    const left = document.createElement('div'); left.className = 'user-left'; left.innerHTML = `<strong>${u.name}</strong><div class="user-meta">${u.email}${u.phone?(' • '+u.phone):''}</div>`;
+                    const right = document.createElement('div'); right.style.display='flex'; right.style.alignItems='center';
+                    const statusSpan = document.createElement('span'); statusSpan.className = u.isActive? 'status-active' : 'status-inactive'; statusSpan.textContent = u.isActive? 'Active' : 'Inactive';
+                    const editBtn = document.createElement('button'); editBtn.className = 'btn-secondary'; editBtn.textContent = 'Edit'; editBtn.onclick = ()=>openEditUserModal(u._id);
+                    const toggleBtn = document.createElement('button'); toggleBtn.className = u.isActive? 'btn-warning':'btn-success'; toggleBtn.textContent = u.isActive? 'Deactivate':'Activate'; toggleBtn.onclick = ()=>{ if(confirm(`Are you sure to ${u.isActive? 'deactivate':'activate'} ${u.name}?`)) toggleUserActive(u._id); };
+                    right.appendChild(statusSpan); right.appendChild(editBtn); right.appendChild(toggleBtn);
+                    card.appendChild(left); card.appendChild(right);
+                    body.appendChild(card);
+                });
+            }
+
+            section.appendChild(body);
+            accordion.appendChild(section);
+        });
+    }
+
+    // Collapse / Expand All handlers
+    function collapseAllRoles() { document.querySelectorAll('.role-body').forEach(b=>{ b.style.display = 'none'; const btn=b.previousSibling.querySelector('[data-role-toggle]'); if(btn) btn.textContent = 'Expand'; }); }
+    function expandAllRoles() { document.querySelectorAll('.role-body').forEach(b=>{ b.style.display = ''; const btn=b.previousSibling.querySelector('[data-role-toggle]'); if(btn) btn.textContent = 'Collapse'; }); }
+
+    // Wire up controls
+    document.addEventListener('DOMContentLoaded', () => {
+        const search = document.getElementById('user-search'); if(search) search.addEventListener('input', ()=>renderUsers());
+        const showInactive = document.getElementById('show-inactive'); if(showInactive) showInactive.addEventListener('change', ()=>renderUsers());
+        const collapseBtn = document.getElementById('collapse-all-btn'); if(collapseBtn) collapseBtn.addEventListener('click', collapseAllRoles);
+        const expandBtn = document.getElementById('expand-all-btn'); if(expandBtn) expandBtn.addEventListener('click', expandAllRoles);
+    });
     
     async function handleAddUserSubmit(e) {
     e.preventDefault();
