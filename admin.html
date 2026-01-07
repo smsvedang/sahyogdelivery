@@ -167,6 +167,7 @@ function saveTokenToServer(token) {
         .user-actions button { margin-left:8px; }
         .badge { display:inline-block; padding:4px 8px; border-radius:12px; font-size:0.8em; margin-left:8px; }
         .badge-role { background:#e9ecef; color:#333; }
+        .badge.no-token { background:#ffe6e6; color:#a00; border:1px solid #f5c2c2; padding:3px 7px; font-weight:700; }
         .no-users { color:#666; padding:8px 14px; }
     </style>
 </head>
@@ -913,17 +914,53 @@ ${window.location.origin}/track.html?tid=${trackingId}
             if (list.length === 0) {
                 body.innerHTML = `<div class="no-users">No ${roleTitle} found.</div>`;
             } else {
-                list.forEach(u => {
-                    const card = document.createElement('div'); card.className = 'user-card';
-                    const left = document.createElement('div'); left.className = 'user-left'; left.innerHTML = `<strong>${u.name}</strong><div class="user-meta">${u.email}${u.phone?(' • '+u.phone):''}</div>`;
-                    const right = document.createElement('div'); right.style.display='flex'; right.style.alignItems='center';
-                    const statusSpan = document.createElement('span'); statusSpan.className = u.isActive? 'status-active' : 'status-inactive'; statusSpan.textContent = u.isActive? 'Active' : 'Inactive';
-                    const editBtn = document.createElement('button'); editBtn.className = 'btn-secondary'; editBtn.textContent = 'Edit'; editBtn.onclick = ()=>openEditUserModal(u._id);
-                    const toggleBtn = document.createElement('button'); toggleBtn.className = u.isActive? 'btn-warning':'btn-success'; toggleBtn.textContent = u.isActive? 'Deactivate':'Activate'; toggleBtn.onclick = ()=>{ if(confirm(`Are you sure to ${u.isActive? 'deactivate':'activate'} ${u.name}?`)) toggleUserActive(u._id); };
-                    right.appendChild(statusSpan); right.appendChild(editBtn); right.appendChild(toggleBtn);
-                    card.appendChild(left); card.appendChild(right);
-                    body.appendChild(card);
-                });
+                if (roleKey === 'delivery') {
+                    // Group delivery boys by their manager
+                    const byManager = list.reduce((acc, u) => {
+                        const mname = (u.createdByManager && u.createdByManager.name) ? u.createdByManager.name : 'Unassigned';
+                        acc[mname] = acc[mname] || [];
+                        acc[mname].push(u);
+                        return acc;
+                    }, {});
+
+                    Object.keys(byManager).forEach(managerName => {
+                        const groupHeader = document.createElement('div'); groupHeader.style.padding = '8px 0 4px 0'; groupHeader.style.fontWeight = '700'; groupHeader.style.borderBottom = '1px solid #f0f0f0';
+                        groupHeader.style.display = 'flex'; groupHeader.style.justifyContent = 'space-between'; groupHeader.style.alignItems = 'center';
+                        groupHeader.innerHTML = `<div>${managerName} <span class="role-count">(${byManager[managerName].length})</span></div><div><button class="btn-secondary" data-mgr-toggle>Expand</button></div>`;
+                        const mgrBody = document.createElement('div'); mgrBody.style.padding = '6px 0 12px 10px'; mgrBody.style.display = 'none';
+                        byManager[managerName].forEach(u => {
+                            const card = document.createElement('div'); card.className = 'user-card';
+                            const tokenBadge = (!u.fcmTokens || (Array.isArray(u.fcmTokens) && u.fcmTokens.length === 0)) ? '<span class="badge no-token">No Token</span>' : '';
+                            const left = document.createElement('div'); left.className = 'user-left'; left.innerHTML = `<strong>${u.name} ${tokenBadge}</strong><div class="user-meta">${u.email}${u.phone?(' • '+u.phone):''}</div>`;
+                            const right = document.createElement('div'); right.style.display='flex'; right.style.alignItems='center';
+                            const statusSpan = document.createElement('span'); statusSpan.className = u.isActive? 'status-active' : 'status-inactive'; statusSpan.textContent = u.isActive? 'Active' : 'Inactive';
+                            const editBtn = document.createElement('button'); editBtn.className = 'btn-secondary'; editBtn.textContent = 'Edit'; editBtn.onclick = ()=>openEditUserModal(u._id);
+                            const toggleBtn = document.createElement('button'); toggleBtn.className = u.isActive? 'btn-warning':'btn-success'; toggleBtn.textContent = u.isActive? 'Deactivate':'Activate'; toggleBtn.onclick = ()=>{ if(confirm(`Are you sure to ${u.isActive? 'deactivate':'activate'} ${u.name}?`)) toggleUserActive(u._id); };
+                            right.appendChild(statusSpan); right.appendChild(editBtn); right.appendChild(toggleBtn);
+                            card.appendChild(left); card.appendChild(right);
+                            mgrBody.appendChild(card);
+                        });
+                        // attach toggle behavior
+                        const toggleBtn = groupHeader.querySelector('[data-mgr-toggle]');
+                        toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); if (mgrBody.style.display === 'none') { mgrBody.style.display = ''; toggleBtn.textContent = 'Collapse'; } else { mgrBody.style.display = 'none'; toggleBtn.textContent = 'Expand'; } });
+                        groupHeader.addEventListener('click', () => { if (mgrBody.style.display === 'none') { mgrBody.style.display = ''; if (toggleBtn) toggleBtn.textContent = 'Collapse'; } else { mgrBody.style.display = 'none'; if (toggleBtn) toggleBtn.textContent = 'Expand'; } });
+                        body.appendChild(groupHeader);
+                        body.appendChild(mgrBody);
+                    });
+                } else {
+                    list.forEach(u => {
+                        const card = document.createElement('div'); card.className = 'user-card';
+                        const tokenBadge = (!u.fcmTokens || (Array.isArray(u.fcmTokens) && u.fcmTokens.length === 0)) ? '<span class="badge no-token">No Token</span>' : '';
+                        const left = document.createElement('div'); left.className = 'user-left'; left.innerHTML = `<strong>${u.name} ${tokenBadge}</strong><div class="user-meta">${u.email}${u.phone?(' • '+u.phone):''}</div>`;
+                        const right = document.createElement('div'); right.style.display='flex'; right.style.alignItems='center';
+                        const statusSpan = document.createElement('span'); statusSpan.className = u.isActive? 'status-active' : 'status-inactive'; statusSpan.textContent = u.isActive? 'Active' : 'Inactive';
+                        const editBtn = document.createElement('button'); editBtn.className = 'btn-secondary'; editBtn.textContent = 'Edit'; editBtn.onclick = ()=>openEditUserModal(u._id);
+                        const toggleBtn = document.createElement('button'); toggleBtn.className = u.isActive? 'btn-warning':'btn-success'; toggleBtn.textContent = u.isActive? 'Deactivate':'Activate'; toggleBtn.onclick = ()=>{ if(confirm(`Are you sure to ${u.isActive? 'deactivate':'activate'} ${u.name}?`)) toggleUserActive(u._id); };
+                        right.appendChild(statusSpan); right.appendChild(editBtn); right.appendChild(toggleBtn);
+                        card.appendChild(left); card.appendChild(right);
+                        body.appendChild(card);
+                    });
+                }
             }
 
             section.appendChild(body);

@@ -230,7 +230,7 @@ function saveTokenToServer(token) {
                 <option value="Prepaid">Prepaid</option>
             </select>
             <button onclick="exportExcel()">Export Excel</button>
-            <button class="print" onclick="window.print()">Print</button>
+            <button class="print" onclick="printCompletedDeliveries()">Print</button>
         </div>
         <table>
             <thead>
@@ -450,7 +450,7 @@ function saveTokenToServer(token) {
                         <td>${d.trackingId}</td>
                         <td>${d.customerName || 'N/A'}</td>
                         <td>${d.customerAddress || 'N/A'}</td>
-                        <td>${d.paymentMethod === 'COD' ? `₹${d.billAmount}` : 'Prepaid'}</td>
+                        <td>${d.paymentMethod === 'COD' ? ('₹' + d.billAmount) : 'Prepaid'}</td>
                         <td>${date}</td>
                         <td>${assignDropdownHTML}</td>
                     `;
@@ -491,12 +491,12 @@ function saveTokenToServer(token) {
                             ${d.currentStatus === 'Reassigned' ? '<span style="background-color:#ffe0b2; padding: 3px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 5px;">Reassigned</span>' : ''}
                         </td>
                         <td>
-                            ${d.assignedTo ? `${d.assignedTo.name} (${d.assignedTo.phone || (d.assignedBoyDetails?.phone || 'N/A')})` : (d.assignedBoyDetails ? `${d.assignedBoyDetails.name} (${d.assignedBoyDetails.phone || 'N/A'})` : 'N/A')}
+                            ${d.assignedTo ? (d.assignedTo.name + ' (' + (d.assignedTo.phone || (d.assignedBoyDetails?.phone || 'N/A')) + ')') : (d.assignedBoyDetails ? (d.assignedBoyDetails.name + ' (' + (d.assignedBoyDetails.phone || 'N/A') + ')') : 'N/A')}
                         </td>
                         <td>${d.paymentMethod}</td>
                         <td>
                             ${d.currentStatus !== 'Delivered' && d.currentStatus !== 'Cancelled' ? 
-                                `<button class="btn-primary" onclick="openReassignModal('${d._id}', '${d.assignedTo ? d.assignedTo.name : 'N/A'}')">Reassign</button>` : 
+                                '<button class="btn-primary" onclick="openReassignModal(\'' + d._id + '\', \'' + (d.assignedTo ? d.assignedTo.name : 'N/A') + '\')">Reassign</button>' : 
                                 ''
                             }
                         </td>
@@ -555,6 +555,53 @@ function exportExcel(){
     a.href=url;
     a.download="Completed_Deliveries.csv";
     a.click();
+}
+async function printCompletedDeliveries() {
+    // Build a compact printable page similar to delivery-boy print style
+    const rows = filtered.map(d => {
+        return `<tr><td>${d.trackingId}</td><td>${formatDateToYYYYMMDD(d.createdAt)||'-'}</td><td>${formatDateToYYYYMMDD(d.completedAt)||'-'}</td><td>${d.paymentMethod||'-'}</td></tr>`;
+    }).join('');
+
+    const title = 'Completed Delivery Records';
+
+    // Fetch business settings for logo/name (best-effort)
+    let settings = {};
+    try {
+        const r = await fetch(`${API_BASE}/public/settings`);
+        if (r.ok) settings = await r.json();
+    } catch (e) { /* ignore */ }
+
+    const logoHtml = settings.logoUrl ? `<img src="${settings.logoUrl}" style="height:40px; margin-right:10px;"/>` : '';
+    const bizName = settings.businessName || 'Sahyog Medical';
+    const printedBy = localStorage.getItem('userName') || '';
+
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+    <style>
+      body{font-family: Arial, Helvetica, sans-serif; padding:20px; color:#222}
+      .header{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
+      .header h1{font-size:16px;margin:0}
+      .header .sub{font-size:12px;color:#666}
+      table{border-collapse:collapse; width:70%; margin:0 auto;}
+      th,td{border:1px solid #ddd; padding:8px; text-align:left}
+      th{background:#f8f9fa}
+      footer{font-size:10px; text-align:center; margin-top:18px; color:#666}
+      @media print { body{padding:8mm} }
+    </style>
+    </head><body>
+    <div class="header">${logoHtml}<div style="text-align:center;"><h1>${bizName}</h1><div class="sub">${title}</div></div></div>
+    <table>
+      <thead><tr><th>Tracking ID</th><th>Booking Date</th><th>Delivery Date</th><th>Payment</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:#666">No completed deliveries</td></tr>'}</tbody>
+    </table>
+    <footer>Printed by ${printedBy} • ${location.href}</footer>
+    </body></html>`;
+
+    const w = window.open('', '_blank', 'width=800,height=600');
+    if (!w) { alert('Allow popups to print.'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    setTimeout(function() { w.print(); setTimeout(function() { w.close(); }, 500); }, 200);
 }
 
         // --- 5. Action Handlers ---
@@ -715,7 +762,7 @@ async function openReassignModal(deliveryId, currentAssignedName) {
     document.getElementById('reassign-tracking-id').textContent = delivery ? (delivery.trackingId || 'N/A') : 'N/A';
 
     // Show current assigned boy with phone if available
-    const assignedText = delivery ? (delivery.assignedTo ? `${delivery.assignedTo.name} (${delivery.assignedTo.phone || (delivery.assignedBoyDetails?.phone || 'N/A')})` : (delivery.assignedBoyDetails ? `${delivery.assignedBoyDetails.name} (${delivery.assignedBoyDetails.phone || 'N/A'})` : 'N/A')) : currentAssignedName || 'N/A';
+    const assignedText = delivery ? (delivery.assignedTo ? (delivery.assignedTo.name + ' (' + (delivery.assignedTo.phone || (delivery.assignedBoyDetails?.phone || 'N/A')) + ')') : (delivery.assignedBoyDetails ? (delivery.assignedBoyDetails.name + ' (' + (delivery.assignedBoyDetails.phone || 'N/A') + ')') : 'N/A')) : currentAssignedName || 'N/A';
     document.getElementById('current-assigned-boy').textContent = assignedText;
 
     const select = document.getElementById('new-delivery-boy-select');
