@@ -20,6 +20,18 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 </script>
 <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log('✅ Service Worker registered:', reg.scope);
+    } catch (err) {
+      console.error('❌ Service Worker registration failed:', err);
+    }
+  });
+}
+</script>
+<script>
 function askForNotificationPermission() {
   Notification.requestPermission().then(permission => {
     if (permission === "granted") {
