@@ -170,6 +170,7 @@ function saveTokenToServer(token) {
                     <tr>
                         <th>Tracking ID</th>
                         <th>Customer Name</th>
+                        <th>Address</th>
                         <th>Status</th>
                         <th>Assigned Boy</th>
                         <th>Payment</th>
@@ -466,7 +467,7 @@ function saveTokenToServer(token) {
         async function loadAllPendingDeliveries() {
             const tbody = document.getElementById('all-pending-body');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="5">Loading all pending deliveries...</td></tr>'; // *** FIX: Colspan 5 (OTP hata diya) ***
+            tbody.innerHTML = '<tr><td colspan="6">Loading all pending deliveries...</td></tr>'; // *** FIX: Colspan 6 (Address column added) ***
             try {
                 const response = await fetch(`${API_BASE}/manager/all-pending-deliveries`, { headers })
                 if (response.status === 401) { window.location.href = 'login.html'; return; }
@@ -477,7 +478,7 @@ function saveTokenToServer(token) {
                 tbody.innerHTML = ''; // Clear loading
 
                 if (deliveries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No pending deliveries found.</td></tr>'; // *** FIX: Colspan 5 (OTP hata diya) ***
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No pending deliveries found.</td></tr>'; // *** FIX: Colspan 6 (Address column added) ***
                     return;
                 }
 
@@ -486,6 +487,7 @@ function saveTokenToServer(token) {
                     row.innerHTML = `
                         <td>${d.trackingId}</td>
                         <td>${d.customerName || 'N/A'}</td>
+                        <td>${d.customerAddress || 'N/A'}</td>
                         <td>
                             <strong>${d.currentStatus}</strong>
                             ${d.currentStatus === 'Reassigned' ? '<span style="background-color:#ffe0b2; padding: 3px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 5px;">Reassigned</span>' : ''}
@@ -505,7 +507,7 @@ function saveTokenToServer(token) {
                 });
             } catch (err) {
                  console.error("Error loading all pending deliveries:", err);
-                 tbody.innerHTML = `<tr><td colspan="5" style="color: red; text-align: center;">Error: ${err.message}</td></tr>`; // *** FIX: Colspan 5 (OTP hata diya) ***
+                 tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">Error: ${err.message}</td></tr>`; // *** FIX: Colspan 6 (Address column added) ***
             }
         }
 

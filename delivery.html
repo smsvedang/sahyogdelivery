@@ -87,69 +87,317 @@ function saveTokenToServer(token) {
 
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* General Styles */
-        .tab-content{ display:none; }
-#tab-completed{ display:none; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; }
-        h1, h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 5px; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .header button { padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button { cursor: pointer; border-radius: 5px; padding: 10px 15px; border: none; margin: 5px 0; }
-        button.btn-primary { background-color: #007bff; color: white; }
-        button.btn-secondary { background-color: #6c757d; color: white; }
-        button.btn-success { background-color: #28a745; color: white; }
-        input[type="text"], input[type="password"] { padding: 10px; width: calc(100% - 22px); max-width: 300px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
-        .message { padding: 10px; margin-top: 10px; border-radius: 5px; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
-        .footer { text-align: center; margin-top: 30px; color: #888; font-size: 0.9em; }
+        :root {
+            --primary-color: #f1c27d; /* Sahyog Blue */
+            --secondary-color: #6c757d; /* Muted Gray */
+            --accent-color: #28a745; /* Green for success/highlight */
+            --background-light: #f8f9fa; /* Very light background */
+            --background-dark: #e9ecef; /* Slightly darker background */
+            --text-dark: #343a40; /* Dark text */
+            --text-muted: #6c757d; /* Muted text */
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --shadow-light: rgba(0,0,0,0.08);
+            --shadow-hover: rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: var(--background-light);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .header h1 {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .header button {
+            padding: 10px 15px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button {
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 12px 18px;
+            border: none;
+            margin: 5px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow-light);
+        }
+
+        button.btn-primary { background-color: var(--primary-color); color: var(--text-dark); }
+        button.btn-secondary { background-color: var(--secondary-color); color: white; }
+        button.btn-success { background-color: var(--accent-color); color: white; }
+        button.btn-danger { background-color: #dc3545; color: white; }
+
+        input[type="text"], input[type="password"] {
+            padding: 12px;
+            width: calc(100% - 24px);
+            max-width: 400px;
+            margin-bottom: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .message {
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
         
         /* Card Layout */
-        .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; border: 1px solid #dee2e6; }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px var(--shadow-light);
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px var(--shadow-hover);
+        }
         
         /* Scanner Section */
-        #reader { width: 100%; max-width: 350px; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+        #reader {
+            width: 100%;
+            max-width: 350px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 0 auto;
+            display: block;
+        }
         
         /* Delivery List Section */
-        #delivery-list-container { padding: 0; }
-        .delivery-item {
-            list-style: none;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-left: 5px solid #007bff;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        #delivery-list-container {
+            padding: 0;
         }
-        .delivery-item .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .delivery-item .item-header .tracking-id { font-weight: bold; font-size: 1.1em; color: #007bff; }
-        .delivery-item .item-header .serial-no { font-size: 1.1em; font-weight: bold; color: #888; }
-        .delivery-item .item-body { font-size: 0.95em; color: #333; line-height: 1.5; }
-        .delivery-item .item-body strong { color: #000; }
-        .delivery-item .item-footer { margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
-        .delivery-item .item-footer button { font-size: 0.9em; padding: 5px 10px; background-color: #17a2b8; color: white; }
 
-        .pagination-controls { text-align: center; margin-top: 20px; }
-        #pagination-info { color: #666; margin-bottom: 10px; }
-        #show-more-btn { background-color: #007bff; color: white; width: 100%; max-width: 350px; }
-        #show-more-btn:disabled { background-color: #ccc; }
+        .delivery-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-left: 5px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px var(--shadow-light);
+            transition: all 0.3s ease;
+        }
+
+        .delivery-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px var(--shadow-hover);
+        }
+
+        .delivery-item.picked-up { border-left-color: #ffc107; }
+        .delivery-item.out-for-delivery { border-left-color: #17a2b8; }
+
+        .delivery-item .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .delivery-item .item-header .tracking-id {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: var(--primary-color);
+        }
+
+        .delivery-item .item-header .serial-no {
+                    font-size: 1em;
+            font-weight: bold;
+            color: var(--text-muted);
+        }
+
+        .delivery-item .item-body {
+            font-size: 1em;
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .delivery-item .item-body strong {
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        .delivery-item .item-footer {
+            margin-top: 15px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .delivery-item .item-footer .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .delivery-item .item-footer .status.picked-up { background-color: #fff3cd; color: #856404; }
+        .delivery-item .item-footer .status.out-for-delivery { background-color: #d1ecf1; color: #0c5460; }
+
+        .pagination-controls {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        #pagination-info {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        #show-more-btn {
+            background-color: var(--primary-color);
+            color: var(--text-dark);
+            border: 2px solid var(--primary-color);
+            font-weight: 700;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        #show-more-btn:hover {
+            background-color: var(--text-dark);
+            color: var(--primary-color);
+        }
+
+        #show-more-btn:disabled {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            cursor: not-allowed;
+            transform: none;
+        }
 
         /* Payment QR Modal */
         #qr-modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
-            overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center;
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
         }
+
         #qr-modal-content {
-            background-color: #fefefe; padding: 20px; border-radius: 8px; width: 300px; text-align: center;
-            position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
         }
+
         #qr-modal-content .close-button {
-            position: absolute; top: 10px; right: 15px; font-size: 28px;
-            font-weight: bold; color: #aaa; cursor: pointer;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.3s ease;
         }
-        #payment-qrcode { width: 256px; height: 256px; margin: 15px auto; }
+
+        #qr-modal-content .close-button:hover {
+            color: var(--text-dark);
+        }
+
+        #payment-qrcode {
+            width: 256px;
+            height: 256px;
+            margin: 20px auto;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .delivery-item .item-footer .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .delivery-item .item-footer .action-buttons button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        /* Tab content for completed deliveries */
+        .tab-content {
+            display: none;
+        }
+
+        #tab-completed {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -451,8 +699,11 @@ if (enableBtn) {
                             ${paymentInfo}
                         </div>
                         <div class="item-footer">
-                            <strong>Status:</strong> ${d.currentStatus}
-                            ${paymentButton}
+                            <span class="status ${d.currentStatus.toLowerCase().replace(' ', '-')}">${d.currentStatus}</span>
+                            <div class="action-buttons">
+                                ${d.currentStatus === 'Out for Delivery' ? `<button onclick="callCustomer('${d.customerPhone}')" class="btn-primary" style="background-color: #28a745;"><i class="fas fa-phone"></i> Call Customer</button>` : ''}
+                                ${paymentButton}
+                            </div>
                         </div>
                     `;
                     if (pendingList) pendingList.appendChild(li);
@@ -678,7 +929,7 @@ if (enableBtn) {
             }
         }
 
-        // --- 8. Push Notification ---
+        // --- 9. Push Notification ---
         async function enableNotificationsHandler() {
             if ('serviceWorker' in navigator && 'PushManager' in window) {
                 try {
@@ -709,7 +960,17 @@ if (enableBtn) {
             }
         };
 
-        // --- 9. Logout ---
+        // --- 10. Call Customer Function ---
+        function callCustomer(phoneNumber) {
+            if (!phoneNumber || phoneNumber === 'N/A') {
+                alert('Customer phone number not available.');
+                return;
+            }
+            // For mobile devices, use tel: protocol
+            window.location.href = `tel:${phoneNumber}`;
+        }
+
+        // --- 11. Logout ---
         function logoutHandler() {
             localStorage.clear();
             window.location.href = 'login.html';
