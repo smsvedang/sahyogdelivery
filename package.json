@@ -1,6 +1,7 @@
 {
   "name": "sahyog-delivery",
   "version": "1.0.0",
+  "type": "module",
   "description": "Sahyog Medical Delivery App",
   "main": "server.js",
   "scripts": {
