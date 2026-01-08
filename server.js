@@ -962,6 +962,79 @@ app.post('/api/fetch-margmart-orders', auth(['admin']), async (req, res) => {
   }
 });
 
+async function fetchMargmartEmails() {
+  const auth = new google.auth.OAuth2(
+    process.env.GMAIL_CLIENT_ID,
+    process.env.GMAIL_CLIENT_SECRET,
+    process.env.GMAIL_REDIRECT_URI
+  );
+
+  auth.setCredentials({
+    refresh_token: process.env.GMAIL_REFRESH_TOKEN
+  });
+
+  const gmail = google.gmail({ version: 'v1', auth });
+
+  // 🔴 YAHI PAR noreply@margmart.com LAGTA HAI
+  const res = await gmail.users.messages.list({
+    userId: 'me',
+    q: 'from:noreply@margmart.com'
+  });
+
+  if (!res.data.messages) return;
+
+  for (const msg of res.data.messages) {
+    const full = await gmail.users.messages.get({
+      userId: 'me',
+      id: msg.id,
+      format: 'full'
+    });
+
+    const part = full.data.payload.parts?.find(
+      p => p.mimeType === 'text/plain'
+    );
+    if (!part) continue;
+
+    const body = Buffer.from(part.body.data, 'base64').toString('utf-8');
+    const parsed = parseMargmartEmail(body);
+
+    if (!parsed?.orderNumber || !parsed?.address) {
+  console.log("⚠️ Email parsed but required fields missing");
+  continue;
+}
+
+// Duplicate check
+const exists = await DraftOrder.findOne({ orderNumber: parsed.orderNumber });
+if (exists) {
+  console.log(`↩️ Draft already exists for order ${parsed.orderNumber}`);
+  continue;
+}
+
+const pincode = extractPincode(parsed.address);
+
+// ❌ Skip if not serviceable pincode
+if (pincode !== '458110') {
+  await DraftOrder.create({
+    ...parsed,
+    pincode,
+    status: 'SKIPPED',
+    rawEmailId: msg.id
+  });
+  console.log(`⛔ Skipped order ${parsed.orderNumber} (${pincode})`);
+  continue;
+}
+
+// ✅ Create Draft
+await DraftOrder.create({
+  ...parsed,
+  pincode,
+  rawEmailId: msg.id
+});
+
+console.log(`📨 Draft created for order ${parsed.orderNumber}`);
+  }
+}
+
 // --- 8. Manager API Routes ---
 
 // 8.1. Manager: Get Pickups assigned (No changes)
