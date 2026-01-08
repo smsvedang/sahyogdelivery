@@ -232,8 +232,13 @@ function saveTokenToServer(token) {
 
     <div id="tab-drafts" class="tab-content">
   <div class="card" style="min-width:95%;">
-    <h2>📨 Draft Orders (Margmart)</h2>
-    <button class="btn-secondary" onclick="loadDrafts()">Refresh</button>
+    <h2>Draft Orders (Margmart)</h2>
+    <button class="btn-primary" onclick="fetchMargmartOrders()">
+  📩 Fetch Margmart Orders
+</button>
+<button class="btn-secondary" onclick="loadDrafts()">
+  🔄 Refresh
+</button>
 
     <table>
       <thead>
@@ -1399,6 +1404,23 @@ async function prefillBookingFromDraft(draftId) {
   document.getElementById('billAmount').value = d.amount || 0;
 
   alert('Details prefilled. Ab Book Courier click karo.');
+}
+
+async function fetchMargmartOrders() {
+  try {
+    const res = await fetch(`${API_BASE}/api/fetch-margmart-orders`, {
+      method: 'POST',
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`
+      }
+    });
+
+    const data = await res.json();
+    alert(data.message || 'Fetched');
+    loadDrafts();
+  } catch (err) {
+    alert('Failed to fetch emails');
+  }
 }
 
 </script>

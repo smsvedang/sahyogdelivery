@@ -950,6 +950,18 @@ app.get('/api/drafts', auth(['admin']), async (req, res) => {
   res.json(drafts);
 });
 
+// --- 7.13 Create Draft Order ---
+// 📩 Fetch Margmart Orders from Email (MANUAL TRIGGER)
+app.post('/api/fetch-margmart-orders', auth(['admin']), async (req, res) => {
+  try {
+    await fetchMargmartEmails();
+    res.json({ message: 'Margmart emails fetched successfully' });
+  } catch (err) {
+    console.error('Email fetch error:', err);
+    res.status(500).json({ message: 'Failed to fetch emails' });
+  }
+});
+
 // --- 8. Manager API Routes ---
 
 // 8.1. Manager: Get Pickups assigned (No changes)
