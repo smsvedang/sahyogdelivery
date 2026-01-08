@@ -274,16 +274,15 @@ function saveTokenToServer(token) {
             font-weight: 600;
         }
 
-        .delivery-item .item-footer {
-            margin-top: 15px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
+        .delivery-item .item-footer .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
         }
+
+        .delivery-item .item-footer .status.picked-up { background-color: #fff3cd; color: #856404; }
+        .delivery-item .item-footer .status.out-for-delivery { background-color: #d1ecf1; color: #0c5460; }
 
         .delivery-item .item-footer .status {
             font-weight: bold;
@@ -455,7 +454,7 @@ function saveTokenToServer(token) {
     </div>
 
     <input type="text" id="searchPending" placeholder="Search Tracking ID..." 
-       style="width:100%;padding:10px;margin-top:10px;margin-bottom:15px;border:1px solid #ccc;"
+       style="width:100%;padding:12px;margin-top:10px;margin-bottom:15px;border:2px solid var(--border-color);border-radius:8px;font-size:16px;"
        onkeyup="searchPendingList()">
     <div class="card">
         <h2>My Assigned Deliveries</h2>
@@ -674,8 +673,8 @@ if (enableBtn) {
                     const li = document.createElement('li');
                     li.className = 'delivery-item';
                     
-                    if(d.currentStatus === 'Picked Up') li.style.borderLeftColor = '#ffc107';
-                    if(d.currentStatus === 'Out for Delivery') li.style.borderLeftColor = '#17a2b8';
+                    if(d.currentStatus === 'Picked Up') li.classList.add('picked-up');
+                    if(d.currentStatus === 'Out for Delivery') li.classList.add('out-for-delivery');
 
                     const serialNumber = (currentPage - 1) * 5 + index + 1;
                     let paymentInfo = `<strong>Payment:</strong> ${d.paymentMethod}`;

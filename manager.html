@@ -84,42 +84,291 @@ function saveTokenToServer(token) {
 
     <meta name="theme-color" content="#f1c27d">
     <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
+        :root {
+            --primary-color: #f1c27d; /* Sahyog Blue */
+            --secondary-color: #6c757d; /* Muted Gray */
+            --accent-color: #28a745; /* Green for success/highlight */
+            --background-light: #f8f9fa; /* Very light background */
+            --background-dark: #e9ecef; /* Slightly darker background */
+            --text-dark: #343a40; /* Dark text */
+            --text-muted: #6c757d; /* Muted text */
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --shadow-light: rgba(0,0,0,0.08);
+            --shadow-hover: rgba(0,0,0,0.15);
+        }
+
         /* General Styles */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        h1, h2, h3 { color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #ccc; margin-bottom: 20px;}
-        .header button { padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button { cursor: pointer; border-radius: 5px; padding: 10px 15px; border: none; margin: 2px; }
-        button.btn-primary { background-color: #007bff; color: white; }
-        button.btn-secondary { background-color: #6c757d; color: white; }
-        button.btn-danger { background-color: #dc3545; color: white; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        input, select { width: calc(100% - 24px); padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: middle; }
-        th { background-color: #e9ecef; }
-        td select { width: 100%; font-size: 14px; padding: 8px; } /* Dropdown inside table */
-        .footer { text-align: center; margin-top: 30px; color: #888; font-size: 0.9em; }
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background-color: var(--background-light); 
+            margin: 0; 
+            padding: 20px; 
+            color: var(--text-dark);
+        }
+        
+        h1, h2, h3 { 
+            color: var(--text-dark); 
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding-bottom: 20px; 
+            border-bottom: 2px solid var(--primary-color); 
+            margin-bottom: 25px;
+        }
+        
+        .header button { 
+            padding: 10px 15px; 
+            background: #dc3545; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .header button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow-light);
+        }
+        
+        button { 
+            cursor: pointer; 
+            border-radius: 8px; 
+            padding: 12px 18px; 
+            border: none; 
+            margin: 5px; 
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow-light);
+        }
+        
+        button.btn-primary { 
+            background-color: var(--primary-color); 
+            color: var(--text-dark); 
+            border: 2px solid var(--primary-color);
+        }
+        
+        button.btn-primary:hover {
+            background-color: var(--text-dark);
+            color: var(--primary-color);
+        }
+        
+        button.btn-secondary { 
+            background-color: var(--secondary-color); 
+            color: white; 
+        }
+        
+        button.btn-danger { 
+            background-color: #dc3545; 
+            color: white; 
+        }
+        
+        button:disabled { 
+            background-color: #ccc; 
+            cursor: not-allowed; 
+            transform: none;
+            box-shadow: none;
+        }
+        
+        input, select { 
+            width: calc(100% - 24px); 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            border: 2px solid var(--border-color); 
+            border-radius: 8px; 
+            font-size: 16px; 
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        label { 
+            display: block; 
+            font-weight: 600; 
+            margin-bottom: 5px; 
+            color: var(--text-dark);
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            background: var(--card-bg); 
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px var(--shadow-light);
+        }
+        
+        th, td { 
+            border: 1px solid var(--border-color); 
+            padding: 12px; 
+            text-align: left; 
+            vertical-align: middle; 
+        }
+        
+        th { 
+            background-color: var(--primary-color); 
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 1em;
+        }
+        
+        td select { 
+            width: 100%; 
+            font-size: 14px; 
+            padding: 8px; 
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .footer { 
+            text-align: center; 
+            margin-top: 40px; 
+            color: var(--text-muted); 
+            font-size: 0.9em; 
+        }
 
         /* Tabs */
-        .tab-bar { border-bottom: 2px solid #dee2e6; margin-bottom: 20px; }
-        .tab-bar button { background: #e9ecef; border: none; padding: 10px 15px; cursor: pointer; font-size: 16px; border-radius: 5px 5px 0 0; margin-bottom: -2px; border: 1px solid #dee2e6; border-bottom: none; }
-        .tab-bar button.active { background: #ffffff; border-bottom: 2px solid #ffffff; font-weight: bold; }
-        .tab-content { display: none; padding-top: 10px; }
-        .tab-content.active { display: block; }
-        .card { background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 25px; border: 1px solid #dee2e6; margin-bottom: 20px; }
+        .tab-bar { 
+            border-bottom: 2px solid var(--border-color); 
+            margin-bottom: 25px; 
+            background: var(--card-bg);
+            border-radius: 12px 12px 0 0;
+            padding: 0;
+            box-shadow: 0 4px 12px var(--shadow-light);
+        }
+        
+        .tab-bar button { 
+            background: var(--background-light); 
+            border: none; 
+            padding: 15px 20px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            border-radius: 12px 12px 0 0; 
+            margin-bottom: -2px; 
+            border: 1px solid var(--border-color); 
+            border-bottom: none; 
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+        }
+        
+        .tab-bar button.active { 
+            background: var(--card-bg); 
+            border-bottom: 2px solid var(--card-bg); 
+            font-weight: bold; 
+            color: var(--primary-color);
+            box-shadow: 0 4px 8px var(--shadow-light);
+        }
+        
+        .tab-content { 
+            display: none; 
+            padding-top: 10px; 
+        }
+        
+        .tab-content.active { 
+            display: block; 
+        }
+        
+        .card { 
+            background-color: var(--card-bg); 
+            border-radius: 15px; 
+            box-shadow: 0 8px 20px var(--shadow-light); 
+            padding: 25px; 
+            border: 1px solid var(--border-color); 
+            margin-bottom: 25px; 
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px var(--shadow-hover);
+        }
 
         /* User Status Indicator */
-        .status-active { color: #198754; font-weight: bold; }
-        .status-inactive { color: #dc3545; font-weight: bold; }
+        .status-active { 
+            color: var(--accent-color); 
+            font-weight: bold; 
+        }
+        
+        .status-inactive { 
+            color: #dc3545; 
+            font-weight: bold; 
+        }
         
         /* Message Styles */
-        .message { padding: 10px; margin-top: 10px; border-radius: 5px; display: none; }
-        .message.success { display: block; background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
-        .message.error { display: block; background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .message { 
+            padding: 15px; 
+            margin-top: 15px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            display: none; 
+        }
+        
+        .message.success { 
+            display: block; 
+            background-color: #d1e7dd; 
+            color: #0f5132; 
+            border: 1px solid #badbcc; 
+        }
+        
+        .message.error { 
+            display: block; 
+            background-color: #f8d7da; 
+            color: #842029; 
+            border: 1px solid #f5c2c7; 
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .card {
+                padding: 20px;
+                overflow-x: auto;
+            }
+
+            .tab-bar button {
+                padding: 12px 15px;
+                font-size: 14px;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
     </style>
 </head>
 <body>
