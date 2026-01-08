@@ -183,6 +183,7 @@ function saveTokenToServer(token) {
 
     <div class="tab-bar">
         <button class="tab-link active" onclick="openTab(event, 'tab-book')">Book Courier</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-drafts')">Draft Orders</button>
         <button class="tab-link" onclick="openTab(event, 'tab-deliveries')">All Deliveries</button>
         <button class="tab-link" onclick="openTab(event, 'tab-manage')">Manage Users</button>
         <button class="tab-link" onclick="openTab(event, 'tab-settings')">Business Settings</button>
@@ -228,6 +229,26 @@ function saveTokenToServer(token) {
             </div>
         </div>
     </div>
+
+    <div id="tab-drafts" class="tab-content">
+  <div class="card" style="min-width:95%;">
+    <h2>📨 Draft Orders (Margmart)</h2>
+    <button class="btn-secondary" onclick="loadDrafts()">Refresh</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Order No</th>
+          <th>Customer</th>
+          <th>Phone</th>
+          <th>Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="drafts-body"></tbody>
+    </table>
+  </div>
+</div>
 
     <div id="tab-deliveries" class="tab-content">
         <div class="card" style="min-width: 95%; overflow-x: auto;">
@@ -1329,5 +1350,55 @@ document.addEventListener("DOMContentLoaded", () => {
     // Detect Role Change & show Manager Assign box
     // Now always visible
 });
+
+//--- 19. Draft Orders Tab Logic ---
+async function loadDrafts() {
+  const res = await fetch(`${API_BASE}/api/drafts`, {
+    headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
+  });
+  const drafts = await res.json();
+  const tbody = document.getElementById('drafts-body');
+  tbody.innerHTML = '';
+
+  drafts.forEach(d => {
+    // ❗ WhatsApp MESSAGE: wahi existing tracking-ID wala hi use hoga
+    // Abhi draft me trackingId nahi hota, isliye WhatsApp button OPTIONAL rakhenge
+    // (Best flow: pehle "Create Courier", phir existing whatsapp-btn use karo)
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${d.orderNumber}</td>
+        <td>${d.customerName}</td>
+        <td>${d.phone}</td>
+        <td>₹${d.amount}</td>
+        <td>
+          <button class="btn-primary btn-sm"
+            onclick="prefillBookingFromDraft('${d._id}')">🚚 Create Courier</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function prefillBookingFromDraft(draftId) {
+  const res = await fetch(`${API_BASE}/api/drafts`, {
+    headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
+  });
+  const drafts = await res.json();
+  const d = drafts.find(x => x._id === draftId);
+  if (!d) return alert('Draft not found');
+
+  // Book Courier tab open karo
+  openTab(null, 'tab-book');
+
+  // Existing booking form prefill
+  document.getElementById('name').value = d.customerName || '';
+  document.getElementById('address').value = d.address || '';
+  document.getElementById('phone').value = d.phone || '';
+  document.getElementById('paymentMethod').value = d.paymentMethod || 'Prepaid';
+  document.getElementById('billAmount').value = d.amount || 0;
+
+  alert('Details prefilled. Ab Book Courier click karo.');
+}
 
 </script>
