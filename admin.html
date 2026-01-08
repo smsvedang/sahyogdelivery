@@ -1377,12 +1377,30 @@ async function loadDrafts() {
         <td>${d.phone}</td>
         <td>₹${d.amount}</td>
         <td>
-          <button class="btn-primary btn-sm"
-            onclick="prefillBookingFromDraft('${d._id}')">🚚 Create Courier</button>
+          <button class="btn-primary btn-sm" onclick="createCourierFromDraft('${d._id}')">🚚 Create Courier</button>
         </td>
       </tr>
     `;
   });
+}
+async function createCourierFromDraft(draftId) {
+  const managerId = prompt("Manager ID daalein (optional):");
+  
+  const res = await fetch(`${API_BASE}/admin/convert-draft-to-courier`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      draftId,
+      managerId,
+      paymentMethod: "Prepaid"
+    })
+  });
+
+  const data = await res.json();
+  alert(data.message || "Done");
+
+  // 🔄 REFRESH DRAFT LIST
+  loadDrafts();
 }
 
 async function prefillBookingFromDraft(draftId) {
@@ -1423,4 +1441,12 @@ async function fetchMargmartOrders() {
   }
 }
 
+// 🔄 Auto refresh Draft Orders every 30 seconds
+setInterval(() => {
+  console.log("🔄 Auto refreshing drafts...");
+  loadDrafts();
+}, 30000);
+window.addEventListener("load", () => {
+  loadDrafts();
+});
 </script>
