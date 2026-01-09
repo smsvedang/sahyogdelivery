@@ -647,6 +647,7 @@ function saveTokenToServer(token) {
     let allDeliveriesData = []; // Store delivery data for reprint/bulk actions
     let allUsersData = []; // Store user data for editing
     let businessSettings = {}; // Holds loaded business settings
+    let draftsData = []; // Store draft orders
 
     document.getElementById("add-user-role").onchange = function(){
   const box = document.getElementById("manager-select-box");
@@ -1602,46 +1603,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
 //--- 19. Draft Orders Tab Logic ---
 async function loadDrafts() {
-  const res = await fetch(`${API_BASE}/api/drafts`, {
-    headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
-  });
-  const drafts = await res.json();
-  const tbody = document.getElementById('drafts-body');
-  tbody.innerHTML = '';
+  try {
+    const res = await fetch(`${API_BASE}/api/drafts`, { headers });
+    draftsData = await res.json();   // 🔥 IMPORTANT
 
-  drafts.forEach(d => {
-    // ❗ WhatsApp MESSAGE: wahi existing tracking-ID wala hi use hoga
-    // Abhi draft me trackingId nahi hota, isliye WhatsApp button OPTIONAL rakhenge
-    // (Best flow: pehle "Create Courier", phir existing whatsapp-btn use karo)
+    const tbody = document.getElementById("drafts-body");
+    tbody.innerHTML = "";
 
-    tbody.innerHTML += `
-      <tr>
-        <td>${d.orderNumber}</td>
-        <td>${d.customerName}</td>
-        <td>${d.phone}</td>
-        <td>₹${d.amount}</td>
-        <td>
-          <button class="btn-primary btn-sm" onclick="prefillFromDraft('${d._id}')">🚚 Create Courier</button>
-            <button class="btn-danger btn-sm" onclick="deleteDraft('${d._id}')">🗑 Delete</button>
-        </td>
-      </tr>
-    `;
-  });
+    draftsData.forEach(d => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${d.orderNumber}</td>
+          <td>${d.customerName}</td>
+          <td>${d.phone}</td>
+          <td>₹${d.amount}</td>
+          <td>
+            <button class="btn-success btn-sm"
+              onclick="prefillFromDraft('${d._id}')">Complete Order</button>
+
+            <button class="btn-danger btn-sm"
+              onclick="deleteDraft('${d._id}')">🗑 Delete</button>
+          </td>
+        </tr>`;
+    });
+  } catch (err) {
+    alert("Failed to load drafts");
+  }
 }
 
-//--- Delete Draft ---
-// DELETE Draft
-app.delete('/api/drafts/:id', auth(['admin']), async (req, res) => {
-  try {
-    await DraftOrder.findByIdAndDelete(req.params.id);
-    res.json({ message: "Draft deleted" });
-  } catch (e) {
-    res.status(500).json({ message: "Delete failed" });
-  }
-});
-
 async function deleteDraft(draftId) {
-  if (!confirm("Are you sure you want to delete this draft?")) return;
+  if (!confirm("Delete this draft permanently?")) return;
 
   try {
     const res = await fetch(`${API_BASE}/api/drafts/${draftId}`, {
@@ -1650,10 +1641,10 @@ async function deleteDraft(draftId) {
     });
 
     const data = await res.json();
-    alert("✅ Draft deleted");
+    alert("Draft deleted");
     loadDrafts();
   } catch (err) {
-    alert("❌ Delete failed");
+    alert("Delete failed");
   }
 }
 
@@ -1678,46 +1669,32 @@ async function createCourierFromDraft(draftId) {
   loadDrafts();
 }
 
-async function prefillFromDraft(draftId) {
-  try {
-    // 🔹 Draft ka full data lao
-    const res = await fetch(`${API_BASE}/admin/drafts`, { headers });
-    if (!res.ok) throw new Error("Failed to fetch drafts");
-
-    const drafts = await res.json();
-    const draft = drafts.find(d => d._id === draftId);
-
-    if (!draft) {
-      alert("Draft not found");
-      return;
-    }
-
-    // 🔹 FORM PREFILL (MAIN FIX)
-    document.getElementById("name").value = draft.customerName || "";
-    document.getElementById("address").value = draft.address || "";
-    document.getElementById("phone").value = draft.phone || "";
-
-    // 🔥 PAYMENT LOGIC
-  const paymentSelect = document.getElementById("paymentMethod");
-  paymentSelect.value = d.paymentMethod || "Prepaid";
-
-    // 🔹 Hidden draftId
-    document.getElementById("draftId").value = draft._id;
-
-    // 🔹 Payment mode
-    document.getElementById("paymentMethod").value =
-      draft.paymentMethod || "Prepaid";
-    toggleBillAmount(draft.paymentMethod || "Prepaid");
-
-    // 🔹 Switch to Book Courier tab
-    openTab(null, 'tab-book');
-
-  } catch (err) {
-    console.error("Prefill error:", err);
-    alert("Error while prefilling draft");
+function prefillFromDraft(draftId) {
+  const d = draftsData.find(x => x._id === draftId);
+  if (!d) {
+    alert("Draft not found");
+    return;
   }
-}
 
+  document.getElementById("draftId").value = d._id;
+  document.getElementById("name").value = d.customerName || "";
+  document.getElementById("phone").value = d.phone || "";
+  document.getElementById("address").value = d.address || "";
+
+  const payment = document.getElementById("paymentMethod");
+  payment.value = d.paymentMethod || "Prepaid";
+
+  toggleBillAmount(payment.value);
+
+  if (payment.value === "COD") {
+    document.getElementById("billAmount").value = d.amount || 0;
+  } else {
+    document.getElementById("billAmount").value = 0;
+  }
+
+  openTab(null, "tab-book");
+
+  } 
 
 async function fetchMargmartOrders() {
   try {
