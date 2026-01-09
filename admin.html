@@ -1647,7 +1647,7 @@ async function createCourierFromDraft(draftId) {
   loadDrafts();
 }
 
-async function prefillFromDraft(d) {
+async function prefillFromDraft(draftId) {
   openTab(null, 'tab-book');
 
   document.getElementById('draftId').value = d._id; // 🔥 VERY IMPORTANT
