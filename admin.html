@@ -242,6 +242,74 @@ function saveTokenToServer(token) {
     width: 100%;
     margin-top: 5px;
   }
+ /* User cards container */
+  .user-list,
+  .users-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Each user card */
+  .user-card,
+  .user-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fff;
+  }
+
+  /* Name & role */
+  .user-card h4,
+  .user-item h4 {
+    margin: 0 0 6px;
+    font-size: 16px;
+  }
+
+  .user-role {
+    font-size: 13px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 8px;
+  }
+
+  /* Token / device info */
+  .user-meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 10px;
+    word-break: break-word;
+  }
+
+  /* Action buttons stack */
+  .user-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .user-actions button {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  /* Accordion headers */
+  .accordion-header {
+    padding: 10px;
+    font-size: 15px;
+  }
+
+  /* Accordion body */
+  .accordion-body {
+    padding: 10px;
+  }
+
+  /* Disable desktop table view */
+  .manage-users table {
+    display: none;
+  }
+
 }
     </style>
 </head>
