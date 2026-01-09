@@ -1648,17 +1648,39 @@ async function createCourierFromDraft(draftId) {
 }
 
 async function prefillFromDraft(draftId) {
-  openTab(null, 'tab-book');
+  try {
+    // 🔹 Draft ka full data lao
+    const res = await fetch(`${API_BASE}/admin/drafts`, { headers });
+    if (!res.ok) throw new Error("Failed to fetch drafts");
 
-  document.getElementById('draftId').value = d._id; // 🔥 VERY IMPORTANT
+    const drafts = await res.json();
+    const draft = drafts.find(d => d._id === draftId);
 
-  document.getElementById('name').value = d.customerName;
-  document.getElementById('address').value = d.address;
-  document.getElementById('phone').value = d.phone;
-  document.getElementById('paymentMethod').value = d.paymentMethod || 'Prepaid';
+    if (!draft) {
+      alert("Draft not found");
+      return;
+    }
 
-  toggleBillAmount(d.paymentMethod || 'Prepaid');
-  alert('Draft data prefilled. Please verify and create courier.');
+    // 🔹 FORM PREFILL (MAIN FIX)
+    document.getElementById("name").value = draft.customerName || "";
+    document.getElementById("address").value = draft.address || "";
+    document.getElementById("phone").value = draft.phone || "";
+
+    // 🔹 Hidden draftId
+    document.getElementById("draftId").value = draft._id;
+
+    // 🔹 Payment mode
+    document.getElementById("paymentMethod").value =
+      draft.paymentMethod || "Prepaid";
+    toggleBillAmount(draft.paymentMethod || "Prepaid");
+
+    // 🔹 Switch to Book Courier tab
+    openTab(null, 'tab-book');
+
+  } catch (err) {
+    console.error("Prefill error:", err);
+    alert("Error while prefilling draft");
+  }
 }
 
 
