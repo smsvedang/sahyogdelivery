@@ -310,6 +310,98 @@ function saveTokenToServer(token) {
     display: none;
   }
 
+ /* 🔍 Search & controls – breathing space */
+  #user-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  #user-controls input[type="search"] {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  #user-controls label {
+    font-size: 14px;
+  }
+
+  #user-controls button {
+    width: 100%;
+    padding: 10px;
+  }
+
+  /* 📦 Role section spacing */
+  .role-section {
+    margin-bottom: 18px;
+    border-radius: 10px;
+  }
+
+  .role-header {
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+
+  .role-body {
+    padding: 14px;
+  }
+
+  /* 👤 User card – make it airy */
+  .user-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 12px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+  }
+
+  .user-left {
+    width: 100%;
+  }
+
+  .user-left strong {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .user-meta {
+    margin-top: 4px;
+    margin-left: 0;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  /* 🎯 Actions – stacked & separated */
+  .user-card > div:last-child {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .user-card button {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  /* 🏷️ Badges breathing */
+  .badge {
+    margin-left: 6px;
+    margin-top: 4px;
+  }
+
+  /* 👥 Manager grouping (delivery boys) */
+  .role-body > div[style*="border-bottom"] {
+    padding: 10px 0 6px;
+    margin-bottom: 10px;
+    font-size: 15px;
+  }
+
 }
     </style>
 </head>
