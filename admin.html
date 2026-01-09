@@ -428,6 +428,7 @@ function saveTokenToServer(token) {
             <div class="card" id="booking-area">
                 <h2>Book New Courier</h2>
                 <form id="booking-form">
+                    <input type="hidden" id="draftId">
                     <label for="name">Customer Name:</label>
                     <input type="text" id="name" required>
                     <label for="address">Customer Address:</label>
@@ -1046,7 +1047,8 @@ ${window.location.origin}/track.html?tid=${trackingId}
             phone: document.getElementById('phone').value, 
             paymentMethod: document.getElementById('paymentMethod').value, 
             billAmount: document.getElementById('billAmount').value || 0, // Store value
-            managerId: document.getElementById('assignedTo').value || null 
+            managerId: document.getElementById('assignedTo').value || null,
+            draftId: document.getElementById('draftId').value || null
         }; 
         console.log("Submitting:", formData);
         
@@ -1235,7 +1237,15 @@ ${window.location.origin}/track.html?tid=${trackingId}
     // Wire up controls
     document.addEventListener('DOMContentLoaded', () => {
         const search = document.getElementById('user-search'); if(search) search.addEventListener('input', ()=>renderUsers());
-        const showInactive = document.getElementById('show-inactive'); if(showInactive) showInactive.addEventListener('change', ()=>renderUsers());
+        const showInactive = document.getElementById('show-inactive');
+if (showInactive) {
+  showInactive.addEventListener('change', () => renderUsers());
+
+  // 🔥 MOBILE FIX (important)
+  showInactive.addEventListener('click', () => {
+    setTimeout(renderUsers, 0);
+  });
+}
         const collapseBtn = document.getElementById('collapse-all-btn'); if(collapseBtn) collapseBtn.addEventListener('click', collapseAllRoles);
         const expandBtn = document.getElementById('expand-all-btn'); if(expandBtn) expandBtn.addEventListener('click', expandAllRoles);
     });
@@ -1637,26 +1647,20 @@ async function createCourierFromDraft(draftId) {
   loadDrafts();
 }
 
-async function prefillFromDraft(draftId) {
-  const res = await fetch(`${API_BASE}/api/drafts`, {
-    headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
-  });
-  const drafts = await res.json();
-  const d = drafts.find(x => x._id === draftId);
-  if (!d) return alert('Draft not found');
-
-  // Book Courier tab open karo
+async function prefillFromDraft(d) {
   openTab(null, 'tab-book');
 
-  // Existing booking form prefill
-  document.getElementById('name').value = d.customerName || '';
-  document.getElementById('address').value = d.address || '';
-  document.getElementById('phone').value = d.phone || '';
-  document.getElementById('paymentMethod').value = d.paymentMethod || 'Prepaid';
-  document.getElementById('billAmount').value = d.amount || 0;
+  document.getElementById('draftId').value = d._id; // 🔥 VERY IMPORTANT
 
-  alert('Details prefilled. Ab Book Courier click karo.');
+  document.getElementById('name').value = d.customerName;
+  document.getElementById('address').value = d.address;
+  document.getElementById('phone').value = d.phone;
+  document.getElementById('paymentMethod').value = d.paymentMethod || 'Prepaid';
+
+  toggleBillAmount(d.paymentMethod || 'Prepaid');
+  alert('Draft data prefilled. Please verify and create courier.');
 }
+
 
 async function fetchMargmartOrders() {
   try {
