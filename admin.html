@@ -648,6 +648,7 @@ function saveTokenToServer(token) {
     let allUsersData = []; // Store user data for editing
     let businessSettings = {}; // Holds loaded business settings
     let draftsData = []; // Store draft orders
+    let selectedDraftAmount = 0;
 
     document.getElementById("add-user-role").onchange = function(){
   const box = document.getElementById("manager-select-box");
@@ -1686,9 +1687,12 @@ function prefillFromDraft(draftId) {
 
   toggleBillAmount(payment.value);
 
-  if (payment.value === "COD") {
-    document.getElementById("billAmount").value = d.amount || 0;
-  } else {
+  selectedDraftAmount = d.amount || 0;
+
+if (payment.value === "COD") {
+  document.getElementById("billAmount").value = selectedDraftAmount;
+}
+ else {
     document.getElementById("billAmount").value = 0;
   }
 
@@ -1715,13 +1719,24 @@ async function fetchMargmartOrders() {
 
 function toggleBillAmount(value) {
   const div = document.getElementById('billAmountDiv');
-  div.style.display = (value === 'COD') ? 'block' : 'none';
+  const billInput = document.getElementById('billAmount');
 
-  if (value !== 'COD') {
-    document.getElementById("billAmount").value = 0;
+  if (value === 'COD') {
+    div.style.display = 'block';
+
+    // 🔥 AUTO-FILL LOGIC
+    if (selectedDraftAmount > 0) {
+      billInput.value = selectedDraftAmount;
+    } else if (!billInput.value || billInput.value == 0) {
+      billInput.value = '';
+      billInput.focus();
+    }
+
+  } else {
+    div.style.display = 'none';
+    billInput.value = 0;
   }
 }
-
 
 // 🔄 Auto refresh Draft Orders every 30 seconds
 setInterval(() => {
