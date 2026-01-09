@@ -700,6 +700,16 @@ function saveTokenToServer(token) {
         if(div) div.style.display = (value === 'COD') ? 'block' : 'none';
     }
 
+    function getPaymentText() {
+  const method = document.getElementById("paymentMethod").value;
+  const amount = document.getElementById("billAmount").value || 0;
+
+  if (method === "COD") {
+    return `COD – ₹${amount}`;
+  }
+  return "Prepaid";
+}
+
     // --- 5. Label Generation & Print ---
     // (UPDATED - Amazon-style design + BillAmount fix)
     function generateSingleLabelHtml(name, address, trackingId, paymentMethod, phone, qrPlaceholderId, billAmount) {
@@ -873,7 +883,7 @@ print-color-adjust: exact;
 ━━━━━━━━━━━━━━
 Tracking ID: ${trackingId}
 OTP: ${otp}
-Payment: ${paymentMethod === 'COD' ? 'COD ₹' + billAmount : 'Prepaid'}
+Payment: ${getPaymentText()}
 Track here:
 ${window.location.origin}/track.html?tid=${trackingId}
 ━━━━━━━━━━━━━━`;
