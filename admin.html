@@ -1451,7 +1451,7 @@ async function loadDrafts() {
         <td>${d.phone}</td>
         <td>₹${d.amount}</td>
         <td>
-          <button class="btn-primary btn-sm" onclick="createCourierFromDraft('${d._id}')">🚚 Create Courier</button>
+          <button class="btn-primary btn-sm" onclick="prefillFromDraft('${d._id}')">🚚 Create Courier</button>
         </td>
       </tr>
     `;
@@ -1477,7 +1477,7 @@ async function createCourierFromDraft(draftId) {
   loadDrafts();
 }
 
-async function prefillBookingFromDraft(draftId) {
+async function prefillFromDraft(draftId) {
   const res = await fetch(`${API_BASE}/api/drafts`, {
     headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
   });
