@@ -1622,11 +1622,42 @@ async function loadDrafts() {
         <td>₹${d.amount}</td>
         <td>
           <button class="btn-primary btn-sm" onclick="prefillFromDraft('${d._id}')">🚚 Create Courier</button>
+            <button class="btn-danger btn-sm" onclick="deleteDraft('${d._id}')">🗑 Delete</button>
         </td>
       </tr>
     `;
   });
 }
+
+//--- Delete Draft ---
+// DELETE Draft
+app.delete('/api/drafts/:id', auth(['admin']), async (req, res) => {
+  try {
+    await DraftOrder.findByIdAndDelete(req.params.id);
+    res.json({ message: "Draft deleted" });
+  } catch (e) {
+    res.status(500).json({ message: "Delete failed" });
+  }
+});
+
+async function deleteDraft(draftId) {
+  if (!confirm("Are you sure you want to delete this draft?")) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/drafts/${draftId}`, {
+      method: "DELETE",
+      headers
+    });
+
+    const data = await res.json();
+    alert("✅ Draft deleted");
+    loadDrafts();
+  } catch (err) {
+    alert("❌ Delete failed");
+  }
+}
+
+
 async function createCourierFromDraft(draftId) {
   const managerId = prompt("Manager ID daalein (optional):");
   
@@ -1666,6 +1697,10 @@ async function prefillFromDraft(draftId) {
     document.getElementById("address").value = draft.address || "";
     document.getElementById("phone").value = draft.phone || "";
 
+    // 🔥 PAYMENT LOGIC
+  const paymentSelect = document.getElementById("paymentMethod");
+  paymentSelect.value = d.paymentMethod || "Prepaid";
+
     // 🔹 Hidden draftId
     document.getElementById("draftId").value = draft._id;
 
@@ -1700,6 +1735,16 @@ async function fetchMargmartOrders() {
     alert('Failed to fetch emails');
   }
 }
+
+function toggleBillAmount(value) {
+  const div = document.getElementById('billAmountDiv');
+  div.style.display = (value === 'COD') ? 'block' : 'none';
+
+  if (value !== 'COD') {
+    document.getElementById("billAmount").value = 0;
+  }
+}
+
 
 // 🔄 Auto refresh Draft Orders every 30 seconds
 setInterval(() => {
