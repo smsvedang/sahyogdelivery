@@ -461,8 +461,6 @@ if (req.body.draftId) {
     req.body.draftId,
     { status: 'CONVERTED' }
   );
-  document.getElementById("draftId").value = "";
-loadDrafts(); // refresh draft list
 }
 
         // --- AUTO-SYNC (CREATE) ---
@@ -495,7 +493,9 @@ Tracking ID: ${trackingId} | ${getISTTime()}`,
 }
 
 
-        res.status(201).json({ message: 'Courier booked successfully!', trackingId: trackingId, otp: otp }); 
+        res.status(201).json({ message: 'Courier booked successfully!', trackingId: trackingId, otp: otp });
+document.getElementById("draftId").value = "";
+loadDrafts(); // 🔄 UI se draft hataane ke liye
     } catch (error) {
          console.error("Booking Error:", error);
          if (error.name === 'ValidationError') {
