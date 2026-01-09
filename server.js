@@ -1085,6 +1085,21 @@ cron.schedule("*/5 * * * *", async () => {
   }
 });
 
+// --- 7.14. Get Drafts ---
+// 🔥 GET ALL DRAFT ORDERS (FOR ADMIN UI)
+app.get('/admin/drafts', auth(['admin']), async (req, res) => {
+  try {
+    const drafts = await DraftOrder.find({
+      status: 'DRAFT'
+    }).sort({ createdAt: -1 });
+
+    res.json(drafts);
+  } catch (err) {
+    console.error("Draft fetch error:", err);
+    res.status(500).json({ message: 'Failed to fetch drafts' });
+  }
+});
+
 // 7.x. Book Courier FROM Draft
 app.post('/admin/book-from-draft/:draftId', auth(['admin']), async (req, res) => {
   try {
