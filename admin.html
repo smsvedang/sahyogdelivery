@@ -18,45 +18,57 @@
 <script>
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
+let fcmServiceWorkerRegPromise = null;
 </script>
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
+if ('serviceWorker' in navigator && 'PushManager' in window) {
+  fcmServiceWorkerRegPromise = (async () => {
     try {
-      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('✅ Service Worker registered:', reg.scope);
+      const existing = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+      const reg = existing || await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      await navigator.serviceWorker.ready;
+      console.log('✅ FCM Service Worker ready:', reg.scope);
+      return reg;
     } catch (err) {
-      console.error('❌ Service Worker registration failed:', err);
+      console.error('❌ FCM Service Worker registration failed:', err);
+      return null;
     }
-  });
+  })();
 }
 </script>
 <script>
-function askForNotificationPermission() {
-  Notification.requestPermission().then(permission => {
-    if (permission === "granted") {
-      console.log("Notification allowed ✅");
-      getPushToken();
-    } else {
-      console.log("Notification denied ❌");
-    }
-  });
+async function askForNotificationPermission() {
+  const permission = await Notification.requestPermission();
+  if (permission === "granted") {
+    console.log("Notification allowed ✅");
+    await getPushToken();
+  } else {
+    console.log("Notification denied ❌");
+  }
 }
 </script>
 <script>
-function getPushToken() {
-  messaging.getToken({
-    vapidKey: "BIaBWwpMVcg8M1uGRb-f_fpoHXLTXWrSMVgJnpfcE3ggEUvksFvPOIRCb_EZRiU4UjIc2xCFSW7rAf1-gQ29kSs"
-  }).then(token => {
+async function getPushToken() {
+  try {
+    const serviceWorkerRegistration = fcmServiceWorkerRegPromise ? await fcmServiceWorkerRegPromise : null;
+    if (!serviceWorkerRegistration) {
+      throw new Error('No active service worker for FCM');
+    }
+
+    const token = await messaging.getToken({
+      vapidKey: "BIaBWwpMVcg8M1uGRb-f_fpoHXLTXWrSMVgJnpfcE3ggEUvksFvPOIRCb_EZRiU4UjIc2xCFSW7rAf1-gQ29kSs",
+      serviceWorkerRegistration
+    });
+
     if (token) {
       console.log("Push Token:", token);
       saveTokenToServer(token);
     } else {
       console.log("No token received");
     }
-  }).catch(err => {
+  } catch (err) {
     console.error("Token error:", err);
-  });
+  }
 }
 </script>
 <script>
