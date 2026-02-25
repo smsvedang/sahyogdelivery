@@ -383,8 +383,8 @@ function saveTokenToServer(token) {
         }
 
         #payment-qrcode {
-            width: 256px;
-            height: 256px;
+            width: 250px;
+            height: 250px;
             margin: 20px auto;
             border-radius: 8px;
             overflow: hidden;
@@ -454,11 +454,10 @@ function saveTokenToServer(token) {
         <input type="password" id="complete-otp-code" placeholder="Enter OTP to complete">
         
         <div id="cod-payment-options" style="display:none; margin-top:10px; background: #fffbe6; padding: 10px; border-radius: 5px;">
-            <strong>Payment Received:</strong><br>
+            <strong>COD Payment (Cash Only):</strong><br>
             <input type="radio" id="pay-cash" name="paymentReceivedMethod" value="cash" required>
             <label for="pay-cash">By Cash</label><br>
-            <input type="radio" id="pay-online" name="paymentReceivedMethod" value="online">
-            <label for="pay-online">By Online (QR)</label>
+            <small>If customer pays via QR, it will auto-update as PAID.</small>
         </div>
 
         <button id="complete-btn" class="btn-success" style="margin-top: 10px;">Mark as Delivered (with OTP)</button>
@@ -484,6 +483,7 @@ function saveTokenToServer(token) {
             <span class="close-button" id="close-qr-modal">&times;</span>
             <h3>Scan to Pay (Amount: ₹<span id="qr-amount">0.00</span>)</h3>
             <div id="payment-qrcode"></div>
+            <div id="payment-status-text" class="message" style="display:block;">Waiting for payment...</div>
         </div>
     </div>
 
@@ -499,10 +499,11 @@ function saveTokenToServer(token) {
         const role = localStorage.getItem('userRole');
         const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
         const html5QrCode = new Html5Qrcode("reader");
-        let businessSettings = {}; // UPI ID ke liye
         let currentPage = 1;
         let totalDeliveries = 0;
         let isLoading = false; // "Show More" ko double-click se rokne ke liye
+        let paymentPollIntervalId = null;
+        let activePaymentTrackingId = null;
         
         // --- (YAHI THI Galti) YEH LINE MISSING THI ---
         let currentDeliveries = []; 
@@ -622,7 +623,11 @@ async function loadCompletedDeliveries(){
             document.getElementById('manual-entry-toggle-btn').onclick = toggleManualEntry;
             document.getElementById('manual-update-btn').onclick = handleManualUpdate;
             document.getElementById('complete-btn').onclick = handleCompleteDelivery;
-            document.getElementById('close-qr-modal').onclick = () => { document.getElementById('qr-modal').style.display = 'none'; };
+            document.getElementById('close-qr-modal').onclick = closePaymentModal;
+            const qrModal = document.getElementById('qr-modal');
+            qrModal.onclick = (e) => {
+                if (e.target && e.target.id === 'qr-modal') closePaymentModal();
+            };
             const enableBtn = document.getElementById('enable-notifications');
 if (enableBtn) {
   enableBtn.onclick = askForNotificationPermission;
@@ -630,27 +635,9 @@ if (enableBtn) {
         }
 
         async function loadInitialData() {
-            await loadBusinessSettings(); // Pehle settings load karein
-            await loadAssignedDeliveries(true); // Phir pehla page load karein
+            await loadAssignedDeliveries(true);
         }
-
-        // --- 3. Business Settings (UPI ke liye) ---
-        async function loadBusinessSettings() {
-    try {
-        const response = await fetch(`${API_BASE}/public/settings`, {
-            method: 'GET',
-            headers
-        });
-        const data = await response.json();
-        if (response.ok) {
-            businessSettings = data;
-            console.log('Business settings loaded:', businessSettings);
-        }
-    } catch (error) {
-        console.error('Error fetching business settings:', error);
-    }
-}
-        // --- 4. Load Deliveries (Pagination ke saath) ---
+        // --- 3. Load Deliveries (Pagination ke saath) ---
         async function loadAssignedDeliveries(isRefresh = false) {
             if (isLoading) return; // Double-click rokein
             isLoading = true;
@@ -692,9 +679,14 @@ if (enableBtn) {
                     let paymentInfo = `<strong>Payment:</strong> ${d.paymentMethod}`;
                     let paymentButton = '';
                     if (d.paymentMethod === 'COD') {
+                        const paymentStatusLabel = d.paymentStatus || d.codPaymentStatus || d.currentStatus || '';
+                        const alreadyPaidOnline = isPaidOnlineStatus(paymentStatusLabel);
                         paymentInfo += ` (<strong>₹${d.billAmount}</strong>)`;
-                        if (d.currentStatus === 'Out for Delivery') {
-                            paymentButton = `<button onclick="showPaymentQr('${d.billAmount}', '${d.trackingId}')">Show Payment QR</button>`;
+                        if (alreadyPaidOnline) {
+                            paymentInfo += ` <span class="status" style="background:#d1e7dd;color:#0f5132;">PAID</span>`;
+                        }
+                        if (d.currentStatus === 'Out for Delivery' && !alreadyPaidOnline) {
+                            paymentButton = `<button onclick="showPaymentQr('${d.trackingId}', '${d.billAmount}', '${d.customerPhone || ''}')">Generate QR</button>`;
                         }
                     }
 
@@ -745,7 +737,7 @@ if (enableBtn) {
             }
         }
 
-        // --- 5. QR Scanner Logic ---
+        // --- 4. QR Scanner Logic ---
         function startScanner() {
              const config = { fps: 10, qrbox: { width: 250, height: 250 } };
              html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
@@ -805,7 +797,7 @@ if (enableBtn) {
             }
         }
 
-        // --- 6. Manual Entry & Completion Logic ---
+        // --- 5. Manual Entry & Completion Logic ---
         function toggleManualEntry() {
             const manualDiv = document.getElementById('manual-entry-card');
             manualDiv.style.display = (manualDiv.style.display === 'none' || manualDiv.style.display === '') ? 'block' : 'none';
@@ -848,12 +840,6 @@ if (enableBtn) {
             const codOptionsDiv = document.getElementById('cod-payment-options');
              if (codOptionsDiv.style.display === 'block') {
                  if (document.getElementById('pay-cash').checked) paymentReceivedMethod = 'cash';
-                 else if (document.getElementById('pay-online').checked) paymentReceivedMethod = 'online';
-                 else {
-                     completeResultDiv.className = 'message error';
-                     completeResultDiv.innerHTML = 'Please select payment method (Cash or Online).';
-                     return;
-                 }
              }
              if (!trackingId || !otp) {
                  completeResultDiv.className = 'message error';
@@ -875,7 +861,6 @@ if (enableBtn) {
                     document.getElementById('complete-otp-code').value = '';
                     codOptionsDiv.style.display = 'none';
                     if(document.getElementById('pay-cash')) document.getElementById('pay-cash').checked = false;
-                    if(document.getElementById('pay-online')) document.getElementById('pay-online').checked = false;
                  } else {
                     completeResultDiv.className = 'message error';
                     completeResultDiv.innerHTML = `Error: ${data.message || `Server error ${response.status}`}`;
@@ -909,38 +894,133 @@ if (enableBtn) {
             }
         }
 
-        // --- 7. Payment QR Modal (Dynamic UPI) ---
-        function showPaymentQr(amount, trackingId) {
+        // --- 6. Cashfree Payment QR ---
+        async function showPaymentQr(trackingId, amount, customerPhone) {
             const qrModal = document.getElementById('qr-modal');
             const qrAmountEl = document.getElementById('qr-amount');
             const qrCodeEl = document.getElementById('payment-qrcode');
-            
-            const upiID = businessSettings.upiId;
-            const merchantName = (businessSettings.upiName || 'Sahyog Medical').replace(/ /g, '%20');
-            
-            if (!upiID) {
-                alert('UPI ID not set. Please contact admin.');
-                return;
-            }
-            
+            const statusEl = document.getElementById('payment-status-text');
+
             const validAmount = parseFloat(amount);
             if (isNaN(validAmount) || validAmount <= 0) {
                  alert("Cannot generate QR code for invalid amount.");
                  return;
             }
-            const upiQrString = `upi://pay?pa=${upiID}&pn=${merchantName}&am=${validAmount.toFixed(2)}&cu=INR&tn=Order-${trackingId}`;
-            
+
+            clearPaymentPolling();
+            activePaymentTrackingId = trackingId;
             qrAmountEl.textContent = validAmount.toFixed(2);
-            qrCodeEl.innerHTML = ''; // Purana QR saaf karein
+            qrCodeEl.style.display = 'block';
+            qrCodeEl.innerHTML = '';
+            statusEl.className = 'message';
+            statusEl.textContent = 'Waiting for payment...';
             try {
-                new QRCode(qrCodeEl, { text: upiQrString, width: 256, height: 256 });
                 qrModal.style.display = 'flex';
+                const response = await fetch(`${API_BASE}/api/create-cashfree-order`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        trackingId,
+                        amount: validAmount,
+                        customerPhone: customerPhone || '',
+                        phone: customerPhone || ''
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || `Server error ${response.status}`);
+                }
+                const paymentLink = data.payment_link || data.paymentLink || (data.data && (data.data.payment_link || data.data.paymentLink));
+                if (!paymentLink) {
+                    throw new Error('Payment link missing in response.');
+                }
+                new QRCode(qrCodeEl, { text: paymentLink, width: 250, height: 250 });
+                startPaymentStatusPolling(trackingId);
             } catch(e) {
-                alert("Could not generate payment QR code.");
+                statusEl.className = 'message error';
+                statusEl.textContent = `Failed to generate QR: ${e.message}`;
+                qrCodeEl.style.display = 'none';
+                clearPaymentPolling();
             }
         }
 
-        // --- 9. Push Notification ---
+        function clearPaymentPolling() {
+            if (paymentPollIntervalId) {
+                clearInterval(paymentPollIntervalId);
+                paymentPollIntervalId = null;
+            }
+            activePaymentTrackingId = null;
+        }
+
+        function closePaymentModal() {
+            const qrModal = document.getElementById('qr-modal');
+            const qrCodeEl = document.getElementById('payment-qrcode');
+            const statusEl = document.getElementById('payment-status-text');
+            qrModal.style.display = 'none';
+            qrCodeEl.style.display = 'block';
+            qrCodeEl.innerHTML = '';
+            statusEl.className = 'message';
+            statusEl.textContent = 'Waiting for payment...';
+            clearPaymentPolling();
+        }
+
+        function isPaidOnlineStatus(status) {
+            if (!status) return false;
+            const normalized = String(status).trim().toLowerCase();
+            return normalized === 'paid - online' || normalized === 'paid-online' || normalized === 'paid_online';
+        }
+
+        function startPaymentStatusPolling(trackingId) {
+            const statusEl = document.getElementById('payment-status-text');
+            clearPaymentPolling();
+            activePaymentTrackingId = trackingId;
+            paymentPollIntervalId = setInterval(async () => {
+                if (!activePaymentTrackingId || activePaymentTrackingId !== trackingId) return;
+                try {
+                    const response = await fetch(`${API_BASE}/api/check-payment/${encodeURIComponent(trackingId)}`, {
+                        method: 'GET',
+                        headers
+                    });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || `Server error ${response.status}`);
+                    }
+
+                    const status = data.status || data.paymentStatus || data.currentStatus;
+                    const isPaid = isPaidOnlineStatus(status) || data.paid === true || data.isPaid === true;
+                    if (isPaid) {
+                        const qrCodeEl = document.getElementById('payment-qrcode');
+                        qrCodeEl.style.display = 'none';
+                        statusEl.className = 'message success';
+                        statusEl.textContent = 'PAID';
+                        playPaidSound();
+                        clearPaymentPolling();
+                        loadAssignedDeliveries(true);
+                    }
+                } catch (err) {
+                    console.error('Payment status poll error:', err);
+                }
+            }, 5000);
+        }
+
+        function playPaidSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.07, audioCtx.currentTime);
+                oscillator.connect(gain);
+                gain.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.18);
+            } catch (e) {
+                console.warn('Paid sound could not play:', e);
+            }
+        }
+
+        // --- 7. Push Notification ---
         async function enableNotificationsHandler() {
             if ('serviceWorker' in navigator && 'PushManager' in window) {
                 try {
