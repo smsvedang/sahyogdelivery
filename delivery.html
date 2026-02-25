@@ -686,7 +686,7 @@ if (enableBtn) {
                             paymentInfo += ` <span class="status" style="background:#d1e7dd;color:#0f5132;">PAID</span>`;
                         }
                         if (d.currentStatus === 'Out for Delivery' && !alreadyPaidOnline) {
-                            paymentButton = `<button onclick="showPaymentQr('${d.trackingId}', '${d.billAmount}', '${d.customerPhone || ''}')">Generate QR</button>`;
+                            paymentButton = `<button onclick="showPaymentQr('${d.trackingId}', '${d.billAmount}')">Generate QR</button>`;
                         }
                     }
 
@@ -895,7 +895,7 @@ if (enableBtn) {
         }
 
         // --- 6. Cashfree Payment QR ---
-        async function showPaymentQr(trackingId, amount, customerPhone) {
+        async function showPaymentQr(trackingId, amount) {
             const qrModal = document.getElementById('qr-modal');
             const qrAmountEl = document.getElementById('qr-amount');
             const qrCodeEl = document.getElementById('payment-qrcode');
@@ -916,25 +916,23 @@ if (enableBtn) {
             statusEl.textContent = 'Waiting for payment...';
             try {
                 qrModal.style.display = 'flex';
-                const response = await fetch(`${API_BASE}/api/create-cashfree-order`, {
+                const response = await fetch(`${API_BASE}/api/cod/create-payment-session`, {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({
                         trackingId,
-                        amount: validAmount,
-                        customerPhone: customerPhone || '',
-                        phone: customerPhone || ''
+                        amount: validAmount
                     })
                 });
                 const data = await response.json();
                 if (!response.ok) {
                     throw new Error(data.message || `Server error ${response.status}`);
                 }
-                const paymentLink = data.payment_link || data.paymentLink || (data.data && (data.data.payment_link || data.data.paymentLink));
-                if (!paymentLink) {
-                    throw new Error('Payment link missing in response.');
+                const qrLink = data.qrLink || (data.data && data.data.qrLink);
+                if (!qrLink) {
+                    throw new Error('qrLink missing in response.');
                 }
-                new QRCode(qrCodeEl, { text: paymentLink, width: 250, height: 250 });
+                new QRCode(qrCodeEl, { text: qrLink, width: 250, height: 250 });
                 startPaymentStatusPolling(trackingId);
             } catch(e) {
                 statusEl.className = 'message error';
@@ -977,7 +975,7 @@ if (enableBtn) {
             paymentPollIntervalId = setInterval(async () => {
                 if (!activePaymentTrackingId || activePaymentTrackingId !== trackingId) return;
                 try {
-                    const response = await fetch(`${API_BASE}/api/check-payment/${encodeURIComponent(trackingId)}`, {
+                    const response = await fetch(`${API_BASE}/api/cod/check-payment/${encodeURIComponent(trackingId)}`, {
                         method: 'GET',
                         headers
                     });
@@ -992,10 +990,13 @@ if (enableBtn) {
                         const qrCodeEl = document.getElementById('payment-qrcode');
                         qrCodeEl.style.display = 'none';
                         statusEl.className = 'message success';
-                        statusEl.textContent = 'PAID';
+                        statusEl.textContent = 'Payment Received ✅';
                         playPaidSound();
                         clearPaymentPolling();
-                        loadAssignedDeliveries(true);
+                        setTimeout(() => {
+                            closePaymentModal();
+                            loadAssignedDeliveries(true);
+                        }, 800);
                     }
                 } catch (err) {
                     console.error('Payment status poll error:', err);
