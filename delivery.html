@@ -916,7 +916,7 @@ if (enableBtn) {
             statusEl.textContent = 'Waiting for payment...';
             try {
                 qrModal.style.display = 'flex';
-                const response = await fetch(`${API_BASE}/api/cod/create-payment-session`, {
+                const response = await fetch(`${API_BASE}/api/cod/create-cashfree-order`, {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({
@@ -928,12 +928,17 @@ if (enableBtn) {
                 if (!response.ok) {
                     throw new Error(data.message || `Server error ${response.status}`);
                 }
-                const qrLink = data.qrLink || (data.data && data.data.qrLink);
-                if (!qrLink) {
-                    throw new Error('qrLink missing in response.');
+                const sessionId = data.sessionId || (data.data && data.data.sessionId);
+                const orderId = data.orderId || (data.data && data.data.orderId);
+                if (!sessionId) {
+                    throw new Error('sessionId missing in response.');
                 }
-                new QRCode(qrCodeEl, { text: qrLink, width: 250, height: 250 });
-                startPaymentStatusPolling(trackingId);
+                if (!orderId) {
+                    throw new Error('orderId missing in response.');
+                }
+                const cashfreeLink = `https://sandbox.cashfree.com/pg/view/${sessionId}`;
+                new QRCode(qrCodeEl, { text: cashfreeLink, width: 250, height: 250 });
+                startPaymentStatusPolling(orderId);
             } catch(e) {
                 statusEl.className = 'message error';
                 statusEl.textContent = `Failed to generate QR: ${e.message}`;
@@ -968,14 +973,14 @@ if (enableBtn) {
             return normalized === 'paid - online' || normalized === 'paid-online' || normalized === 'paid_online';
         }
 
-        function startPaymentStatusPolling(trackingId) {
+        function startPaymentStatusPolling(orderId) {
             const statusEl = document.getElementById('payment-status-text');
             clearPaymentPolling();
-            activePaymentTrackingId = trackingId;
+            activePaymentTrackingId = orderId;
             paymentPollIntervalId = setInterval(async () => {
-                if (!activePaymentTrackingId || activePaymentTrackingId !== trackingId) return;
+                if (!activePaymentTrackingId || activePaymentTrackingId !== orderId) return;
                 try {
-                    const response = await fetch(`${API_BASE}/api/cod/check-payment/${encodeURIComponent(trackingId)}`, {
+                    const response = await fetch(`${API_BASE}/api/cod/check-payment/${encodeURIComponent(orderId)}`, {
                         method: 'GET',
                         headers
                     });
@@ -984,8 +989,9 @@ if (enableBtn) {
                         throw new Error(data.message || `Server error ${response.status}`);
                     }
 
-                    const status = data.status || data.paymentStatus || data.currentStatus;
-                    const isPaid = isPaidOnlineStatus(status) || data.paid === true || data.isPaid === true;
+                    const status = data.status || data.paymentStatus || data.codPaymentStatus || data.currentStatus;
+                    const upstreamPaymentStatus = String(data.payment_status || '').trim().toUpperCase();
+                    const isPaid = isPaidOnlineStatus(status) || upstreamPaymentStatus === 'SUCCESS' || data.paid === true || data.isPaid === true;
                     if (isPaid) {
                         const qrCodeEl = document.getElementById('payment-qrcode');
                         qrCodeEl.style.display = 'none';
