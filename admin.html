@@ -98,6 +98,7 @@ function saveTokenToServer(token) {
         button.btn-danger { background-color: #dc3545; color: white; }
         button.btn-warning { background-color: #ffc107; color: black; }
         button.btn-success { background-color: #28a745; color: white; }
+        button.print { background: #6c757d; color: white; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         input, select { width: calc(100% - 24px); padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
         label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; }
@@ -169,6 +170,8 @@ function saveTokenToServer(token) {
         .badge-role { background:#e9ecef; color:#333; }
         .badge.no-token { background:#ffe6e6; color:#a00; border:1px solid #f5c2c2; padding:3px 7px; font-weight:700; }
         .no-users { color:#666; padding:8px 14px; }
+        .filter-box { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px; }
+        .filter-box input, .filter-box select { width: auto; min-width: 170px; margin-bottom: 0; }
 
         /* Mobile Friendly Styles */
         /* =========================
@@ -419,6 +422,8 @@ function saveTokenToServer(token) {
         <button class="tab-link active" onclick="openTab(event, 'tab-book')">Book Courier</button>
         <button class="tab-link" onclick="openTab(event, 'tab-drafts')">Draft Orders</button>
         <button class="tab-link" onclick="openTab(event, 'tab-deliveries')">All Deliveries</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-cash-orders')">Cash Orders</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-completed-deliveries')">Completed Deliveries</button>
         <button class="tab-link" onclick="openTab(event, 'tab-manage')">Manage Users</button>
         <button class="tab-link" onclick="openTab(event, 'tab-settings')">Business Settings</button>
     </div>
@@ -522,6 +527,61 @@ function saveTokenToServer(token) {
                     </tr>
                 </thead>
                 <tbody id="all-deliveries-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-cash-orders" class="tab-content">
+        <div class="card" style="min-width: 95%; overflow-x: auto;">
+            <h2>COD Cash Orders</h2>
+            <div class="filter-box">
+                <input type="text" id="cash-search-track" placeholder="Search Tracking ID" onkeyup="applyCashOrdersFilter()">
+                <input type="date" id="cash-search-date" onchange="applyCashOrdersFilter()">
+                <button id="refresh-cash-orders-btn" class="btn-secondary">Refresh</button>
+                <button class="print" onclick="printCashOrders()">Print</button>
+            </div>
+            <table id="cash-orders-table">
+                <thead>
+                    <tr>
+                        <th>Tracking ID</th>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Delivery Boy</th>
+                        <th>Amount</th>
+                        <th>Delivery Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="cash-orders-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-completed-deliveries" class="tab-content">
+        <div class="card" style="min-width: 95%; overflow-x: auto;">
+            <h2>Completed Deliveries</h2>
+            <div class="filter-box">
+                <input type="text" id="completed-search-track" placeholder="Search Tracking ID" onkeyup="applyCompletedDeliveriesFilter()">
+                <input type="date" id="completed-search-date" onchange="applyCompletedDeliveriesFilter()">
+                <select id="completed-payment-filter" onchange="applyCompletedDeliveriesFilter()">
+                    <option value="">All Payments</option>
+                    <option value="COD">Cash on Delivery</option>
+                    <option value="Prepaid">Prepaid</option>
+                </select>
+                <button id="refresh-completed-deliveries-btn" class="btn-secondary">Refresh</button>
+                <button class="print" onclick="printAdminCompletedDeliveries()">Print</button>
+            </div>
+            <table id="completed-deliveries-table">
+                <thead>
+                    <tr>
+                        <th>Tracking ID</th>
+                        <th>Booking Date</th>
+                        <th>Delivery Date</th>
+                        <th>Customer</th>
+                        <th>Payment</th>
+                    </tr>
+                </thead>
+                <tbody id="completed-deliveries-body"></tbody>
             </table>
         </div>
     </div>
@@ -649,6 +709,10 @@ function saveTokenToServer(token) {
     let businessSettings = {}; // Holds loaded business settings
     let draftsData = []; // Store draft orders
     let selectedDraftAmount = 0;
+    let cashOrdersData = [];
+    let filteredCashOrdersData = [];
+    let completedDeliveriesData = [];
+    let filteredCompletedDeliveriesData = [];
 
     document.getElementById("add-user-role").onchange = function(){
   const box = document.getElementById("manager-select-box");
@@ -674,6 +738,8 @@ function saveTokenToServer(token) {
         
         // Refresh data when tabs are opened
         if (tabName === 'tab-deliveries') loadAllDeliveries();
+        if (tabName === 'tab-cash-orders') loadCashOrders();
+        if (tabName === 'tab-completed-deliveries') loadCompletedDeliveries();
         if (tabName === 'tab-manage') loadAllUsers();
         if (tabName === 'tab-settings') loadBusinessSettings();
     }
@@ -1043,6 +1109,206 @@ ${window.location.origin}/track.html?tid=${trackingId}
                 cellActions.innerHTML = `<button class="btn-secondary btn-sm" onclick="reprintLabel('${d._id}')" title="Reprint Label">Reprint</button><button class="btn-warning btn-sm" onclick="cancelDelivery('${d._id}')" ${!isCancelable ? 'disabled title="Cannot cancel"' : 'title="Cancel Delivery"'}>Cancel</button><button class="btn-danger btn-sm" onclick="deleteDelivery('${d._id}')" title="Delete Record">Delete</button>`;
             });
         } catch (err) { console.error("Error loading deliveries:", err); tbody.innerHTML = `<tr><td colspan="11" style="color: red; text-align: center;">Error: ${err.message}</td></tr>`; }
+    }
+
+    function formatDateToYYYYMMDD(dateString) {
+        if (!dateString) return null;
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return null;
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function getPaymentDisplay(delivery) {
+        if (delivery.paymentMethod === 'COD') {
+            return `COD (₹${delivery.billAmount || 0})`;
+        }
+        return 'Prepaid';
+    }
+
+    async function loadCashOrders() {
+        const tbody = document.getElementById('cash-orders-body');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="7">Loading cash orders...</td></tr>';
+        try {
+            const response = await fetch(`${API_BASE}/admin/cash-orders`, { headers });
+            if (response.status === 401) { window.location.href = 'login.html'; return; }
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            const deliveries = await response.json();
+            cashOrdersData = deliveries;
+            applyCashOrdersFilter();
+        } catch (err) {
+            console.error("Error loading cash orders:", err);
+            tbody.innerHTML = `<tr><td colspan="7" style="color: red; text-align: center;">Error: ${err.message}</td></tr>`;
+        }
+    }
+
+    function renderCashOrdersTable(list) {
+        const tbody = document.getElementById('cash-orders-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (!list.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#666;">No COD cash orders pending.</td></tr>';
+            return;
+        }
+
+        list.forEach(d => {
+            const row = tbody.insertRow();
+            row.insertCell(0).textContent = d.trackingId || 'N/A';
+            row.insertCell(1).textContent = d.customerName || 'N/A';
+            row.insertCell(2).textContent = d.customerPhone || 'N/A';
+            row.insertCell(3).textContent = d.assignedTo && d.assignedTo.name ? d.assignedTo.name : 'N/A';
+            row.insertCell(4).textContent = `₹${d.billAmount || 0}`;
+            row.insertCell(5).textContent = formatDateToYYYYMMDD(d.completedAt) || '-';
+            const actionsCell = row.insertCell(6);
+            actionsCell.innerHTML = `<button class="btn-success btn-sm" onclick="markCashReceived('${d._id}')">Cash Received</button>`;
+        });
+    }
+
+    function applyCashOrdersFilter() {
+        const tracking = (document.getElementById('cash-search-track')?.value || '').toLowerCase();
+        const date = document.getElementById('cash-search-date')?.value || '';
+        filteredCashOrdersData = cashOrdersData.filter(d => {
+            const matchTracking = (d.trackingId || '').toLowerCase().includes(tracking);
+            const completedDate = formatDateToYYYYMMDD(d.completedAt);
+            const matchDate = !date || (completedDate && completedDate === date);
+            return matchTracking && matchDate;
+        });
+        renderCashOrdersTable(filteredCashOrdersData);
+    }
+
+    async function markCashReceived(deliveryId) {
+        if (!confirm('Confirm cash received for this order?')) return;
+        try {
+            const response = await fetch(`${API_BASE}/admin/delivery/${deliveryId}/receive-cash`, { method: 'PATCH', headers });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Unable to mark cash received');
+            alert(data.message || 'Cash received');
+            await Promise.all([loadCashOrders(), loadCompletedDeliveries(), loadAllDeliveries()]);
+        } catch (err) {
+            console.error("Cash receive error:", err);
+            alert(`Error: ${err.message}`);
+        }
+    }
+
+    async function loadCompletedDeliveries() {
+        const tbody = document.getElementById('completed-deliveries-body');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="5">Loading completed deliveries...</td></tr>';
+        try {
+            const response = await fetch(`${API_BASE}/admin/completed-deliveries`, { headers });
+            if (response.status === 401) { window.location.href = 'login.html'; return; }
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            const deliveries = await response.json();
+            completedDeliveriesData = deliveries;
+            applyCompletedDeliveriesFilter();
+        } catch (err) {
+            console.error("Error loading completed deliveries:", err);
+            tbody.innerHTML = `<tr><td colspan="5" style="color: red; text-align: center;">Error: ${err.message}</td></tr>`;
+        }
+    }
+
+    function renderCompletedDeliveriesTable(list) {
+        const tbody = document.getElementById('completed-deliveries-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (!list.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#666;">No completed deliveries found.</td></tr>';
+            return;
+        }
+
+        list.forEach(d => {
+            const row = tbody.insertRow();
+            row.insertCell(0).textContent = d.trackingId || 'N/A';
+            row.insertCell(1).textContent = formatDateToYYYYMMDD(d.createdAt) || '-';
+            row.insertCell(2).textContent = formatDateToYYYYMMDD(d.completedAt) || '-';
+            row.insertCell(3).textContent = d.customerName || 'N/A';
+            row.insertCell(4).textContent = getPaymentDisplay(d);
+        });
+    }
+
+    function applyCompletedDeliveriesFilter() {
+        const tracking = (document.getElementById('completed-search-track')?.value || '').toLowerCase();
+        const date = document.getElementById('completed-search-date')?.value || '';
+        const payment = document.getElementById('completed-payment-filter')?.value || '';
+
+        filteredCompletedDeliveriesData = completedDeliveriesData.filter(d => {
+            const matchTracking = (d.trackingId || '').toLowerCase().includes(tracking);
+            const completedDate = formatDateToYYYYMMDD(d.completedAt);
+            const matchDate = !date || (completedDate && completedDate === date);
+            const matchPayment = !payment || d.paymentMethod === payment;
+            return matchTracking && matchDate && matchPayment;
+        });
+        renderCompletedDeliveriesTable(filteredCompletedDeliveriesData);
+    }
+
+    async function openPrintWindowWithManagerStyle(title, rowsHtml, emptyColSpan, headersHtml) {
+        let settings = {};
+        try {
+            const r = await fetch(`${API_BASE}/public/settings`);
+            if (r.ok) settings = await r.json();
+        } catch (e) { /* ignore */ }
+
+        const logoHtml = settings.logoUrl ? `<img src="${settings.logoUrl}" style="height:40px; margin-right:10px;"/>` : '';
+        const bizName = settings.businessName || 'Sahyog Medical';
+        const printedBy = localStorage.getItem('userName') || '';
+        const bodyRows = rowsHtml || `<tr><td colspan="${emptyColSpan}" style="text-align:center;color:#666">No records found</td></tr>`;
+
+        const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+        <style>
+          body{font-family: Arial, Helvetica, sans-serif; padding:20px; color:#222}
+          .header{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
+          .header h1{font-size:16px;margin:0}
+          .header .sub{font-size:12px;color:#666}
+          table{border-collapse:collapse; width:80%; margin:0 auto;}
+          th,td{border:1px solid #ddd; padding:8px; text-align:left}
+          th{background:#f8f9fa}
+          footer{font-size:10px; text-align:center; margin-top:18px; color:#666}
+          @media print { body{padding:8mm} }
+        </style>
+        </head><body>
+        <div class="header">${logoHtml}<div style="text-align:center;"><h1>${bizName}</h1><div class="sub">${title}</div></div></div>
+        <table>
+          <thead><tr>${headersHtml}</tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+        <footer>Printed by ${printedBy} • ${location.href}</footer>
+        </body></html>`;
+
+        const w = window.open('', '_blank', 'width=800,height=600');
+        if (!w) { alert('Allow popups to print.'); return; }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        setTimeout(function() { w.print(); setTimeout(function() { w.close(); }, 500); }, 200);
+    }
+
+    async function printCashOrders() {
+        const rows = filteredCashOrdersData.map(d => {
+            return `<tr><td>${d.trackingId || '-'}</td><td>${d.customerName || '-'}</td><td>₹${d.billAmount || 0}</td><td>${d.assignedTo && d.assignedTo.name ? d.assignedTo.name : '-'}</td><td>${formatDateToYYYYMMDD(d.completedAt) || '-'}</td></tr>`;
+        }).join('');
+
+        await openPrintWindowWithManagerStyle(
+            'COD Cash Orders',
+            rows,
+            5,
+            '<th>Tracking ID</th><th>Customer</th><th>Amount</th><th>Delivery Boy</th><th>Delivery Date</th>'
+        );
+    }
+
+    async function printAdminCompletedDeliveries() {
+        const rows = filteredCompletedDeliveriesData.map(d => {
+            return `<tr><td>${d.trackingId || '-'}</td><td>${formatDateToYYYYMMDD(d.createdAt) || '-'}</td><td>${formatDateToYYYYMMDD(d.completedAt) || '-'}</td><td>${getPaymentDisplay(d)}</td></tr>`;
+        }).join('');
+
+        await openPrintWindowWithManagerStyle(
+            'Completed Delivery Records',
+            rows,
+            4,
+            '<th>Tracking ID</th><th>Booking Date</th><th>Delivery Date</th><th>Payment</th>'
+        );
     }
 
     // --- 8. Booking Form Submit Handler (Definition) ---
@@ -1477,6 +1743,8 @@ if (showInactive) {
 
         // Setup static event listeners
         const refreshBtn = document.getElementById('refresh-deliveries-btn');
+        const refreshCashOrdersBtn = document.getElementById('refresh-cash-orders-btn');
+        const refreshCompletedDeliveriesBtn = document.getElementById('refresh-completed-deliveries-btn');
         const syncBtn = document.getElementById('sync-google-sheet-btn'); // (NEW)
         const addUserBtn = document.getElementById('add-user-btn');
         const logoutBtn = document.getElementById('logout-btn');
@@ -1491,6 +1759,8 @@ if (showInactive) {
         const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
 
         if(refreshBtn) refreshBtn.onclick = loadAllDeliveries;
+        if(refreshCashOrdersBtn) refreshCashOrdersBtn.onclick = loadCashOrders;
+        if(refreshCompletedDeliveriesBtn) refreshCompletedDeliveriesBtn.onclick = loadCompletedDeliveries;
         if(syncBtn) syncBtn.onclick = handleGoogleSheetSync; // (NEW)
         if(addUserBtn) addUserBtn.onclick = () => {
             const resultDiv = document.getElementById('add-user-result');

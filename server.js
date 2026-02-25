@@ -229,6 +229,8 @@ const deliverySchema = new mongoose.Schema({
     assignedBoyDetails: { name: String, phone: String },
     statusUpdates: [{ status: String, timestamp: { type: Date, default: Date.now } }],
     codPaymentStatus: { type: String, enum: ['Pending', 'Paid - Cash', 'Paid - Online', 'Not Applicable'], default: 'Pending' },
+    cashReceivedByAdmin: { type: Boolean, default: false },
+    cashReceivedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
     assignedAt: { type: Date, default: null }
 }, { timestamps: true });
@@ -542,6 +544,47 @@ app.get('/admin/deliveries', auth(['admin']), async (req, res) => {
     }
 });
 
+// 7.2b. Get COD cash orders pending admin cash handover
+app.get('/admin/cash-orders', auth(['admin']), async (req, res) => {
+    try {
+        const deliveries = await Delivery.find({
+            paymentMethod: 'COD',
+            codPaymentStatus: 'Paid - Cash',
+            statusUpdates: { $elemMatch: { status: 'Delivered' } },
+            cashReceivedByAdmin: { $ne: true }
+        })
+            .populate('assignedByManager', 'name')
+            .populate('assignedTo', 'name email isActive phone')
+            .sort({ completedAt: -1, createdAt: -1 });
+        res.json(deliveries);
+    } catch (error) {
+        console.error("Fetch Cash Orders Error:", error);
+        res.status(500).json({ message: 'Error fetching cash orders' });
+    }
+});
+
+// 7.2c. Get completed deliveries from admin settlement perspective
+app.get('/admin/completed-deliveries', auth(['admin']), async (req, res) => {
+    try {
+        const deliveries = await Delivery.find({
+            statusUpdates: { $elemMatch: { status: 'Delivered' } },
+            $or: [
+                { paymentMethod: 'Prepaid' },
+                { codPaymentStatus: 'Paid - Online' },
+                { codPaymentStatus: 'Not Applicable' },
+                { paymentMethod: 'COD', codPaymentStatus: 'Paid - Cash', cashReceivedByAdmin: true }
+            ]
+        })
+            .populate('assignedByManager', 'name')
+            .populate('assignedTo', 'name email isActive phone')
+            .sort({ completedAt: -1, createdAt: -1 });
+        res.json(deliveries);
+    } catch (error) {
+        console.error("Fetch Admin Completed Deliveries Error:", error);
+        res.status(500).json({ message: 'Error fetching completed deliveries' });
+    }
+});
+
 // 7.3. Get All Users (Removed duplicate route)
 app.get('/admin/users', auth(['admin']), async (req, res) => {
     try {
@@ -753,6 +796,41 @@ app.delete('/admin/delivery/:deliveryId', auth(['admin']), async (req, res) => {
     } catch (error) {
          console.error("Delete Delivery Error:", error);
          res.status(500).json({ message: 'Server error deleting delivery', error: error.message });
+    }
+});
+
+// 7.9b. Mark COD cash as received by admin
+app.patch('/admin/delivery/:deliveryId/receive-cash', auth(['admin']), async (req, res) => {
+    try {
+        const { deliveryId } = req.params;
+        const delivery = await Delivery.findById(deliveryId);
+        if (!delivery) {
+            return res.status(404).json({ message: 'Delivery not found' });
+        }
+
+        if (delivery.paymentMethod !== 'COD') {
+            return res.status(400).json({ message: 'Only COD deliveries are eligible' });
+        }
+        if (delivery.codPaymentStatus !== 'Paid - Cash') {
+            return res.status(400).json({ message: 'Cash was not marked as collected by delivery boy' });
+        }
+        if (delivery.currentStatus !== 'Delivered') {
+            return res.status(400).json({ message: 'Delivery is not completed yet' });
+        }
+        if (delivery.cashReceivedByAdmin) {
+            return res.status(400).json({ message: 'Cash already received for this order' });
+        }
+
+        delivery.cashReceivedByAdmin = true;
+        delivery.cashReceivedAt = new Date();
+        await delivery.save();
+
+        syncSingleDeliveryToSheet(delivery._id, 'update').catch(console.error);
+
+        res.json({ message: 'Cash received and order moved to completed deliveries' });
+    } catch (error) {
+        console.error("Receive Cash Error:", error);
+        res.status(500).json({ message: 'Server error while marking cash received', error: error.message });
     }
 });
 
