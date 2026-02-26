@@ -402,6 +402,20 @@ function saveTokenToServer(token) {
             min-width: 120px;
         }
 
+        /* payment badges */
+        .paid-badge {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-left: 5px;
+            user-select: none;
+            cursor: default;
+        }
+
         /* Tab content for completed deliveries */
         .tab-content {
             display: none;
@@ -507,9 +521,28 @@ function saveTokenToServer(token) {
         let isLoading = false; // "Show More" ko double-click se rokne ke liye
         let publicSettingsCache = null;
         
-        // --- (YAHI THI Galti) YEH LINE MISSING THI ---
-        let currentDeliveries = []; 
-        // ---------------------------------------------
+        // List cache for search/filter operations
+        let currentDeliveries = [];
+
+        // prevent duplicate payment/session requests
+        let paymentInProgress = false;
+
+        // generic wrapper to catch 401 & network errors
+        async function apiRequest(url, options = {}) {
+            try {
+                const res = await fetch(url, { headers, ...options });
+                if (res.status === 401) {
+                    // expired or invalid token
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                    throw new Error('Unauthorized');
+                }
+                return res;
+            } catch (err) {
+                // propagate so callers can handle network failure
+                throw err;
+            }
+        }
 
         // --- DOM Elements ---
         const pendingList = document.getElementById('pending-list');
@@ -523,9 +556,15 @@ function saveTokenToServer(token) {
         let completedData=[];
 
 async function loadCompleted(){
-   const r = await fetch(`${API_BASE}/delivery/completed`,{headers});
-   completedData = await r.json();
-   renderCompleted(completedData);
+   try {
+       const r = await apiRequest(`${API_BASE}/delivery/completed`);
+       if (!r.ok) throw new Error(`HTTP ${r.status}`);
+       completedData = await r.json();
+       renderCompleted(completedData);
+   } catch (err) {
+       console.error('Failed to load completed deliveries', err);
+       alert('Unable to load completed deliveries. Please try again later.');
+   }
 }
 
 function renderCompleted(list){
@@ -589,18 +628,23 @@ function openTab(event, tabName){
 }
 
 async function loadCompletedDeliveries(){
-    const res = await fetch(`${API_BASE}/manager/completed-deliveries`,{headers});
-    const data = await res.json();
-    document.getElementById('completed-body').innerHTML =
-    data.map(d=>`
-        <tr>
-        <td>${d.trackingId}</td>
-        <td>${new Date(d.createdAt).toLocaleDateString()}</td>
-        <td>${new Date(d.updatedAt).toLocaleDateString()}</td>
-        <td>${d.assignedTo?.name||'--'}</td>
-        <td>${d.paymentMethod}</td>
-        </tr>
-    `).join('');
+    try {
+        const res = await apiRequest(`${API_BASE}/manager/completed-deliveries`);
+        if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
+        const data = await res.json();
+        document.getElementById('completed-body').innerHTML =
+        data.map(d=>`
+            <tr>
+            <td>${d.trackingId}</td>
+            <td>${new Date(d.createdAt).toLocaleDateString()}</td>
+            <td>${new Date(d.updatedAt).toLocaleDateString()}</td>
+            <td>${d.assignedTo?.name||'--'}</td>
+            <td>${d.paymentMethod}</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error('Error loading manager completed deliveries', err);
+    }
 }
 
         // --- 2. Initial Load & Security ---
@@ -650,16 +694,18 @@ if (enableBtn) {
                 if (pendingList) pendingList.innerHTML = '<li>Loading...</li>';
             }
             
+            // disable refresh to prevent rapid clicks
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) refreshBtn.disabled = true;
+
             if(showMoreBtn) {
                 showMoreBtn.disabled = true;
                 showMoreBtn.textContent = 'Loading...';
             }
 
             try {
-                const response = await fetch(`${API_BASE}/delivery/my-deliveries?page=${currentPage}`, { headers });
-                if (response.status === 401) { window.location.href = 'login.html'; return; }
+                const response = await apiRequest(`${API_BASE}/delivery/my-deliveries?page=${currentPage}`);
                 if (!response.ok) throw new Error(`Server error: ${response.status}`);
-                
                 const data = await response.json();
                 const deliveriesArray = data.deliveries;
                 totalDeliveries = data.totalDeliveries;
@@ -685,13 +731,18 @@ if (enableBtn) {
                         const paidOnline = isPaidOnlineStatus(paymentStatusLabel);
                         const paidCash = isPaidCashStatus(paymentStatusLabel);
                         paymentInfo += ` (<strong>₹${d.billAmount}</strong>)`;
+
                         if (paidOnline) {
-                            paymentInfo += ` <span class="status" style="background:#d1e7dd;color:#0f5132;">✅ Paid Online</span>`;
+                            paymentInfo += ` <span class="paid-badge">Paid Online</span>`;
                         } else if (paidCash) {
-                            paymentInfo += ` <span class="status" style="background:#d1e7dd;color:#0f5132;">✅ Paid Cash</span>`;
+                            paymentInfo += ` <span class="paid-badge">Paid Cash</span>`;
                         } else {
-                            if (d.currentStatus === 'Out for Delivery') {
-                                paymentButton = `<button onclick="showPaymentQr('${d.trackingId}', '${d.billAmount}')" class="btn-primary">Online Payment</button>`;
+                            // show button only when payment status pending and delivery not completed/delivered
+                            const statusLower = (d.currentStatus || '').toLowerCase();
+                            const notDelivered = !['delivered','completed'].includes(statusLower);
+                            const isPendingState = paymentStatusLabel.toLowerCase().includes('pending');
+                            if (isPendingState && notDelivered) {
+                                paymentButton = `<button onclick="showPaymentQr(this, '${d.trackingId}', '${d.billAmount}')" class="btn-primary">Online Payment</button>`;
                             }
                         }
                     }
@@ -740,6 +791,8 @@ if (enableBtn) {
                 if (pendingList) pendingList.innerHTML = `<li>Error loading deliveries: ${err.message}</li>`;
             } finally {
                 isLoading = false;
+                const refreshBtn = document.getElementById('refresh-btn');
+                if (refreshBtn) refreshBtn.disabled = false;
             }
         }
 
@@ -785,8 +838,8 @@ if (enableBtn) {
             resultDivElement.innerHTML = `Updating status for ${trackingId}...`;
             resultDivElement.className = 'message';
              try {
-                const response = await fetch(`${API_BASE}/delivery/update-status`, {
-                    method: 'POST', headers: headers, body: JSON.stringify({ trackingId: trackingId })
+                const response = await apiRequest(`${API_BASE}/delivery/update-status`, {
+                    method: 'POST', body: JSON.stringify({ trackingId: trackingId })
                 });
                 const data = await response.json();
                 if (response.ok) {
@@ -799,7 +852,7 @@ if (enableBtn) {
                 }
             } catch (err) {
                 resultDivElement.className = 'message error';
-                resultDivElement.innerHTML = `Error: Could not connect to server.`;
+                resultDivElement.innerHTML = `Network error. Please check your connection and try again.`;
             }
         }
 
@@ -810,18 +863,24 @@ if (enableBtn) {
         }
         
         function handleManualUpdate() {
-             const trackingId = document.getElementById('manual-tracking-id').value;
-             if (!trackingId) {
-                 manualResultDiv.textContent = 'Please enter Tracking ID.';
-                 manualResultDiv.className = 'message error';
-                 manualResultDiv.style.display = 'block';
-                 return;
-             }
-             manualResultDiv.style.display = 'block';
-             updateDeliveryStatus(trackingId, manualResultDiv);
-        }
+    const btn = document.getElementById('manual-update-btn');
+    btn.disabled = true;
+    const trackingId = document.getElementById('manual-tracking-id').value;
+    if (!trackingId) {
+        manualResultDiv.textContent = 'Please enter Tracking ID.';
+        manualResultDiv.className = 'message error';
+        manualResultDiv.style.display = 'block';
+        btn.disabled = false;
+        return;
+    }
+    manualResultDiv.style.display = 'block';
+    updateDeliveryStatus(trackingId, manualResultDiv).finally(() => { btn.disabled = false; });
+}
         
         async function handleCompleteDelivery() {
+    const completeBtn = document.getElementById('complete-btn');
+    completeBtn.disabled = true;
+
     const trackingId = document.getElementById('manual-tracking-id').value;
     const otp = document.getElementById('complete-otp-code').value;
 
@@ -834,55 +893,71 @@ if (enableBtn) {
     if (!delivery) {
         completeResultDiv.className = 'message error';
         completeResultDiv.innerHTML = 'Delivery not found in your assigned list.';
+        completeBtn.disabled = false;
         return;
     }
 
     if (delivery.currentStatus !== 'Out for Delivery') {
         completeResultDiv.className = 'message error';
         completeResultDiv.innerHTML = 'Please update status to "Out for Delivery" before completing.';
+        completeBtn.disabled = false;
         return;
     }
-            let paymentType = null;
-            const codOptionsDiv = document.getElementById('cod-payment-options');
-             if (codOptionsDiv.style.display === 'block') {
-                 if (document.getElementById('pay-cash').checked) paymentType = 'cash';
-                 else if (document.getElementById('pay-online') && document.getElementById('pay-online').checked) paymentType = 'online';
-                 else {
-                     completeResultDiv.className = 'message error';
-                     completeResultDiv.innerHTML = 'Please select payment method (Cash or Already Paid Online).';
-                     return;
-                 }
-             }
-             if (!trackingId || !otp) {
-                 completeResultDiv.className = 'message error';
-                 completeResultDiv.innerHTML = 'Please enter Tracking ID and OTP.';
-                 return;
-             }
 
-             try {
-                const response = await fetch(`${API_BASE}/delivery/complete`, {
-                    method: 'POST', headers: headers,
-                    body: JSON.stringify({ trackingId, otp, paymentType })
-                });
-                const data = await response.json();
-                 if (response.ok) {
-                    completeResultDiv.className = 'message success';
-                    completeResultDiv.innerHTML = `Success! ${data.trackingId} is ${data.status}.`;
-                    loadAssignedDeliveries(true); // Refresh list
-                    document.getElementById('manual-tracking-id').value = '';
-                    document.getElementById('complete-otp-code').value = '';
-                    codOptionsDiv.style.display = 'none';
-                    if(document.getElementById('pay-cash')) document.getElementById('pay-cash').checked = false;
-                    if(document.getElementById('pay-online')) document.getElementById('pay-online').checked = false;
-                 } else {
-                    completeResultDiv.className = 'message error';
-                    completeResultDiv.innerHTML = `Error: ${data.message || `Server error ${response.status}`}`;
-                 }
-             } catch (err) {
-                completeResultDiv.className = 'message error';
-                completeResultDiv.innerHTML = 'Error connecting to server.';
-             }
+    let paymentType = null;
+    const codOptionsDiv = document.getElementById('cod-payment-options');
+    if (codOptionsDiv.style.display === 'block') {
+        if (document.getElementById('pay-cash').checked) paymentType = 'cash';
+        else if (document.getElementById('pay-online') && document.getElementById('pay-online').checked) paymentType = 'online';
+        else {
+            completeResultDiv.className = 'message error';
+            completeResultDiv.innerHTML = 'Please select payment method (Cash or Already Paid Online).';
+            completeBtn.disabled = false;
+            return;
         }
+
+        // if user picked online ensure the delivery cod status is already paid-online
+        if (paymentType === 'online' && !isPaidOnlineStatus(delivery.codPaymentStatus || delivery.paymentStatus)) {
+            completeResultDiv.className = 'message error';
+            completeResultDiv.innerHTML = 'Cannot mark as delivered: online payment is not reflected in order.';
+            completeBtn.disabled = false;
+            return;
+        }
+    }
+
+    if (!trackingId || !otp) {
+        completeResultDiv.className = 'message error';
+        completeResultDiv.innerHTML = 'Please enter Tracking ID and OTP.';
+        completeBtn.disabled = false;
+        return;
+    }
+
+    try {
+        const response = await apiRequest(`${API_BASE}/delivery/complete`, {
+            method: 'POST',
+            body: JSON.stringify({ trackingId, otp, paymentType })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            completeResultDiv.className = 'message success';
+            completeResultDiv.innerHTML = `Success! ${data.trackingId} is ${data.status}.`;
+            loadAssignedDeliveries(true); // Refresh list
+            document.getElementById('manual-tracking-id').value = '';
+            document.getElementById('complete-otp-code').value = '';
+            codOptionsDiv.style.display = 'none';
+            if (document.getElementById('pay-cash')) document.getElementById('pay-cash').checked = false;
+            if (document.getElementById('pay-online')) document.getElementById('pay-online').checked = false;
+        } else {
+            completeResultDiv.className = 'message error';
+            completeResultDiv.innerHTML = `Error: ${data.message || `Server error ${response.status}`}`;
+        }
+    } catch (err) {
+        completeResultDiv.className = 'message error';
+        completeResultDiv.innerHTML = 'Network error. Please try again.';
+    } finally {
+        completeBtn.disabled = false;
+    }
+}
         
         async function checkIfCod(trackingId) {
             const codOptions = document.getElementById('cod-payment-options');
@@ -893,14 +968,14 @@ if (enableBtn) {
             // (Ab yeh line kaam karegi)
             const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
             if (delivery) {
-                if (delivery.paymentMethod === 'COD' && delivery.currentStatus === 'Out for Delivery') {
+                if (delivery.paymentMethod === 'COD') {
                      codOptions.style.display = 'block';
                 }
             } else {
                 try {
-                    const response = await fetch(`https://sahyogdeliverybackend.onrender.com/track/${trackingId}`);
+                    const response = await apiRequest(`https://sahyogdeliverybackend.onrender.com/track/${trackingId}`);
                     const data = await response.json();
-                    if (data.paymentMethod === 'COD' && data.currentStatus === 'Out for Delivery') {
+                    if (data.paymentMethod === 'COD') {
                          codOptions.style.display = 'block';
                     }
                 } catch (err) { console.error("Error checking COD status via fallback:", err); }
@@ -910,7 +985,7 @@ if (enableBtn) {
         // --- 6. UPI Dynamic Payment QR ---
         async function getPublicSettings() {
             if (publicSettingsCache) return publicSettingsCache;
-            const response = await fetch(`${API_BASE}/public/settings`);
+            const response = await apiRequest(`${API_BASE}/public/settings`);
             if (!response.ok) {
                 throw new Error(`Could not load UPI settings (HTTP ${response.status})`);
             }
@@ -918,7 +993,14 @@ if (enableBtn) {
             return publicSettingsCache;
         }
 
-async function showPaymentQr(trackingId, amount) {
+async function showPaymentQr(button, trackingId, amount) {
+  if (paymentInProgress) {
+      console.warn('Payment already in progress.');
+      return;
+  }
+  paymentInProgress = true;
+  if (button) button.disabled = true;
+
   try {
         // Prevent duplicate payments: check current delivery status first
         const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
@@ -928,29 +1010,31 @@ async function showPaymentQr(trackingId, amount) {
             return;
         }
 
-        const res = await fetch(`${API_BASE}/api/create-payment-order`, {
+        const res = await apiRequest(`${API_BASE}/api/create-payment-order`, {
             method: "POST",
-            headers,
             body: JSON.stringify({ trackingId, amount })
         });
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert("Payment error: " + JSON.stringify(data));
-      return;
-    }
+        const data = await res.json();
+        if (!res.ok) {
+          alert("Payment error: " + JSON.stringify(data));
+          return;
+        }
 
-    // 🚀 OPEN CASHFREE PAYMENT GATEWAY
-    const cashfree = Cashfree({ mode: "production" });
+        // 🚀 OPEN CASHFREE PAYMENT GATEWAY
+        const cashfree = Cashfree({ mode: "production" });
 
-    cashfree.checkout({
-      paymentSessionId: data.sessionId,
-      redirectTarget: "_self"
-    });
+        cashfree.checkout({
+          paymentSessionId: data.sessionId,
+          redirectTarget: "_self"
+        });
 
   } catch (err) {
     console.error(err);
-    alert("Payment failed");
+    alert("Payment failed: " + (err.message || 'network error'));
+  } finally {
+    paymentInProgress = false;
+    if (button) button.disabled = false;
   }
 }
 
@@ -960,6 +1044,8 @@ const paidTrackingId = params.get("trackingId");
 if (paidTrackingId) {
     setTimeout(() => {
         loadAssignedDeliveries(true);
+        // remove query param for clean URL
+        history.replaceState(null, '', window.location.pathname);
     }, 1500);
 }
 
