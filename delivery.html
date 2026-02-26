@@ -919,6 +919,42 @@ async function showPaymentQr(trackingId, amount) {
       return;
     }
 
+    // Show QR modal
+    document.getElementById("qr-modal").style.display = "flex";
+    document.getElementById("qr-amount").innerText = amount;
+
+    const qrDiv = document.getElementById("payment-qrcode");
+    qrDiv.innerHTML = "";
+
+    // Cashfree Payment Link → QR
+    const paymentUrl = `upi://pay?pa=${data.upi}&pn=Sahyog&am=${amount}&cu=INR`;
+
+    new QRCode(qrDiv, {
+      text: paymentUrl,
+      width: 250,
+      height: 250
+    });
+
+    // Start payment status polling
+    startPaymentWatcher(trackingId);
+
+  } catch (err) {
+    console.error(err);
+    alert("QR generation failed");
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/create-payment-order`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ trackingId, amount })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert("Payment error: " + JSON.stringify(data));
+      return;
+    }
+
     const cashfree = Cashfree({ mode: "production" });
 
     cashfree.checkout({
@@ -944,6 +980,32 @@ async function showPaymentQr(trackingId, amount) {
     alert("Payment failed");
   }
 }
+
+function startPaymentWatcher(trackingId) {
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/payment-status/${trackingId}`, { headers });
+      const data = await res.json();
+
+      if (data.paid) {
+        clearInterval(interval);
+
+        closePaymentModal(); // QR hide
+        alert("Payment received ✔");
+
+        // Enable OTP section
+        document.getElementById('manual-entry-card').style.display = 'block';
+        document.getElementById('manual-tracking-id').value = trackingId;
+        document.getElementById('complete-otp-code').focus();
+
+        loadAssignedDeliveries(true);
+      }
+    } catch (e) {
+      console.error("Payment watcher error", e);
+    }
+  }, 4000); // check every 4 sec
+}
+
         function closePaymentModal() {
             const qrModal = document.getElementById('qr-modal');
             const qrCodeEl = document.getElementById('payment-qrcode');
