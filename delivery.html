@@ -906,22 +906,6 @@ if (enableBtn) {
         }
 
 async function showPaymentQr(trackingId, amount) {
-  const res = await fetch(`${API_BASE}/api/create-payment-order`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ trackingId, amount })
-  });
-
-  const data = await res.json();
-  if (!res.ok) return alert("Payment error");
-
-  const cashfree = Cashfree({ mode: "production" });
-
-  cashfree.checkout({
-    paymentSessionId: data.sessionId,
-    redirectTarget: "_self"
-  });
-}
   try {
     if (window.paymentListener) {
       clearInterval(window.paymentListener);
@@ -1007,6 +991,7 @@ async function showPaymentQr(trackingId, amount) {
     console.error(err);
     alert("QR generation failed");
   }
+}
 
 function closePaymentModal() {
   if (window.paymentListener) {
