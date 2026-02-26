@@ -457,7 +457,7 @@ function saveTokenToServer(token) {
             <strong>COD Payment (Cash Only):</strong><br>
             <input type="radio" id="pay-cash" name="paymentReceivedMethod" value="cash" required>
             <label for="pay-cash">By Cash</label><br>
-            <small>If customer pays via QR, it will auto-update as PAID.</small>
+            <small>Use cash option only after payment is confirmed.</small>
         </div>
 
         <button id="complete-btn" class="btn-success" style="margin-top: 10px;">Mark as Delivered (with OTP)</button>
@@ -483,7 +483,7 @@ function saveTokenToServer(token) {
             <span class="close-button" id="close-qr-modal">&times;</span>
             <h3>Scan to Pay (Amount: ₹<span id="qr-amount">0.00</span>)</h3>
             <div id="payment-qrcode"></div>
-            <div id="payment-status-text" class="message" style="display:block;">Waiting for payment...</div>
+            <div id="payment-status-text" class="message" style="display:block;">Ask customer to scan and pay via any UPI app.</div>
         </div>
     </div>
 
@@ -502,8 +502,7 @@ function saveTokenToServer(token) {
         let currentPage = 1;
         let totalDeliveries = 0;
         let isLoading = false; // "Show More" ko double-click se rokne ke liye
-        let paymentPollIntervalId = null;
-        let activePaymentTrackingId = null;
+        let publicSettingsCache = null;
         
         // --- (YAHI THI Galti) YEH LINE MISSING THI ---
         let currentDeliveries = []; 
@@ -894,7 +893,17 @@ if (enableBtn) {
             }
         }
 
-        // --- 6. Cashfree Payment QR ---
+        // --- 6. UPI Dynamic Payment QR ---
+        async function getPublicSettings() {
+            if (publicSettingsCache) return publicSettingsCache;
+            const response = await fetch(`${API_BASE}/public/settings`);
+            if (!response.ok) {
+                throw new Error(`Could not load UPI settings (HTTP ${response.status})`);
+            }
+            publicSettingsCache = await response.json();
+            return publicSettingsCache;
+        }
+
         async function showPaymentQr(trackingId, amount) {
             const qrModal = document.getElementById('qr-modal');
             const qrAmountEl = document.getElementById('qr-amount');
@@ -907,52 +916,28 @@ if (enableBtn) {
                  return;
             }
 
-            clearPaymentPolling();
-            activePaymentTrackingId = trackingId;
             qrAmountEl.textContent = validAmount.toFixed(2);
             qrCodeEl.style.display = 'block';
             qrCodeEl.innerHTML = '';
             statusEl.className = 'message';
-            statusEl.textContent = 'Waiting for payment...';
+            statusEl.textContent = 'Ask customer to scan and pay via any UPI app.';
             try {
                 qrModal.style.display = 'flex';
-                const response = await fetch(`${API_BASE}/api/cod/create-cashfree-order`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                        trackingId,
-                        amount: validAmount
-                    })
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.message || `Server error ${response.status}`);
+                const settings = await getPublicSettings();
+                const upiId = (settings.upiId || '').trim();
+                const upiName = (settings.upiName || '').trim();
+                if (!upiId) {
+                    throw new Error('UPI ID is not set in Admin Business Settings.');
                 }
-                const sessionId = data.sessionId || (data.data && data.data.sessionId);
-                const orderId = data.orderId || (data.data && data.data.orderId);
-                if (!sessionId) {
-                    throw new Error('sessionId missing in response.');
-                }
-                if (!orderId) {
-                    throw new Error('orderId missing in response.');
-                }
-                const cashfreeLink = `https://sandbox.cashfree.com/pg/view/${sessionId}`;
-                new QRCode(qrCodeEl, { text: cashfreeLink, width: 250, height: 250 });
-                startPaymentStatusPolling(orderId);
+                const payeeName = upiName || 'Sahyog Medical';
+                const note = `COD-${trackingId}`;
+                const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${encodeURIComponent(validAmount.toFixed(2))}&tn=${encodeURIComponent(note)}&cu=INR`;
+                new QRCode(qrCodeEl, { text: upiLink, width: 250, height: 250 });
             } catch(e) {
                 statusEl.className = 'message error';
                 statusEl.textContent = `Failed to generate QR: ${e.message}`;
                 qrCodeEl.style.display = 'none';
-                clearPaymentPolling();
             }
-        }
-
-        function clearPaymentPolling() {
-            if (paymentPollIntervalId) {
-                clearInterval(paymentPollIntervalId);
-                paymentPollIntervalId = null;
-            }
-            activePaymentTrackingId = null;
         }
 
         function closePaymentModal() {
@@ -963,68 +948,13 @@ if (enableBtn) {
             qrCodeEl.style.display = 'block';
             qrCodeEl.innerHTML = '';
             statusEl.className = 'message';
-            statusEl.textContent = 'Waiting for payment...';
-            clearPaymentPolling();
+            statusEl.textContent = 'Ask customer to scan and pay via any UPI app.';
         }
 
         function isPaidOnlineStatus(status) {
             if (!status) return false;
             const normalized = String(status).trim().toLowerCase();
             return normalized === 'paid - online' || normalized === 'paid-online' || normalized === 'paid_online';
-        }
-
-        function startPaymentStatusPolling(orderId) {
-            const statusEl = document.getElementById('payment-status-text');
-            clearPaymentPolling();
-            activePaymentTrackingId = orderId;
-            paymentPollIntervalId = setInterval(async () => {
-                if (!activePaymentTrackingId || activePaymentTrackingId !== orderId) return;
-                try {
-                    const response = await fetch(`${API_BASE}/api/cod/check-payment/${encodeURIComponent(orderId)}`, {
-                        method: 'GET',
-                        headers
-                    });
-                    const data = await response.json();
-                    if (!response.ok) {
-                        throw new Error(data.message || `Server error ${response.status}`);
-                    }
-
-                    const status = data.status || data.paymentStatus || data.codPaymentStatus || data.currentStatus;
-                    const upstreamPaymentStatus = String(data.payment_status || '').trim().toUpperCase();
-                    const isPaid = isPaidOnlineStatus(status) || upstreamPaymentStatus === 'SUCCESS' || data.paid === true || data.isPaid === true;
-                    if (isPaid) {
-                        const qrCodeEl = document.getElementById('payment-qrcode');
-                        qrCodeEl.style.display = 'none';
-                        statusEl.className = 'message success';
-                        statusEl.textContent = 'Payment Received ✅';
-                        playPaidSound();
-                        clearPaymentPolling();
-                        setTimeout(() => {
-                            closePaymentModal();
-                            loadAssignedDeliveries(true);
-                        }, 800);
-                    }
-                } catch (err) {
-                    console.error('Payment status poll error:', err);
-                }
-            }, 5000);
-        }
-
-        function playPaidSound() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.07, audioCtx.currentTime);
-                oscillator.connect(gain);
-                gain.connect(audioCtx.destination);
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.18);
-            } catch (e) {
-                console.warn('Paid sound could not play:', e);
-            }
         }
 
         // --- 7. Push Notification ---
