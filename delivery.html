@@ -87,6 +87,7 @@ function saveTokenToServer(token) {
 </script>
 
 <head>
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
     <meta name="google-site-verification" content="sUd2hKr4JhoLKMQku6aNRgVeSmyvtjQcuT6ZB4aagRQ" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -905,40 +906,34 @@ if (enableBtn) {
         }
 
         async function showPaymentQr(trackingId, amount) {
-            const qrModal = document.getElementById('qr-modal');
-            const qrAmountEl = document.getElementById('qr-amount');
-            const qrCodeEl = document.getElementById('payment-qrcode');
-            const statusEl = document.getElementById('payment-status-text');
+  try {
+    const res = await fetch(`${API_BASE}/api/create-payment-order`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ trackingId, amount })
+    });
 
-            const validAmount = parseFloat(amount);
-            if (isNaN(validAmount) || validAmount <= 0) {
-                 alert("Cannot generate QR code for invalid amount.");
-                 return;
-            }
+    const data = await res.json();
 
-            qrAmountEl.textContent = validAmount.toFixed(2);
-            qrCodeEl.style.display = 'block';
-            qrCodeEl.innerHTML = '';
-            statusEl.className = 'message';
-            statusEl.textContent = 'Ask customer to scan and pay via any UPI app.';
-            try {
-                qrModal.style.display = 'flex';
-                const settings = await getPublicSettings();
-                const upiId = (settings.upiId || '').trim();
-                const upiName = (settings.upiName || '').trim();
-                if (!upiId) {
-                    throw new Error('UPI ID is not set in Admin Business Settings.');
-                }
-                const payeeName = upiName || 'Sahyog Medical';
-                const note = `COD-${trackingId}`;
-                const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${encodeURIComponent(validAmount.toFixed(2))}&tn=${encodeURIComponent(note)}&cu=INR`;
-                new QRCode(qrCodeEl, { text: upiLink, width: 250, height: 250 });
-            } catch(e) {
-                statusEl.className = 'message error';
-                statusEl.textContent = `Failed to generate QR: ${e.message}`;
-                qrCodeEl.style.display = 'none';
-            }
-        }
+    if (!res.ok) {
+      alert("Payment error: " + JSON.stringify(data));
+      return;
+    }
+
+    const cashfree = Cashfree({
+      mode: "sandbox"   // LIVE me "production"
+    });
+
+    cashfree.checkout({
+      paymentSessionId: data.sessionId,
+      redirectTarget: "_self"
+    });
+
+  } catch (err) {
+    console.error(err);
+    alert("Payment failed");
+  }
+}
 
         function closePaymentModal() {
             const qrModal = document.getElementById('qr-modal');

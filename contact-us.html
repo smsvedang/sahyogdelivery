@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Sahyog Medical</title>
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <meta name="theme-color" content="#f1c27d">
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #f1c27d;
+            --background-light: #f8f9fa;
+            --text-dark: #343a40;
+            --text-muted: #6c757d;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --shadow-light: rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Open Sans', sans-serif;
+            background: var(--background-light);
+            color: var(--text-dark);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f1c27d, #edb867);
+            color: #fff;
+            text-align: center;
+            padding: 36px 16px 28px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px var(--shadow-light);
+            padding: 24px;
+        }
+
+        .section-title {
+            font-family: 'Poppins', sans-serif;
+            margin: 0 0 10px 0;
+            font-size: 1.35rem;
+        }
+
+        p {
+            line-height: 1.7;
+            margin: 0 0 12px 0;
+        }
+
+        .muted {
+            color: var(--text-muted);
+        }
+
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            padding: 20px 16px 30px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        .links a {
+            color: #0d6efd;
+            text-decoration: none;
+            margin: 0 6px;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Contact Us</h1>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2 class="section-title">Sahyog Medical Delivery Platform</h2>
+            <p>For order and delivery related help, please contact us on the numbers below.</p>
+            <p><strong>Order Support:</strong> +91 7415543744</p>
+            <p><strong>Technical Support:</strong> +91 9243714402</p>
+            <p class="muted">Support hours may vary by location and operational schedule.</p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="links">
+            <a href="/index.html">Home</a> |
+            <a href="/terms-and-conditions.html">Terms &amp; Conditions</a> |
+            <a href="/refunds-and-cancellations.html">Refunds &amp; Cancellations</a>
+        </div>
+        <div style="margin-top: 8px;">
+            Copyright © <span id="copyright-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved.
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('copyright-year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

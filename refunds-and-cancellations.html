@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refunds & Cancellations - Sahyog Medical</title>
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <meta name="theme-color" content="#f1c27d">
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #f1c27d;
+            --background-light: #f8f9fa;
+            --text-dark: #343a40;
+            --text-muted: #6c757d;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --shadow-light: rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Open Sans', sans-serif;
+            background: var(--background-light);
+            color: var(--text-dark);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f1c27d, #edb867);
+            color: #fff;
+            text-align: center;
+            padding: 36px 16px 28px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px var(--shadow-light);
+            padding: 24px;
+        }
+
+        .card h2 {
+            margin: 0 0 12px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .card h3 {
+            margin: 18px 0 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.05rem;
+        }
+
+        p {
+            line-height: 1.7;
+            margin: 0 0 10px 0;
+        }
+
+        .muted {
+            color: var(--text-muted);
+        }
+
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            padding: 20px 16px 30px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        .links a {
+            color: #0d6efd;
+            text-decoration: none;
+            margin: 0 6px;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Refunds &amp; Cancellations</h1>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>Policy Overview</h2>
+            <p class="muted">Last updated: <span id="last-updated"></span></p>
+
+            <h3>1. Order Cancellation</h3>
+            <p>Orders can be cancelled before dispatch confirmation. Once the order is marked as dispatched or out for delivery, cancellation may not be possible.</p>
+
+            <h3>2. Refund Eligibility</h3>
+            <p>Refunds may be processed for cancelled orders, unavailable items, duplicate payments, or verified delivery/service issues.</p>
+
+            <h3>3. Non-Refundable Situations</h3>
+            <p>Refunds may be denied for incorrect customer details, missed calls at delivery time, refusal to accept valid order, or products not eligible under applicable medicine regulations.</p>
+
+            <h3>4. Refund Timeline</h3>
+            <p>Approved refunds are typically initiated within 5 to 10 working days and may vary based on bank/payment provider processing timelines.</p>
+
+            <h3>5. Support for Claims</h3>
+            <p>For cancellation/refund requests, contact Order Support with your tracking ID, order details, and reason for request.</p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="links">
+            <a href="/index.html">Home</a> |
+            <a href="/contact-us.html">Contact Us</a> |
+            <a href="/terms-and-conditions.html">Terms &amp; Conditions</a>
+        </div>
+        <div style="margin-top: 8px;">
+            Copyright © <span id="copyright-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved.
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('copyright-year').textContent = new Date().getFullYear();
+        document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    </script>
+</body>
+</html>
