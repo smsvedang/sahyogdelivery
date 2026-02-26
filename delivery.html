@@ -923,11 +923,24 @@ async function showPaymentQr(trackingId, amount) {
 
     cashfree.checkout({
       paymentSessionId: data.sessionId,
-      redirectTarget: "_modal"   // popup style
+      redirectTarget: "_modal",
+      onSuccess: async function () {
+        try {
+          await fetch(`${API_BASE}/api/payment-success`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ trackingId })
+          });
+          alert("Payment received ✔");
+          location.reload();
+        } catch (e) {
+          console.error("Payment update error:", e);
+        }
+      }
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Payment failed:", err);
     alert("Payment failed");
   }
 }
@@ -958,19 +971,6 @@ async function showPaymentQr(trackingId, amount) {
     console.error(err);
     alert("Payment failed");
   }
-cashfree.checkout({
-  paymentSessionId: data.sessionId,
-  redirectTarget: "_modal",
-  onSuccess: async function () {
-    await fetch(`${API_BASE}/api/payment-success`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ trackingId })
-    });
-    alert("Payment received ✔");
-    location.reload();
-  }
-});
         function closePaymentModal() {
             const qrModal = document.getElementById('qr-modal');
             const qrCodeEl = document.getElementById('payment-qrcode');
