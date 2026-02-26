@@ -964,10 +964,17 @@ function closePaymentModal() {
 }
 
 function isPaidOnlineStatus(status) {
-            if (!status) return false;
-            const normalized = String(status).trim().toLowerCase();
-            return normalized === 'paid - online' || normalized === 'paid-online' || normalized === 'paid_online';
-        }
+  if (!status) return false;
+
+  const s = status.toLowerCase();
+
+  return (
+    s.includes("paid - online") ||
+    s.includes("paid online") ||
+    s.includes("online paid") ||
+    s === "paid"
+  );
+}
 
         // --- 7. Push Notification ---
         async function enableNotificationsHandler() {
