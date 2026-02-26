@@ -905,7 +905,32 @@ if (enableBtn) {
             return publicSettingsCache;
         }
 
-        async function showPaymentQr(trackingId, amount) {
+async function showPaymentQr(trackingId, amount) {
+  try {
+    const res = await fetch(`${API_BASE}/api/create-payment-order`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ trackingId, amount })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert("Payment error: " + JSON.stringify(data));
+      return;
+    }
+
+    const cashfree = Cashfree({ mode: "production" });
+
+    cashfree.checkout({
+      paymentSessionId: data.sessionId,
+      redirectTarget: "_modal"   // popup style
+    });
+
+  } catch (err) {
+    console.error(err);
+    alert("Payment failed");
+  }
+}
   try {
     const res = await fetch(`${API_BASE}/api/create-payment-order`, {
       method: "POST",
@@ -921,7 +946,7 @@ if (enableBtn) {
     }
 
     const cashfree = Cashfree({
-      mode: "sandbox"   // LIVE me "production"
+      mode: "production"   // LIVE me "production"
     });
 
     cashfree.checkout({
@@ -933,8 +958,19 @@ if (enableBtn) {
     console.error(err);
     alert("Payment failed");
   }
-}
-
+cashfree.checkout({
+  paymentSessionId: data.sessionId,
+  redirectTarget: "_modal",
+  onSuccess: async function () {
+    await fetch(`${API_BASE}/api/payment-success`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ trackingId })
+    });
+    alert("Payment received ✔");
+    location.reload();
+  }
+});
         function closePaymentModal() {
             const qrModal = document.getElementById('qr-modal');
             const qrCodeEl = document.getElementById('payment-qrcode');
