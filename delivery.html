@@ -932,6 +932,16 @@ async function showPaymentQr(trackingId, amount) {
     alert("Payment failed");
   }
 }
+
+const params = new URLSearchParams(window.location.search);
+const paidTrackingId = params.get("trackingId");
+
+if (paidTrackingId) {
+  setTimeout(() => {
+    loadAssignedDeliveries(true);
+  }, 2000);
+}
+
 //close
 function closePaymentModal() {
   if (window.paymentListener) {
