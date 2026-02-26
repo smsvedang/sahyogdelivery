@@ -907,15 +907,6 @@ if (enableBtn) {
 
 async function showPaymentQr(trackingId, amount) {
   try {
-    if (window.paymentListener) {
-      clearInterval(window.paymentListener);
-      window.paymentListener = null;
-    }
-    if (window.paymentExpiryTimerInterval) {
-      clearInterval(window.paymentExpiryTimerInterval);
-      window.paymentExpiryTimerInterval = null;
-    }
-
     const res = await fetch(`${API_BASE}/api/create-payment-order`, {
       method: "POST",
       headers,
@@ -928,68 +919,17 @@ async function showPaymentQr(trackingId, amount) {
       return;
     }
 
-    document.getElementById("qr-modal").style.display = "flex";
-    document.getElementById("qr-amount").innerText = amount;
+    // 🚀 OPEN CASHFREE PAYMENT GATEWAY
+    const cashfree = Cashfree({ mode: "production" });
 
-    const qrDiv = document.getElementById("payment-qrcode");
-    const statusEl = document.getElementById("payment-status-text");
-    qrDiv.innerHTML = "";
-
-    const paymentUrl = `upi://pay?pa=${data.upi}&pn=Sahyog&am=${amount}&cu=INR`;
-    new QRCode(qrDiv, {
-      text: paymentUrl,
-      width: 250,
-      height: 250
+    cashfree.checkout({
+      paymentSessionId: data.sessionId,
+      redirectTarget: "_self"
     });
-
-    let expiryTimer = 300;
-    statusEl.className = 'message';
-    statusEl.innerText = `QR expires in ${expiryTimer} sec`;
-
-    window.paymentExpiryTimerInterval = setInterval(() => {
-      expiryTimer--;
-      statusEl.innerText = `QR expires in ${expiryTimer} sec`;
-
-      if (expiryTimer <= 0) {
-        clearInterval(window.paymentExpiryTimerInterval);
-        window.paymentExpiryTimerInterval = null;
-
-        if (window.paymentListener) {
-          clearInterval(window.paymentListener);
-          window.paymentListener = null;
-        }
-
-        closePaymentModal();
-        alert("Payment time expired");
-      }
-    }, 1000);
-
-    window.paymentListener = setInterval(async () => {
-      try {
-        const r = await fetch(`${API_BASE}/api/payment-status/${trackingId}`, { headers });
-        const d = await r.json();
-
-        if (d.paid) {
-          clearInterval(window.paymentListener);
-          window.paymentListener = null;
-
-          if (window.paymentExpiryTimerInterval) {
-            clearInterval(window.paymentExpiryTimerInterval);
-            window.paymentExpiryTimerInterval = null;
-          }
-
-          closePaymentModal();
-          alert("Payment received ✔");
-          loadAssignedDeliveries(true);
-        }
-      } catch (pollErr) {
-        console.error("Payment polling failed:", pollErr);
-      }
-    }, 2000);
 
   } catch (err) {
     console.error(err);
-    alert("QR generation failed");
+    alert("Payment failed");
   }
 }
 
