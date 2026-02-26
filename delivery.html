@@ -686,7 +686,7 @@ if (enableBtn) {
                             paymentInfo += ` <span class="status" style="background:#d1e7dd;color:#0f5132;">PAID</span>`;
                         }
                         if (d.currentStatus === 'Out for Delivery' && !alreadyPaidOnline) {
-                            paymentButton = `<button onclick="showPaymentQr('${d.trackingId}', '${d.billAmount}')">Generate QR</button>`;
+                            paymentButton = `<button onclick="showPaymentQr('${d.trackingId}', '${d.billAmount}')">Online Payment</button>`;
                         }
                     }
 
@@ -906,6 +906,22 @@ if (enableBtn) {
         }
 
 async function showPaymentQr(trackingId, amount) {
+  const res = await fetch(`${API_BASE}/api/create-payment-order`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ trackingId, amount })
+  });
+
+  const data = await res.json();
+  if (!res.ok) return alert("Payment error");
+
+  const cashfree = Cashfree({ mode: "production" });
+
+  cashfree.checkout({
+    paymentSessionId: data.sessionId,
+    redirectTarget: "_self"
+  });
+}
   try {
     if (window.paymentListener) {
       clearInterval(window.paymentListener);
@@ -991,7 +1007,6 @@ async function showPaymentQr(trackingId, amount) {
     console.error(err);
     alert("QR generation failed");
   }
-}
 
 function closePaymentModal() {
   if (window.paymentListener) {
@@ -1065,6 +1080,13 @@ function isPaidOnlineStatus(status) {
             localStorage.clear();
             window.location.href = 'login.html';
         };
+
+messaging.onMessage((payload) => {
+  if (payload.notification.title === "Payment Done") {
+    alert("Payment received ✔");
+    loadAssignedDeliveries(true);
+  }
+});
     </script>
 </body>
 </html>
