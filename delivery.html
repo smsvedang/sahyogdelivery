@@ -1025,7 +1025,7 @@ async function showPaymentQr(button, trackingId, amount) {
         const cashfree = Cashfree({ mode: "production" });
 
         cashfree.checkout({
-          paymentSessionId: data.sessionId,
+          paymentSessionId: data.payment_session_id,
           redirectTarget: "_self"
         });
 
