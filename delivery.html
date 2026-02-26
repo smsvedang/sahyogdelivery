@@ -907,6 +907,15 @@ if (enableBtn) {
 
 async function showPaymentQr(trackingId, amount) {
   try {
+    if (window.paymentListener) {
+      clearInterval(window.paymentListener);
+      window.paymentListener = null;
+    }
+    if (window.paymentExpiryTimerInterval) {
+      clearInterval(window.paymentExpiryTimerInterval);
+      window.paymentExpiryTimerInterval = null;
+    }
+
     const res = await fetch(`${API_BASE}/api/create-payment-order`, {
       method: "POST",
       headers,
@@ -919,105 +928,92 @@ async function showPaymentQr(trackingId, amount) {
       return;
     }
 
-    // Show QR modal
     document.getElementById("qr-modal").style.display = "flex";
     document.getElementById("qr-amount").innerText = amount;
 
     const qrDiv = document.getElementById("payment-qrcode");
+    const statusEl = document.getElementById("payment-status-text");
     qrDiv.innerHTML = "";
 
-    // Cashfree Payment Link → QR
     const paymentUrl = `upi://pay?pa=${data.upi}&pn=Sahyog&am=${amount}&cu=INR`;
-
     new QRCode(qrDiv, {
       text: paymentUrl,
       width: 250,
       height: 250
     });
 
-    // Start payment status polling
-    startPaymentWatcher(trackingId);
+    let expiryTimer = 300;
+    statusEl.className = 'message';
+    statusEl.innerText = `QR expires in ${expiryTimer} sec`;
+
+    window.paymentExpiryTimerInterval = setInterval(() => {
+      expiryTimer--;
+      statusEl.innerText = `QR expires in ${expiryTimer} sec`;
+
+      if (expiryTimer <= 0) {
+        clearInterval(window.paymentExpiryTimerInterval);
+        window.paymentExpiryTimerInterval = null;
+
+        if (window.paymentListener) {
+          clearInterval(window.paymentListener);
+          window.paymentListener = null;
+        }
+
+        closePaymentModal();
+        alert("Payment time expired");
+      }
+    }, 1000);
+
+    window.paymentListener = setInterval(async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/payment-status/${trackingId}`, { headers });
+        const d = await r.json();
+
+        if (d.paid) {
+          clearInterval(window.paymentListener);
+          window.paymentListener = null;
+
+          if (window.paymentExpiryTimerInterval) {
+            clearInterval(window.paymentExpiryTimerInterval);
+            window.paymentExpiryTimerInterval = null;
+          }
+
+          closePaymentModal();
+          alert("Payment received ✔");
+          loadAssignedDeliveries(true);
+        }
+      } catch (pollErr) {
+        console.error("Payment polling failed:", pollErr);
+      }
+    }, 2000);
 
   } catch (err) {
     console.error(err);
     alert("QR generation failed");
   }
-  try {
-    const res = await fetch(`${API_BASE}/api/create-payment-order`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ trackingId, amount })
-    });
+}
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert("Payment error: " + JSON.stringify(data));
-      return;
-    }
-
-    const cashfree = Cashfree({ mode: "production" });
-
-    cashfree.checkout({
-      paymentSessionId: data.sessionId,
-      redirectTarget: "_modal",
-      onSuccess: async function () {
-        try {
-          await fetch(`${API_BASE}/api/payment-success`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ trackingId })
-          });
-          alert("Payment received ✔");
-          location.reload();
-        } catch (e) {
-          console.error("Payment update error:", e);
-        }
-      }
-    });
-
-  } catch (err) {
-    console.error("Payment failed:", err);
-    alert("Payment failed");
+function closePaymentModal() {
+  if (window.paymentListener) {
+    clearInterval(window.paymentListener);
+    window.paymentListener = null;
   }
+  if (window.paymentExpiryTimerInterval) {
+    clearInterval(window.paymentExpiryTimerInterval);
+    window.paymentExpiryTimerInterval = null;
+  }
+
+  const qrModal = document.getElementById('qr-modal');
+  const qrCodeEl = document.getElementById('payment-qrcode');
+  const statusEl = document.getElementById('payment-status-text');
+  qrModal.style.display = 'none';
+  qrCodeEl.style.display = 'block';
+  qrCodeEl.innerHTML = '';
+  statusEl.className = 'message';
+  statusEl.textContent = 'Ask customer to scan and pay via any UPI app.';
 }
 
-function startPaymentWatcher(trackingId) {
-  const interval = setInterval(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/payment-status/${trackingId}`, { headers });
-      const data = await res.json();
-
-      if (data.paid) {
-        clearInterval(interval);
-
-        closePaymentModal(); // QR hide
-        alert("Payment received ✔");
-
-        // Enable OTP section
-        document.getElementById('manual-entry-card').style.display = 'block';
-        document.getElementById('manual-tracking-id').value = trackingId;
-        document.getElementById('complete-otp-code').focus();
-
-        loadAssignedDeliveries(true);
-      }
-    } catch (e) {
-      console.error("Payment watcher error", e);
-    }
-  }, 4000); // check every 4 sec
-}
-
-        function closePaymentModal() {
-            const qrModal = document.getElementById('qr-modal');
-            const qrCodeEl = document.getElementById('payment-qrcode');
-            const statusEl = document.getElementById('payment-status-text');
-            qrModal.style.display = 'none';
-            qrCodeEl.style.display = 'block';
-            qrCodeEl.innerHTML = '';
-            statusEl.className = 'message';
-            statusEl.textContent = 'Ask customer to scan and pay via any UPI app.';
-        }
-
-        function isPaidOnlineStatus(status) {
+function isPaidOnlineStatus(status) {
             if (!status) return false;
             const normalized = String(status).trim().toLowerCase();
             return normalized === 'paid - online' || normalized === 'paid-online' || normalized === 'paid_online';
