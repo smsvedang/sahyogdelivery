@@ -455,10 +455,12 @@ function saveTokenToServer(token) {
         <input type="password" id="complete-otp-code" placeholder="Enter OTP to complete">
         
         <div id="cod-payment-options" style="display:none; margin-top:10px; background: #fffbe6; padding: 10px; border-radius: 5px;">
-            <strong>COD Payment (Cash Only):</strong><br>
-            <input type="radio" id="pay-cash" name="paymentReceivedMethod" value="cash" required>
-            <label for="pay-cash">By Cash</label><br>
-            <small>Use cash option only after payment is confirmed.</small>
+            <strong>COD Payment:</strong><br>
+            <input type="radio" id="pay-cash" name="codPaymentOption" value="cash">
+            <label for="pay-cash">Cash Received</label><br>
+            <input type="radio" id="pay-online" name="codPaymentOption" value="online">
+            <label for="pay-online">Already Paid Online</label><br>
+            <small>Select how payment was received before completing delivery.</small>
         </div>
 
         <button id="complete-btn" class="btn-success" style="margin-top: 10px;">Mark as Delivered (with OTP)</button>
@@ -679,14 +681,18 @@ if (enableBtn) {
                     let paymentInfo = `<strong>Payment:</strong> ${d.paymentMethod}`;
                     let paymentButton = '';
                     if (d.paymentMethod === 'COD') {
-                        const paymentStatusLabel = d.paymentStatus || d.codPaymentStatus || d.currentStatus || '';
-                        const alreadyPaidOnline = isPaidOnlineStatus(paymentStatusLabel);
+                        const paymentStatusLabel = d.codPaymentStatus || d.paymentStatus || 'Pending';
+                        const paidOnline = isPaidOnlineStatus(paymentStatusLabel);
+                        const paidCash = isPaidCashStatus(paymentStatusLabel);
                         paymentInfo += ` (<strong>₹${d.billAmount}</strong>)`;
-                        if (alreadyPaidOnline) {
-                            paymentInfo += ` <span class="status" style="background:#d1e7dd;color:#0f5132;">PAID</span>`;
-                        }
-                        if (d.currentStatus === 'Out for Delivery' && !alreadyPaidOnline) {
-                            paymentButton = `<button onclick="showPaymentQr('${d.trackingId}', '${d.billAmount}')">Online Payment</button>`;
+                        if (paidOnline) {
+                            paymentInfo += ` <span class="status" style="background:#d1e7dd;color:#0f5132;">✅ Paid Online</span>`;
+                        } else if (paidCash) {
+                            paymentInfo += ` <span class="status" style="background:#d1e7dd;color:#0f5132;">✅ Paid Cash</span>`;
+                        } else {
+                            if (d.currentStatus === 'Out for Delivery') {
+                                paymentButton = `<button onclick="showPaymentQr('${d.trackingId}', '${d.billAmount}')" class="btn-primary">Online Payment</button>`;
+                            }
                         }
                     }
 
@@ -836,10 +842,16 @@ if (enableBtn) {
         completeResultDiv.innerHTML = 'Please update status to "Out for Delivery" before completing.';
         return;
     }
-            let paymentReceivedMethod = null;
+            let paymentType = null;
             const codOptionsDiv = document.getElementById('cod-payment-options');
              if (codOptionsDiv.style.display === 'block') {
-                 if (document.getElementById('pay-cash').checked) paymentReceivedMethod = 'cash';
+                 if (document.getElementById('pay-cash').checked) paymentType = 'cash';
+                 else if (document.getElementById('pay-online') && document.getElementById('pay-online').checked) paymentType = 'online';
+                 else {
+                     completeResultDiv.className = 'message error';
+                     completeResultDiv.innerHTML = 'Please select payment method (Cash or Already Paid Online).';
+                     return;
+                 }
              }
              if (!trackingId || !otp) {
                  completeResultDiv.className = 'message error';
@@ -850,7 +862,7 @@ if (enableBtn) {
              try {
                 const response = await fetch(`${API_BASE}/delivery/complete`, {
                     method: 'POST', headers: headers,
-                    body: JSON.stringify({ trackingId, otp, paymentReceivedMethod })
+                    body: JSON.stringify({ trackingId, otp, paymentType })
                 });
                 const data = await response.json();
                  if (response.ok) {
@@ -861,6 +873,7 @@ if (enableBtn) {
                     document.getElementById('complete-otp-code').value = '';
                     codOptionsDiv.style.display = 'none';
                     if(document.getElementById('pay-cash')) document.getElementById('pay-cash').checked = false;
+                    if(document.getElementById('pay-online')) document.getElementById('pay-online').checked = false;
                  } else {
                     completeResultDiv.className = 'message error';
                     completeResultDiv.innerHTML = `Error: ${data.message || `Server error ${response.status}`}`;
@@ -907,11 +920,19 @@ if (enableBtn) {
 
 async function showPaymentQr(trackingId, amount) {
   try {
-    const res = await fetch(`${API_BASE}/api/create-payment-order`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ trackingId, amount })
-    });
+        // Prevent duplicate payments: check current delivery status first
+        const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
+        const currentCodStatus = delivery ? (delivery.codPaymentStatus || delivery.paymentStatus || 'Pending') : null;
+        if (currentCodStatus && currentCodStatus.toString().toLowerCase() !== 'pending') {
+            alert('Payment already completed');
+            return;
+        }
+
+        const res = await fetch(`${API_BASE}/api/create-payment-order`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ trackingId, amount })
+        });
 
     const data = await res.json();
     if (!res.ok) {
@@ -937,9 +958,9 @@ const params = new URLSearchParams(window.location.search);
 const paidTrackingId = params.get("trackingId");
 
 if (paidTrackingId) {
-  setTimeout(() => {
-    loadAssignedDeliveries(true);
-  }, 2000);
+    setTimeout(() => {
+        loadAssignedDeliveries(true);
+    }, 1500);
 }
 
 //close
@@ -974,6 +995,17 @@ function isPaidOnlineStatus(status) {
     s.includes("online paid") ||
     s === "paid"
   );
+}
+
+function isPaidCashStatus(status) {
+    if (!status) return false;
+    const s = status.toString().toLowerCase();
+    return (
+        s.includes('paid - cash') ||
+        s.includes('paid cash') ||
+        s.includes('cash paid') ||
+        s === 'cash'
+    );
 }
 
         // --- 7. Push Notification ---
