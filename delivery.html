@@ -944,33 +944,6 @@ async function showPaymentQr(trackingId, amount) {
     alert("Payment failed");
   }
 }
-  try {
-    const res = await fetch(`${API_BASE}/api/create-payment-order`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ trackingId, amount })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert("Payment error: " + JSON.stringify(data));
-      return;
-    }
-
-    const cashfree = Cashfree({
-      mode: "production"   // LIVE me "production"
-    });
-
-    cashfree.checkout({
-      paymentSessionId: data.sessionId,
-      redirectTarget: "_self"
-    });
-
-  } catch (err) {
-    console.error(err);
-    alert("Payment failed");
-  }
         function closePaymentModal() {
             const qrModal = document.getElementById('qr-modal');
             const qrCodeEl = document.getElementById('payment-qrcode');
