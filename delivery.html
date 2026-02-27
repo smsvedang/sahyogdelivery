@@ -916,18 +916,7 @@ if (enableBtn) {
             return;
         }
 
-        // For online COD, verify latest status from server (not only cached list state).
-        if (paymentType === 'online' && !isPaidOnlineStatus(delivery.codPaymentStatus || delivery.paymentStatus)) {
-            completeResultDiv.className = 'message';
-            completeResultDiv.innerHTML = 'Verifying online payment status...';
-            const paidOnlineNow = await verifyOnlinePaymentStatus(trackingId);
-            if (!paidOnlineNow) {
-                completeResultDiv.className = 'message error';
-                completeResultDiv.innerHTML = 'Cannot mark as delivered: online payment is not reflected in order.';
-                completeBtn.disabled = false;
-                return;
-            }
-        }
+        // Online option is accepted directly at completion time.
     }
 
     if (!trackingId || !otp) {
