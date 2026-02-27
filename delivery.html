@@ -916,12 +916,17 @@ if (enableBtn) {
             return;
         }
 
-        // if user picked online ensure the delivery cod status is already paid-online
+        // For online COD, verify latest status from server (not only cached list state).
         if (paymentType === 'online' && !isPaidOnlineStatus(delivery.codPaymentStatus || delivery.paymentStatus)) {
-            completeResultDiv.className = 'message error';
-            completeResultDiv.innerHTML = 'Cannot mark as delivered: online payment is not reflected in order.';
-            completeBtn.disabled = false;
-            return;
+            completeResultDiv.className = 'message';
+            completeResultDiv.innerHTML = 'Verifying online payment status...';
+            const paidOnlineNow = await verifyOnlinePaymentStatus(trackingId);
+            if (!paidOnlineNow) {
+                completeResultDiv.className = 'message error';
+                completeResultDiv.innerHTML = 'Cannot mark as delivered: online payment is not reflected in order.';
+                completeBtn.disabled = false;
+                return;
+            }
         }
     }
 
@@ -1042,11 +1047,7 @@ const params = new URLSearchParams(window.location.search);
 const paidTrackingId = params.get("trackingId");
 
 if (paidTrackingId) {
-    setTimeout(() => {
-        loadAssignedDeliveries(true);
-        // remove query param for clean URL
-        history.replaceState(null, '', window.location.pathname);
-    }, 1500);
+    waitForOnlinePaymentAndRefresh(paidTrackingId);
 }
 
 //close
@@ -1092,6 +1093,41 @@ function isPaidCashStatus(status) {
         s.includes('cash paid') ||
         s === 'cash'
     );
+}
+
+async function verifyOnlinePaymentStatus(trackingId) {
+    try {
+        const response = await apiRequest(`${API_BASE}/api/payment-status/${encodeURIComponent(trackingId)}`);
+        if (!response.ok) return false;
+        const data = await response.json();
+        const isPaidOnline = !!data.paid;
+        if (isPaidOnline) {
+            const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
+            if (delivery) {
+                delivery.codPaymentStatus = 'Paid - Online';
+                delivery.paymentStatus = 'Paid - Online';
+            }
+        }
+        return isPaidOnline;
+    } catch (err) {
+        console.error('Payment status check failed:', err);
+        return false;
+    }
+}
+
+async function waitForOnlinePaymentAndRefresh(trackingId) {
+    const maxAttempts = 6;
+    const delayMs = 2000;
+
+    for (let i = 0; i < maxAttempts; i++) {
+        const paid = await verifyOnlinePaymentStatus(trackingId);
+        if (paid) break;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+
+    await loadAssignedDeliveries(true);
+    // remove query param for clean URL
+    history.replaceState(null, '', window.location.pathname);
 }
 
         // --- 7. Push Notification ---
