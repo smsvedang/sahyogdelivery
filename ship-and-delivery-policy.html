@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms & Conditions - Sahyog Medical</title>
+    <title>Ship & Delivery Policy - Sahyog Medical</title>
     <link rel="icon" href="/favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="/favicon.png">
     <meta name="theme-color" content="#f1c27d">
@@ -70,8 +70,41 @@
             margin: 0 0 10px 0;
         }
 
+        ul {
+            margin: 0 0 12px 20px;
+            padding: 0;
+        }
+
+        li {
+            line-height: 1.7;
+            margin-bottom: 4px;
+        }
+
         .muted {
             color: var(--text-muted);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            margin-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0 14px;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background: #fff7e7;
+            font-family: 'Poppins', sans-serif;
         }
 
         .footer {
@@ -95,7 +128,7 @@
 </head>
 <body>
     <header class="header">
-        <h1>Terms &amp; Conditions</h1>
+        <h1>Ship &amp; Delivery Policy</h1>
     </header>
 
     <main class="container">
@@ -103,23 +136,53 @@
             <h2>Sahyog Medical Delivery Platform</h2>
             <p class="muted">Last updated: <span id="last-updated"></span></p>
 
-            <h3>1. Service Scope</h3>
-            <p>Our platform enables booking, tracking, and delivery status updates for orders handled by Sahyog Medical and its authorized delivery staff.</p>
+            <h3>1. Service Coverage</h3>
+            <p>We currently deliver within our active serviceable areas. Orders outside service range may be cancelled with notification to the customer.</p>
 
-            <h3>2. User Information</h3>
-            <p>You agree to provide accurate recipient details including address and phone number. Incorrect details may delay or fail delivery.</p>
+            <h3>2. Shipping and Delivery Charges</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order Type</th>
+                            <th>Delivery Charge</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Order value below Rs 500</td>
+                            <td>Rs 30</td>
+                            <td>Standard local delivery charge</td>
+                        </tr>
+                        <tr>
+                            <td>Order value Rs 500 and above</td>
+                            <td>Free</td>
+                            <td>No delivery charge within service area</td>
+                        </tr>
+                        <tr>
+                            <td>Urgent / express request</td>
+                            <td>Rs 60</td>
+                            <td>Subject to delivery partner availability</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>Final charges, if any, are shown at order confirmation before dispatch.</p>
 
             <h3>3. Delivery Timeline</h3>
-            <p>Estimated delivery times are indicative and may vary based on traffic, weather, operational load, stock availability, and customer response.</p>
+            <ul>
+                <li>Standard delivery: Within 2 to 6 hours from order confirmation.</li>
+                <li>High-demand or peak slots: Up to 24 hours.</li>
+                <li>Out-of-stock/partially available items: Timeline shared by support after confirmation.</li>
+            </ul>
+            <p>Delivery timelines are estimates and may vary due to traffic, weather, stock availability, and customer response time.</p>
 
-            <h3>4. Verification and Handover</h3>
-            <p>Orders may require tracking ID/OTP confirmation or equivalent verification before handover to the recipient.</p>
+            <h3>4. Failed Delivery Attempts</h3>
+            <p>If the customer is unreachable, has an incorrect address, or does not respond at the time of delivery, re-delivery may be rescheduled and additional delivery charges can apply.</p>
 
-            <h3>5. Product Handling</h3>
-            <p>Customers should inspect package condition at the time of receipt. Any visible issue should be reported immediately through support numbers.</p>
-
-            <h3>6. Platform Changes</h3>
-            <p>Sahyog Medical may update workflows, features, and these terms at any time. Continued usage implies acceptance of updated terms.</p>
+            <h3>5. Customer Support</h3>
+            <p>For shipping, delivery delay, or charge clarification, contact support with your Tracking ID and registered phone number.</p>
         </section>
     </main>
 
@@ -127,7 +190,7 @@
         <div class="links">
             <a href="/index.html">Home</a> |
             <a href="/contact-us.html">Contact Us</a> |
-            <a href="/ship-and-delivery-policy.html">Ship &amp; Delivery Policy</a> |
+            <a href="/terms-and-conditions.html">Terms &amp; Conditions</a> |
             <a href="/refunds-and-cancellations.html">Refunds &amp; Cancellations</a>
         </div>
         <div style="margin-top: 8px;">
