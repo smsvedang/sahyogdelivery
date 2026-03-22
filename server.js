@@ -339,7 +339,7 @@ async function syncSingleDeliveryToSheet(deliveryId, action = 'update') {
       (delivery.paymentMethod === 'COD' ? (delivery.codPaymentStatus || 'Pending') : 'N/A'),
       delivery.assignedByManager ? delivery.assignedByManager.name : 'N/A',
       delivery.assignedTo ? delivery.assignedTo.name : 'N/A',
-      delivery.otp || 'N/A',
+      delivery.cancellationOtp ? `CANCEL: ${delivery.cancellationOtp}` : (delivery.otp || 'N/A'),
       new Date(delivery.createdAt).toLocaleDateString('en-IN') // Simple Date
     ];
 
@@ -1825,11 +1825,26 @@ app.post('/delivery/request-cancel-otp', auth(['delivery']), async (req, res) =>
     // Generate 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     delivery.cancellationOtp = otp;
+    // Notify Admin/Office (FCM)
+    const staffTokens = await getStaffFcmTokens();
+    if (staffTokens.length > 0) {
+        const payload = {
+          notification: {
+            title: 'Cancellation Request!',
+            body: `Order ${delivery.trackingId} needs cancellation. OTP: ${otp}. Reason: ${reason || 'N/A'}`,
+            click_action: `${process.env.FRONTEND_URL || ''}/admin.html`
+          }
+        };
+        const chunkedTokens = chunkArray(staffTokens, 100);
+        for (const chunk of chunkedTokens) {
+          try { await admin.messaging().sendEachForMulticast({ tokens: chunk, notification: payload.notification }); } catch(err) { console.error("FCM req-cancel error:", err); }
+        }
+    }
     await delivery.save();
 
     res.json({ 
       success: true, 
-      message: "Cancellation OTP generated. Ask customer to check their tracking page for the code.",
+      message: "Cancellation OTP generated and sent to Admin.",
       trackingId 
     });
   } catch (error) {
@@ -1912,7 +1927,14 @@ app.get('/track/:trackingId', async (req, res) => {
       return res.status(404).json({ message: 'Tracking ID not found' });
     }
 
-    res.json(delivery);
+    const { otp, cancellationOtp, ...safeDelivery } = delivery.toObject();
+    const result = {
+      ...safeDelivery,
+      currentStatus: delivery.currentStatus, // include virtual
+      isCancellationRequested: !!delivery.cancellationOtp
+    };
+
+    res.json(result);
   } catch (err) {
     console.error("Track Error:", err);
     res.status(500).json({ message: 'Server error' });

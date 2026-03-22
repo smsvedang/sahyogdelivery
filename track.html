@@ -84,14 +84,13 @@
                          }
                     }
 
-                    // --- (New) Cancellation OTP Display ---
+                    // --- (New) Cancellation Status Display ---
                     let otpHTML = '';
-                    if (data.cancellationOtp && data.currentStatus !== 'Cancelled') {
+                    if (data.isCancellationRequested && data.currentStatus !== 'Cancelled') {
                         otpHTML = `
                             <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-top: 15px; color: #856404; text-align: center;">
-                                <p style="margin: 0; font-weight: bold;">Order Cancellation OTP</p>
-                                <h2 style="margin: 10px 0; font-size: 32px; letter-spacing: 5px;">${data.cancellationOtp}</h2>
-                                <p style="margin: 0; font-size: 14px;">Bhaiya ko ye code batayein agar aap order cancel karna chahte hain.</p>
+                                <p style="margin: 0; font-weight: bold;">Order Cancellation Requested</p>
+                                <p style="margin: 5px 0;">Security ke liye, kripya Sahyog Medical Admin ko call karein aur cancellation verify karein. OTP Admin ke paas bhej diya gaya hai.</p>
                             </div>
                         `;
                     }

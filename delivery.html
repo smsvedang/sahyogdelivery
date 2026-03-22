@@ -1233,7 +1233,7 @@ async function waitForOnlinePaymentAndRefresh(trackingId) {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    messageDiv.textContent = data.message;
+                    messageDiv.textContent = 'OTP has been generated and sent to Admin. Please call Admin/Office to get the code.';
                     messageDiv.className = 'message success';
                     messageDiv.style.display = 'block';
                     document.getElementById('cancel-otp-section').style.display = 'block';
@@ -1243,6 +1243,7 @@ async function waitForOnlinePaymentAndRefresh(trackingId) {
                     messageDiv.textContent = data.message || 'Error requesting OTP.';
                     messageDiv.className = 'message error';
                     messageDiv.style.display = 'block';
+                    btn.style.display = 'inline-block';
                     btn.disabled = false;
                     btn.textContent = 'Request OTP';
                 }
