@@ -10,37 +10,55 @@
 
     <meta name="theme-color" content="#f1c27d">
     <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
    
    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f7f6; }
-        .track-container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        input { width: 70%; padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; }
-        button { padding: 12px 15px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        #status-result { margin-top: 20px; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }
+        .track-container { max-width: 550px; margin: 20px auto; background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2d3436; margin-bottom: 25px; font-weight: 700; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 30px; }
+        input { flex: 1; padding: 14px; font-size: 16px; border: 2px solid #e0e0e0; border-radius: 10px; transition: border-color 0.3s; }
+        input:focus { outline: none; border-color: #007bff; }
+        button { padding: 14px 25px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: background 0.3s; }
+        button:hover { background: #0056b3; }
         
-        /* --- नई टाइमलाइन (Timeline) CSS --- */
-        .timeline { list-style: none; padding: 0; margin-top: 20px; }
+        /* Progress Stepper */
+        .stepper { display: flex; justify-content: space-between; margin-bottom: 40px; position: relative; }
+        .stepper::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; height: 3px; background: #eee; z-index: 1; }
+        .step { position: relative; z-index: 2; text-align: center; width: 20%; }
+        .step-icon { width: 32px; height: 32px; background: #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #999; font-size: 14px; border: 3px solid #fff; }
+        .step.active .step-icon { background: #007bff; color: white; }
+        .step.active .step-text { color: #007bff; font-weight: 600; }
+        .step-text { font-size: 11px; color: #777; }
+
+        /* Timeline Styles */
+        .timeline { list-style: none; padding: 0; margin-top: 30px; }
         .timeline li {
             position: relative;
-            padding: 10px 10px 20px 40px; /* Added more bottom padding */
-            border-left: 2px solid #ddd;
-            margin-left: 10px;
+            padding: 0 0 25px 45px;
+            border-left: 2px solid #e0e0e0;
+            margin-left: 15px;
         }
-        .timeline li:first-child { border-left-color: #007bff; } /* पहला वाला एक्टिव होगा */
+        .timeline li:last-child { border-left-color: transparent; }
         .timeline li::before {
             content: '';
             position: absolute;
-            left: -11px;
-            top: 12px;
-            width: 20px;
-            height: 20px;
+            left: -9px;
+            top: 5px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            background-color: #ddd;
-            border: 2px solid white;
+            background-color: #fff;
+            border: 3px solid #007bff;
+            z-index: 2;
         }
-        .timeline li:first-child::before { background-color: #007bff; }
-        .timeline li strong { font-size: 1.1em; color: #333; }
-        .timeline li small { display: block; color: #777; margin-top: 5px; }
+        .status-card { background: #f8f9fa; padding: 12px 15px; border-radius: 10px; border-left: 4px solid #007bff; }
+        .status-title { display: block; font-size: 1.05em; font-weight: 700; color: #333; margin-bottom: 2px; }
+        .status-time { font-size: 0.85em; color: #636e72; }
+        .status-icon-inline { position: absolute; left: -35px; top: 0px; background: #007bff; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; transform: translateX(10px); z-index: 3; }
+        
+        .boy-details { background: #e3f2fd; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; border: 1px solid #bbdefb; }
+        .boy-details i { font-size: 24px; color: #1976d2; }
     </style>
 </head>
 <body>
@@ -61,49 +79,91 @@
             resultDiv.innerHTML = "स्टेटस पता किया जा रहा है...";
             try {
                 const response = await fetch(`https://sahyogdeliverybackend.onrender.com/track/${trackingId}`);
-                const data = await response.json();
                 if (response.ok) {
+                    const data = await response.json();
+                    const statusIcons = {
+                        'Booked': 'fa-file-invoice',
+                        'Dispatched from Head Office': 'fa-truck-moving',
+                        'Received at Branch': 'fa-warehouse',
+                        'Boy Assigned': 'fa-user-tag',
+                        'Picked Up': 'fa-box',
+                        'Out for Delivery': 'fa-motorcycle',
+                        'Delivered': 'fa-circle-check',
+                        'Cancelled': 'fa-circle-xmark',
+                        'Rescheduled': 'fa-calendar-day'
+                    };
+
                     let statusHTML = '<ul class="timeline">';
-                    data.statusUpdates.slice().reverse().forEach(update => { // Use slice() to avoid modifying original
-                        const date = new Date(update.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-                        statusHTML += `<li><strong>${update.status}</strong><small>${date}</small></li>`;
+                    data.statusUpdates.slice().reverse().forEach((update, idx) => {
+                        const date = new Date(update.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+                        const icon = statusIcons[update.status] || 'fa-dot-circle';
+                        statusHTML += `
+                            <li>
+                                <div class="status-icon-inline"><i class="fas ${icon}"></i></div>
+                                <div class="status-card" style="border-left-color: ${update.status==='Cancelled'?'#e74c3c':(update.status==='Delivered'?'#2ecc71':'#007bff')}">
+                                    <span class="status-title">${update.status}</span>
+                                    <span class="status-time"><i class="far fa-clock"></i> ${date}</span>
+                                    ${update.remarks ? `<p style="margin:5px 0 0; font-size:0.85em; color:#d63031;">${update.remarks}</p>` : ''}
+                                </div>
+                            </li>`;
                     });
                     statusHTML += '</ul>';
 
-                    // --- (New) Display Boy Details ---
+                    // --- Stepper Progress ---
+                    const mainStages = ['Booked', 'Received at Branch', 'Out for Delivery', 'Delivered'];
+                    let stepperHTML = '<div class="stepper">';
+                    mainStages.forEach(stage => {
+                        const isDone = data.statusUpdates.some(s => s.status === stage);
+                        stepperHTML += `
+                            <div class="step ${isDone ? 'active' : ''}">
+                                <div class="step-icon"><i class="fas ${statusIcons[stage]}"></i></div>
+                                <div class="step-text">${stage.replace('Received at Branch','Branch')}</div>
+                            </div>`;
+                    });
+                    stepperHTML += '</div>';
+
+                    // --- Boy Details ---
                     let boyInfoHTML = '';
-                    if (data.assignedBoyDetails && data.assignedBoyDetails.name) {
-                         // Show details if Boy Assigned status or later is present
-                         const showBoyStatus = ['Boy Assigned', 'Picked Up', 'Out for Delivery', 'Delivered'];
+                    if (data.assignedBoyDetails?.name) {
+                         const showBoyStatus = ['Boy Assigned', 'Picked Up', 'Out for Delivery', 'Delivered', 'Rescheduled'];
                          if (data.statusUpdates.some(s => showBoyStatus.includes(s.status))) {
-                             boyInfoHTML = `<p><strong>Assigned To:</strong> ${data.assignedBoyDetails.name}`;
-                             if (data.assignedBoyDetails.phone) {
-                                  boyInfoHTML += ` (${data.assignedBoyDetails.phone})`;
-                             }
-                             boyInfoHTML += `</p>`;
+                             boyInfoHTML = `
+                                <div class="boy-details">
+                                    <i class="fas fa-motorcycle"></i>
+                                    <div>
+                                        <div style="font-size:0.8em; color:#666;">Delivery Agent</div>
+                                        <div style="font-weight:700;">${data.assignedBoyDetails.name}</div>
+                                        ${data.assignedBoyDetails.phone ? `<a href="tel:${data.assignedBoyDetails.phone}" style="text-decoration:none; color:#007bff; font-size:0.9em;"><i class="fas fa-phone-alt"></i> ${data.assignedBoyDetails.phone}</a>` : ''}
+                                    </div>
+                                </div>`;
                          }
                     }
 
-                    // --- (New) Cancellation Status Display ---
+                    // --- Cancellation/Reschedule Request ---
                     let otpHTML = '';
-                    if (data.isCancellationRequested && data.currentStatus !== 'Cancelled') {
+                    if (data.isCancellationRequested && !['Delivered','Cancelled'].includes(data.currentStatus)) {
                         otpHTML = `
-                            <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-top: 15px; color: #856404; text-align: center;">
-                                <p style="margin: 0; font-weight: bold;">Order Cancellation Requested</p>
-                                <p style="margin: 5px 0;">Security ke liye, kripya Sahyog Medical Admin ko call karein aur cancellation verify karein. OTP Admin ke paas bhej diya gaya hai.</p>
+                            <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 12px; margin-bottom: 20px; color: #856404;">
+                                <div style="display:flex; align-items:center; gap:10px; font-weight:700;">
+                                    <i class="fas fa-exclamation-triangle"></i> Action Required
+                                </div>
+                                <p style="margin: 8px 0 0; font-size: 0.9em;">Security verify karne ke liye Admin ko sampark karein. OTP unke paas bhej diya gaya hai.</p>
                             </div>
                         `;
                     }
-                    // --------------------------------
 
                     resultDiv.innerHTML = `
-                        <p><strong>Tracking ID:</strong> ${data.trackingId}</p>
-                        <p><strong>Customer:</strong> ${data.customerName || 'N/A'}</p>
-                        ${boyInfoHTML} 
+                        <div style="margin-bottom:20px; text-align:center;">
+                            <div style="font-size:0.9em; color:#777;">Tracking ID: ${data.trackingId}</div>
+                            <div style="font-size:1.2em; font-weight:700;">Hello, ${data.customerName || 'Customer'}</div>
+                        </div>
+                        ${stepperHTML}
+                        ${boyInfoHTML}
                         ${otpHTML}
                         ${statusHTML}
                     `;
                 } else {
+                    const data = await response.json();
                     resultDiv.innerHTML = `<p style='color:red;'><strong>गड़बड़ी:</strong> ${data.message}</p>`;
                 }
             } catch (error) { resultDiv.innerHTML = `<strong>सर्वर से कनेक्ट नहीं हो पा रहा है।</strong>`; }

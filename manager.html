@@ -3,6 +3,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
     const firebaseConfig = {
   apiKey: "AIzaSyDRcvcvaYSsw19ZmcOikz-FBReqJTtI03s",
@@ -463,6 +464,11 @@ function saveTokenToServer(token) {
                 <input type="text" id="receive-scan-input" placeholder="Scan Barcode..." style="flex: 1; padding: 12px; font-size: 1.1em; border: 2px solid #4caf50; border-radius: 8px;">
                 <button id="receive-scan-btn" class="btn-success" style="padding: 0 15px; border-radius: 8px; border: none; cursor: pointer;">Add</button>
             </div>
+
+            <div style="margin-bottom: 20px; text-align: center;">
+                <button id="start-camera-receive" class="btn-secondary" style="background: #2e7d32; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">📷 Open branch Scanner</button>
+                <div id="receive-reader" style="width: 100%; max-width: 100%; margin: 15px auto; display: none; border-radius: 10px; overflow: hidden; border: 2px solid #4caf50;"></div>
+            </div>
             <div id="receive-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px; background: white; margin-bottom: 20px;">
                 <ul id="receive-list" style="list-style: none; padding: 0; margin: 0;">
                     <li id="receive-placeholder" style="color: #999; text-align: center; padding: 20px;">Abhi tak koi parcel scan nahi hua.</li>
@@ -730,6 +736,49 @@ function saveTokenToServer(token) {
                 updateReceiveList();
                 loadManagerSummary();
             } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        let receiveHtml5QrCode = null;
+        async function toggleReceiveCamera() {
+            const readerDiv = document.getElementById('receive-reader');
+            const startBtn = document.getElementById('start-camera-receive');
+            
+            if (receiveHtml5QrCode) {
+                try {
+                    await receiveHtml5QrCode.stop();
+                    receiveHtml5QrCode = null;
+                    readerDiv.style.display = 'none';
+                    startBtn.innerHTML = '📷 Open branch Scanner';
+                    startBtn.style.background = '#2e7d32';
+                } catch(err) { console.error("Err stopping scanner:", err); }
+                return;
+            }
+
+            readerDiv.style.display = 'block';
+            startBtn.innerHTML = '🛑 Stop Camera';
+            startBtn.style.background = '#d32f2f';
+
+            receiveHtml5QrCode = new Html5Qrcode("receive-reader");
+            const config = { fps: 15, qrbox: { width: 300, height: 180 } };
+
+            receiveHtml5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText) => {
+                    const tid = decodedText.trim().toUpperCase();
+                    if (tid && !receiveScannedIds.includes(tid)) {
+                        receiveScannedIds.push(tid);
+                        updateReceiveList();
+                        if (navigator.vibrate) navigator.vibrate(100);
+                    }
+                },
+                (errorMessage) => { /* ignore */ }
+            ).catch(err => {
+                alert("Camera access failed: " + err);
+                readerDiv.style.display = 'none';
+                startBtn.innerHTML = '📷 Open branch Scanner';
+                receiveHtml5QrCode = null;
+            });
         }
 
         function formatDateToYYYYMMDD(dateString) {
@@ -1223,7 +1272,10 @@ async function printCompletedDeliveries() {
             if(receiveBtn) receiveBtn.onclick = handleReceiveScan;
 
             const confirmReceiveBtn = document.getElementById('confirm-receive-btn');
-            if(confirmReceiveBtn) confirmReceiveBtn.onclick = confirmReceive;
+            if (confirmReceiveBtn) confirmReceiveBtn.onclick = confirmReceive;
+
+            const startCamBtn = document.getElementById('start-camera-receive');
+            if (startCamBtn) startCamBtn.onclick = toggleReceiveCamera;
 
             const toggleCreateFormBtn = document.getElementById('toggle-create-form');
             if(toggleCreateFormBtn) toggleCreateFormBtn.onclick = () => {
