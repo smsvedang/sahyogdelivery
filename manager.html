@@ -394,6 +394,7 @@ function saveTokenToServer(token) {
 
     <div class="tab-bar">
         <button class="tab-link active" onclick="openTab(event, 'tab-pickups')">Assign Pickups</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-bulk-assign')">Bulk Assign</button>
         <button class="tab-link" onclick="openTab(event, 'tab-all-pending')">All Pending Deliveries</button>
         <button class="tab-link" onclick="openTab(event,'tab-completed')">Completed Deliveries</button>
         <button class="tab-link" onclick="openTab(event, 'tab-boys')">Manage Delivery Boys</button>
@@ -417,6 +418,39 @@ function saveTokenToServer(token) {
                 </thead>
                 <tbody id="pickups-body">
                     </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-bulk-assign" class="tab-content">
+        <div class="card" style="min-width: 95%; overflow-x: auto;">
+            <h2>Bulk Assignment</h2>
+            <p>Pehle delivery boy select karein, fir unhe assign karne waale parcels select karein.</p>
+            
+            <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label for="bulk-boy-select">Select Delivery Boy:</label>
+                    <select id="bulk-boy-select" style="margin-bottom: 0;">
+                        <option value="">Select a boy...</option>
+                    </select>
+                </div>
+                <button id="assign-selected-btn" class="btn-primary" onclick="assignSelectedDeliveries()">Assign Selected Parcels</button>
+                <button id="refresh-bulk-btn" class="btn-secondary" onclick="loadBulkPickups()">Refresh List</button>
+            </div>
+
+            <table id="bulk-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="select-all-bulk" onclick="toggleSelectAllBulk(this)"></th>
+                        <th>Tracking ID</th>
+                        <th>Customer</th>
+                        <th>Address</th>
+                        <th>Payment</th>
+                        <th>Date Booked</th>
+                    </tr>
+                </thead>
+                <tbody id="bulk-body">
+                </tbody>
             </table>
         </div>
     </div>
@@ -617,6 +651,7 @@ function saveTokenToServer(token) {
             
             // Refresh data when tabs are opened
             if (tabName === 'tab-pickups') loadPendingPickups();
+            if (tabName === 'tab-bulk-assign') loadBulkPickups();
             if(tabName === 'tab-completed') loadCompletedDeliveries();
             if (tabName === 'tab-boys') loadMyBoys();
             if (tabName === 'tab-all-pending') loadAllPendingDeliveries();
@@ -926,6 +961,106 @@ async function printCompletedDeliveries() {
                   alert('Server error during assignment.');
                   if (selectEl) selectEl.disabled = false; // Re-enable on failure
              }
+        }
+
+        // --- Bulk Assign Functions ---
+        async function loadBulkPickups() {
+            const tbody = document.getElementById('bulk-body');
+            const boySelect = document.getElementById('bulk-boy-select');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="6">Loading pickups...</td></tr>';
+            try {
+                if (myDeliveryBoys.length === 0) {
+                    await loadMyBoys();
+                }
+
+                // Update boy select dropdown
+                boySelect.innerHTML = '<option value="">Select a boy...</option>';
+                myDeliveryBoys.forEach(boy => {
+                    if (boy.isActive) {
+                        const opt = document.createElement('option');
+                        opt.value = boy._id;
+                        opt.textContent = boy.name;
+                        boySelect.appendChild(opt);
+                    }
+                });
+
+                const response = await fetch(`${API_BASE}/manager/assigned-pickups`, { headers });
+                if (response.status === 401) { window.location.href = 'login.html'; return; }
+                const deliveries = await response.json();
+                tbody.innerHTML = '';
+                if(deliveries.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No pending pickups to assign.</td></tr>'; return;
+                }
+                deliveries.forEach(d => {
+                    const row = document.createElement('tr');
+                    const date = new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                    row.innerHTML = `
+                        <td><input type="checkbox" class="bulk-check" value="${d._id}"></td>
+                        <td>${d.trackingId}</td>
+                        <td>${d.customerName || 'N/A'}</td>
+                        <td>${d.customerAddress || 'N/A'}</td>
+                        <td>${d.paymentMethod === 'COD' ? ('₹' + d.billAmount) : 'Prepaid'}</td>
+                        <td>${date}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error loading bulk pickups:", err);
+                tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        function toggleSelectAllBulk(source) {
+            const checkboxes = document.getElementsByClassName('bulk-check');
+            for(let i=0; i<checkboxes.length; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+
+        async function assignSelectedDeliveries() {
+            const boyId = document.getElementById('bulk-boy-select').value;
+            if (!boyId) {
+                alert('Please select a delivery boy first!');
+                return;
+            }
+
+            const selectedCheckboxes = document.querySelectorAll('.bulk-check:checked');
+            const deliveryIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+            if (deliveryIds.length === 0) {
+                alert('Please select at least one parcel!');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to assign ${deliveryIds.length} parcels to this boy?`)) return;
+
+            const btn = document.getElementById('assign-selected-btn');
+            btn.disabled = true;
+            btn.textContent = 'Assigning...';
+
+            try {
+                const response = await fetch(`${API_BASE}/manager/bulk-assign-deliveries`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ deliveryIds, assignedBoyId: boyId })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`Successfully processed! ${data.results.filter(r => r.status === 'success').length} parcels assigned.`);
+                    loadBulkPickups();
+                    loadPendingPickups(); 
+                    loadAllPendingDeliveries();
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            } catch (err) {
+                console.error("Bulk assign error:", err);
+                alert('Server error during bulk assignment.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Assign Selected Parcels';
+            }
         }
 
         // --- 6. Security Guard & Initial Load (Main Execution) ---

@@ -1444,6 +1444,78 @@ app.patch('/manager/assign-delivery/:deliveryId', auth(['manager']), async (req,
   }
 });
 
+// 8.4b. Manager: Bulk Assign Deliveries to Boy
+app.post('/manager/bulk-assign-deliveries', auth(['manager']), async (req, res) => {
+  try {
+    const { deliveryIds, assignedBoyId } = req.body;
+    if (!assignedBoyId) return res.status(400).json({ message: 'Delivery Boy ID is required' });
+    if (!deliveryIds || !Array.isArray(deliveryIds) || deliveryIds.length === 0) {
+      return res.status(400).json({ message: 'Delivery IDs are required' });
+    }
+
+    const boy = await User.findOne({ _id: assignedBoyId, role: 'delivery', createdByManager: req.user.userId });
+    if (!boy) return res.status(404).json({ message: 'Delivery boy not found or does not belong to you' });
+    if (!boy.isActive) return res.status(400).json({ message: 'Cannot assign to inactive delivery boy' });
+
+    const results = [];
+    for (const deliveryId of deliveryIds) {
+      const delivery = await Delivery.findById(deliveryId);
+      if (!delivery) {
+        results.push({ deliveryId, status: 'error', message: 'Not found' });
+        continue;
+      }
+      if (!delivery.assignedByManager || delivery.assignedByManager.toString() !== req.user.userId) {
+        results.push({ deliveryId, status: 'error', message: 'Not assigned to you' });
+        continue;
+      }
+      if (delivery.assignedTo) {
+        results.push({ deliveryId, status: 'error', message: 'Already assigned' });
+        continue;
+      }
+
+      delivery.assignedTo = boy._id;
+      delivery.assignedBoyDetails = { name: boy.name, phone: boy.phone };
+      delivery.assignedAt = new Date();
+      delivery.statusUpdates.push({ status: 'Boy Assigned', timestamp: new Date() });
+      await delivery.save();
+
+      // --- AUTO-SYNC (UPDATE) ---
+      syncSingleDeliveryToSheet(delivery._id, 'update').catch(console.error);
+
+      results.push({ deliveryId, status: 'success', trackingId: delivery.trackingId });
+    }
+
+    // 🔔 NOTIFY DELIVERY BOY (Once for bulk)
+    const boyTokens = Array.isArray(boy.fcmTokens) ? boy.fcmTokens : (boy.fcmTokens ? [boy.fcmTokens] : []);
+    if (boyTokens.length) {
+      const successCount = results.filter(r => r.status === 'success').length;
+      if (successCount > 0) {
+        for (const token of boyTokens) {
+          await sendNotification(
+            token,
+            "🚀 Naye Parcels Assign Hue!",
+            `Bhaiya aapko ${successCount} naye parcels assign hue hain. Jaldi se pickup kar lijiye. | ${getISTTime()}`,
+            boy._id,
+            {
+              headers: { Urgency: "high" },
+              icon: "https://sahyogdelivery.vercel.app/favicon.png",
+              badge: "https://sahyogdelivery.vercel.app/favicon.png",
+              tag: `bulk-delivery-${Date.now()}`,
+              requireInteraction: true,
+              link: "https://sahyogdelivery.vercel.app/login.html"
+            }
+          );
+        }
+      }
+    }
+
+    res.json({ message: 'Bulk assignment processed', results });
+  } catch (error) {
+    console.error("Bulk Assign Error:", error);
+    res.status(500).json({ message: 'Server error during bulk assignment', error: error.message });
+  }
+});
+
 // 8.5. Manager: Get ALL pending deliveries (No changes)
 app.get('/manager/all-pending-deliveries', auth(['manager']), async (req, res) => {
   try {
