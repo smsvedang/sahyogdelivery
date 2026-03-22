@@ -3,6 +3,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
     const firebaseConfig = {
@@ -559,6 +560,11 @@ function saveTokenToServer(token) {
             <div style="display: flex; gap: 10px; margin-bottom:15px;">
                 <input type="text" id="dispatch-scan-input" placeholder="Scan Barcode..." style="flex: 1; padding: 12px; font-size: 1.1em; border: 2px solid #fbc02d; border-radius: 8px;">
                 <button id="dispatch-scan-btn" class="btn-primary" style="background: #f9a825; border: none; padding: 0 15px; color: white; border-radius: 8px; cursor: pointer;">Add</button>
+            </div>
+            
+            <div style="margin-bottom: 20px; text-align: center;">
+                <button id="start-camera-dispatch" class="btn-secondary" style="background: #ef6c00; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">📷 Open Camera Scanner</button>
+                <div id="dispatch-reader" style="width: 100%; max-width: 100%; margin: 15px auto; display: none; border-radius: 10px; overflow: hidden; border: 2px solid #ef6c00;"></div>
             </div>
             <div id="dispatch-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px; background: white; margin-bottom: 20px;">
                 <ul id="dispatch-list" style="list-style: none; padding: 0; margin: 0;">
@@ -2001,6 +2007,49 @@ async function confirmDispatch() {
     } catch (err) { alert('Error: ' + err.message); }
 }
 
+let dispatchHtml5QrCode = null;
+async function toggleDispatchCamera() {
+    const readerDiv = document.getElementById('dispatch-reader');
+    const startBtn = document.getElementById('start-camera-dispatch');
+    
+    if (dispatchHtml5QrCode) {
+        try {
+            await dispatchHtml5QrCode.stop();
+            dispatchHtml5QrCode = null;
+            readerDiv.style.display = 'none';
+            startBtn.innerHTML = '📷 Open Camera Scanner';
+            startBtn.style.background = '#ef6c00';
+        } catch(err) { console.error("Err stopping scanner:", err); }
+        return;
+    }
+
+    readerDiv.style.display = 'block';
+    startBtn.innerHTML = '🛑 Stop Camera';
+    startBtn.style.background = '#d32f2f';
+
+    dispatchHtml5QrCode = new Html5Qrcode("dispatch-reader");
+    const config = { fps: 15, qrbox: { width: 300, height: 180 } };
+
+    dispatchHtml5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            const tid = decodedText.trim().toUpperCase();
+            if (tid && !dispatchScannedIds.includes(tid)) {
+                dispatchScannedIds.push(tid);
+                updateDispatchList();
+                if (navigator.vibrate) navigator.vibrate(100);
+            }
+        },
+        (errorMessage) => { /* quiet errors */ }
+    ).catch(err => {
+        alert("Camera access failed: " + err);
+        readerDiv.style.display = 'none';
+        startBtn.innerHTML = '📷 Open Camera Scanner';
+        dispatchHtml5QrCode = null;
+    });
+}
+
 async function loadManagersForDropdown() {
     const selects = ['assign-manager', 'edit-assign-manager'];
     
@@ -2066,6 +2115,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const confirmDispatchBtn = document.getElementById('confirm-dispatch-btn');
     if (confirmDispatchBtn) confirmDispatchBtn.onclick = confirmDispatch;
+
+    const startCamBtn = document.getElementById('start-camera-dispatch');
+    if (startCamBtn) startCamBtn.onclick = toggleDispatchCamera;
 });
 
 //--- 19. Draft Orders Tab Logic ---

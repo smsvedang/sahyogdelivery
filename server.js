@@ -1782,10 +1782,10 @@ app.get('/delivery/my-deliveries', auth(['delivery']), async (req, res) => {
     const deliveries = await Delivery.find({
       assignedTo: req.user.userId,
 
-      // ❌ Completed deliveries hide
+      // ❌ Completed/Cancelled deliveries hide (Rescheduled stays for next attempt)
       statusUpdates: {
         $not: {
-          $elemMatch: { status: "Delivered" }
+          $elemMatch: { status: { $in: ["Delivered", "Cancelled"] } }
         }
       }
     })
@@ -1991,8 +1991,11 @@ app.post('/delivery/confirm-cancel', auth(['delivery']), async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid cancellation reason" });
     }
 
+    const isReschedule = reason === 'Request for reschedule';
+    const newStatus = isReschedule ? "Rescheduled" : "Cancelled";
+    
     delivery.statusUpdates.push({ 
-      status: "Cancelled", 
+      status: newStatus, 
       timestamp: new Date(),
       remarks: `Reason: ${reason}`
     });
