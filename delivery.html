@@ -504,6 +504,36 @@ function saveTokenToServer(token) {
         </div>
     </div>
 
+    <!-- Cancellation Modal -->
+    <div id="cancel-modal" style="display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center;">
+        <div style="background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center;">
+            <h3>Cancel Order</h3>
+            <p id="cancel-tracking-display" style="font-weight: bold; color: var(--primary-color);"></p>
+            
+            <label for="cancel-reason" style="display: block; margin-bottom: 5px; text-align: left;">Reason for Cancellation:</label>
+            <select id="cancel-reason" style="width: 100%; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <option value="">Select a reason...</option>
+                <option value="customer no response">Customer no response</option>
+                <option value="Request for reschedule">Request for reschedule</option>
+                <option value="order rejected by customer">Order rejected by customer</option>
+            </select>
+
+            <div id="cancel-otp-section" style="display: none; margin-top: 10px;">
+                <label for="cancel-otp-input" style="display: block; margin-bottom: 5px; text-align: left;">Enter Customer OTP:</label>
+                <input type="password" id="cancel-otp-input" placeholder="4-digit code" style="width: 100%; margin-bottom: 10px;">
+                <p style="font-size: 12px; color: #666;">Customer tracking page par ye OTP dekh sakte hain.</p>
+            </div>
+
+            <div id="cancel-message" class="message" style="display: none; margin-bottom: 15px;"></div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                <button id="request-cancel-otp-btn" class="btn-primary" style="flex: 1; min-width: 120px;" onclick="handleRequestCancelOtp()">Request OTP</button>
+                <button id="confirm-cancel-btn" class="btn-danger" style="flex: 1; min-width: 120px; display: none;" onclick="handleConfirmCancel()">Confirm Cancel</button>
+                <button class="btn-secondary" style="flex: 1; min-width: 120px;" onclick="closeCancelModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="footer">
         Copyright © <span id="copyright-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved.<br>
         contact us :<br> Order Support: +91 7415543744<br>Technical Support: +91 9243714402
@@ -706,9 +736,9 @@ if (enableBtn) {
             try {
                 const response = await apiRequest(`${API_BASE}/delivery/my-deliveries?page=${currentPage}`);
                 if (!response.ok) throw new Error(`Server error: ${response.status}`);
-                const data = await response.json();
-                const deliveriesArray = data.deliveries;
-                totalDeliveries = data.totalDeliveries;
+                const resData = await response.json();
+                const deliveriesArray = resData.deliveries;
+                totalDeliveries = resData.totalDeliveries;
 
                 if (isRefresh && pendingList) pendingList.innerHTML = ''; // Loading hatayein
 
@@ -763,6 +793,7 @@ if (enableBtn) {
                             <div class="action-buttons">
                                 ${d.currentStatus === 'Out for Delivery' ? `<button onclick="callCustomer('${d.customerPhone}')" class="btn-primary" style="background-color: #28a745;"><i class="fas fa-phone"></i> Call Customer</button>` : ''}
                                 ${paymentButton}
+                                <button onclick="openCancelModal('${d.trackingId}')" class="btn-danger" style="background-color: #ff4444;"><i class="fas fa-times"></i> Cancel Order</button>
                             </div>
                         </div>
                     `;
@@ -775,7 +806,7 @@ if (enableBtn) {
                 const loadedCount = currentDeliveries.length;
                 if (paginationInfo) paginationInfo.textContent = `Showing ${loadedCount} of ${totalDeliveries} deliveries.`;
 
-                if (loadedCount < totalDeliveries && data.currentPage < data.totalPages) {
+                if (loadedCount < totalDeliveries && resData.currentPage < resData.totalPages) {
                     if (showMoreBtn) {
                         showMoreBtn.style.display = 'block';
                         showMoreBtn.disabled = false;
@@ -1158,6 +1189,121 @@ async function waitForOnlinePaymentAndRefresh(trackingId) {
             }
             // For mobile devices, use tel: protocol
             window.location.href = `tel:${phoneNumber}`;
+        }
+
+        // --- Cancellation Logic ---
+        let currentCancelTrackingId = null;
+
+        function openCancelModal(trackingId) {
+            currentCancelTrackingId = trackingId;
+            document.getElementById('cancel-tracking-display').textContent = `Tracking ID: ${trackingId}`;
+            document.getElementById('cancel-modal').style.display = 'flex';
+            document.getElementById('cancel-otp-section').style.display = 'none';
+            document.getElementById('confirm-cancel-btn').style.display = 'none';
+            document.getElementById('request-cancel-otp-btn').style.display = 'inline-block';
+            document.getElementById('cancel-message').style.display = 'none';
+            document.getElementById('cancel-reason').value = '';
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancel-modal').style.display = 'none';
+            currentCancelTrackingId = null;
+        }
+
+        async function handleRequestCancelOtp() {
+            const reason = document.getElementById('cancel-reason').value;
+            const messageDiv = document.getElementById('cancel-message');
+            const btn = document.getElementById('request-cancel-otp-btn');
+
+            if (!reason) {
+                messageDiv.textContent = 'Please select a reason first.';
+                messageDiv.className = 'message error';
+                messageDiv.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Requesting...';
+
+            try {
+                const response = await apiRequest(`${API_BASE}/delivery/request-cancel-otp`, {
+                    method: 'POST',
+                    body: JSON.stringify({ trackingId: currentCancelTrackingId })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.textContent = data.message;
+                    messageDiv.className = 'message success';
+                    messageDiv.style.display = 'block';
+                    document.getElementById('cancel-otp-section').style.display = 'block';
+                    document.getElementById('confirm-cancel-btn').style.display = 'inline-block';
+                    btn.style.display = 'none';
+                } else {
+                    messageDiv.textContent = data.message || 'Error requesting OTP.';
+                    messageDiv.className = 'message error';
+                    messageDiv.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Request OTP';
+                }
+            } catch (err) {
+                messageDiv.textContent = 'Network error. Please try again.';
+                messageDiv.className = 'message error';
+                messageDiv.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Request OTP';
+            }
+        }
+
+        async function handleConfirmCancel() {
+            const otp = document.getElementById('cancel-otp-input').value;
+            const reason = document.getElementById('cancel-reason').value;
+            const messageDiv = document.getElementById('cancel-message');
+            const btn = document.getElementById('confirm-cancel-btn');
+
+            if (!otp) {
+                messageDiv.textContent = 'Please enter the OTP.';
+                messageDiv.className = 'message error';
+                messageDiv.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Cancelling...';
+
+            try {
+                const response = await apiRequest(`${API_BASE}/delivery/confirm-cancel`, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        trackingId: currentCancelTrackingId,
+                        otp: otp,
+                        reason: reason
+                    })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageDiv.textContent = 'Order cancelled successfully!';
+                    messageDiv.className = 'message success';
+                    messageDiv.style.display = 'block';
+                    setTimeout(() => {
+                        closeCancelModal();
+                        loadAssignedDeliveries(true);
+                    }, 2000);
+                } else {
+                    messageDiv.textContent = data.message || 'Error confirming cancellation.';
+                    messageDiv.className = 'message error';
+                    messageDiv.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Confirm Cancel';
+                }
+            } catch (err) {
+                messageDiv.textContent = 'Network error. Please try again.';
+                messageDiv.className = 'message error';
+                messageDiv.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Confirm Cancel';
+            }
         }
 
         // --- 11. Logout ---

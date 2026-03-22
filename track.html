@@ -83,12 +83,25 @@
                              boyInfoHTML += `</p>`;
                          }
                     }
+
+                    // --- (New) Cancellation OTP Display ---
+                    let otpHTML = '';
+                    if (data.cancellationOtp && data.currentStatus !== 'Cancelled') {
+                        otpHTML = `
+                            <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-top: 15px; color: #856404; text-align: center;">
+                                <p style="margin: 0; font-weight: bold;">Order Cancellation OTP</p>
+                                <h2 style="margin: 10px 0; font-size: 32px; letter-spacing: 5px;">${data.cancellationOtp}</h2>
+                                <p style="margin: 0; font-size: 14px;">Bhaiya ko ye code batayein agar aap order cancel karna chahte hain.</p>
+                            </div>
+                        `;
+                    }
                     // --------------------------------
 
                     resultDiv.innerHTML = `
                         <p><strong>Tracking ID:</strong> ${data.trackingId}</p>
                         <p><strong>Customer:</strong> ${data.customerName || 'N/A'}</p>
                         ${boyInfoHTML} 
+                        ${otpHTML}
                         ${statusHTML}
                     `;
                 } else {

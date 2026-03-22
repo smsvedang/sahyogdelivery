@@ -243,7 +243,9 @@ const deliverySchema = new mongoose.Schema({
   cashReceivedByAdmin: { type: Boolean, default: false },
   cashReceivedAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
-  assignedAt: { type: Date, default: null }
+  assignedAt: { type: Date, default: null },
+  cancellationOtp: String,
+  cancellationReason: String
 }, { timestamps: true });
 
 deliverySchema.virtual('currentStatus').get(function () {
@@ -1804,6 +1806,90 @@ app.post('/delivery/complete', auth(['delivery', 'admin', 'manager']), async (re
   } catch (error) {
     console.error("Complete Delivery Error:", error);
     res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// 9.4. Request Cancellation OTP
+app.post('/delivery/request-cancel-otp', auth(['delivery']), async (req, res) => {
+  try {
+    const { trackingId } = req.body;
+    if (!trackingId) return res.status(400).json({ success: false, message: "trackingId required" });
+
+    const delivery = await Delivery.findOne({ trackingId, assignedTo: req.user.userId });
+    if (!delivery) return res.status(404).json({ success: false, message: "Delivery not found or not assigned to you" });
+
+    if (['Delivered', 'Cancelled'].includes(delivery.currentStatus)) {
+      return res.status(400).json({ success: false, message: `Cannot cancel: Delivery is already ${delivery.currentStatus}` });
+    }
+
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    delivery.cancellationOtp = otp;
+    await delivery.save();
+
+    res.json({ 
+      success: true, 
+      message: "Cancellation OTP generated. Ask customer to check their tracking page for the code.",
+      trackingId 
+    });
+  } catch (error) {
+    console.error("Request Cancel OTP Error:", error);
+    res.status(500).json({ success: false, message: "Server error generating OTP" });
+  }
+});
+
+// 9.5. Confirm Cancellation
+app.post('/delivery/confirm-cancel', auth(['delivery']), async (req, res) => {
+  try {
+    const { trackingId, otp, reason } = req.body;
+    if (!trackingId || !otp || !reason) {
+      return res.status(400).json({ success: false, message: "TrackingId, OTP, and Reason are required" });
+    }
+
+    const delivery = await Delivery.findOne({ trackingId, assignedTo: req.user.userId });
+    if (!delivery) return res.status(404).json({ success: false, message: "Delivery not found or not assigned to you" });
+
+    if (delivery.cancellationOtp !== otp) {
+      return res.status(400).json({ success: false, message: "Invalid Cancellation OTP" });
+    }
+
+    const validReasons = ['customer no response', 'Request for reschedule', 'order rejected by customer'];
+    if (!validReasons.includes(reason)) {
+      return res.status(400).json({ success: false, message: "Invalid cancellation reason" });
+    }
+
+    delivery.statusUpdates.push({ 
+      status: "Cancelled", 
+      timestamp: new Date(),
+      remarks: `Reason: ${reason}`
+    });
+    delivery.cancellationReason = reason;
+    delivery.cancellationOtp = null; // Clear OTP after use
+    await delivery.save();
+
+    // --- AUTO-SYNC (UPDATE) ---
+    syncSingleDeliveryToSheet(delivery._id, 'update').catch(console.error);
+
+    // 🔔 Notify Staff
+    const staff = await User.find({ role: { $in: ['admin', 'manager'] }, isActive: true });
+    for (const s of staff) {
+      if (s?.fcmTokens?.length) {
+        for (const token of s.fcmTokens) {
+          await sendNotification(
+            token,
+            "❌ Order Cancelled",
+            `Order ${delivery.trackingId} has been cancelled by delivery boy.\nReason: ${reason}\nTime: ${getISTTime()}`,
+            s._id,
+            { tag: `cancel-${delivery.trackingId}` }
+          );
+        }
+      }
+    }
+
+    res.json({ success: true, message: "Order cancelled successfully", trackingId });
+  } catch (error) {
+    console.error("Confirm Cancel Error:", error);
+    res.status(500).json({ success: false, message: "Server error during cancellation" });
   }
 });
 
