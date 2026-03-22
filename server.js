@@ -430,6 +430,38 @@ const draftOrderSchema = new mongoose.Schema({
 const DraftOrder = mongoose.model('DraftOrder', draftOrderSchema);
 
 
+// Helper: Get Admin FCM Tokens ONLY (For securely sending OTPs)
+async function getAdminFcmTokens() {
+  const admins = await User.find({ role: 'admin', isActive: true });
+  let tokens = [];
+  admins.forEach(u => {
+    if (u.fcmTokens && u.fcmTokens.length > 0) {
+      tokens = tokens.concat(u.fcmTokens);
+    }
+  });
+  return tokens;
+}
+
+// Helper: Get Staff FCM Tokens (Admin + Manager)
+async function getStaffFcmTokens() {
+  const staff = await User.find({ role: { $in: ['admin', 'manager'] }, isActive: true });
+  let tokens = [];
+  staff.forEach(u => {
+    if (u.fcmTokens && u.fcmTokens.length > 0) {
+      tokens = tokens.concat(u.fcmTokens);
+    }
+  });
+  return tokens;
+}
+
+const chunkArray = (arr, size) => {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+};
+
 // --- 5. Auth APIs --- (No changes)
 // 5.1. Login
 app.post('/api/login', async (req, res) => {
@@ -700,6 +732,51 @@ app.get('/delivery/completed', auth(['delivery']), async (req, res) => {
   res.json(deliveries);
 });
 
+// 7.8. Manager Summary / Inventory API
+app.get('/manager/summary', auth(['manager']), async (req, res) => {
+  try {
+    const managerId = req.user.userId;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const deliveries = await Delivery.find({ assignedByManager: managerId });
+    
+    let summary = {
+      totalReceived: deliveries.length,
+      pendingAssignment: 0,
+      outForDelivery: 0,
+      deliveredToday: 0,
+      cancelledToday: 0,
+      cashInHand: 0
+    };
+
+    deliveries.forEach(d => {
+      const status = d.currentStatus;
+      if (status === 'Pending' || (d.assignedTo === null && status !== 'Delivered' && status !== 'Cancelled')) {
+        summary.pendingAssignment++;
+      } else if (status !== 'Delivered' && status !== 'Cancelled') {
+        summary.outForDelivery++;
+      }
+
+      if (status === 'Delivered') {
+        if (d.completedAt >= startOfDay) summary.deliveredToday++;
+        if (d.paymentMethod === 'COD' && d.codPaymentStatus === 'Paid - Cash') {
+           summary.cashInHand += (d.billAmount || 0);
+        }
+      }
+
+      if (status === 'Cancelled' && d.completedAt >= startOfDay) {
+        summary.cancelledToday++;
+      }
+    });
+
+    res.json(summary);
+  } catch (err) {
+    console.error("Manager Summary Error:", err);
+    res.status(500).json({ message: "Error calculating summary" });
+  }
+});
+
 // 7.5. Update User Details (No changes)
 app.put('/admin/user/:userId', auth(['admin']), async (req, res) => {
   try {
@@ -766,6 +843,21 @@ app.patch('/admin/user/:userId/toggle-active', auth(['admin']), async (req, res)
   } catch (error) {
     console.error("Toggle Active Error:", error);
     res.status(500).json({ message: 'Server error toggling status', error: error.message });
+  }
+});
+
+// 7.7. Remove a user completely (Admin)
+app.delete('/admin/user/:userId', auth(['admin']), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await User.findByIdAndDelete(userId);
+    if (!result) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error("Delete User Error:", error);
+    res.status(500).json({ message: 'Server error deleting user', error: error.message });
   }
 });
 
@@ -1825,9 +1917,9 @@ app.post('/delivery/request-cancel-otp', auth(['delivery']), async (req, res) =>
     // Generate 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     delivery.cancellationOtp = otp;
-    // Notify Admin/Office (FCM)
-    const staffTokens = await getStaffFcmTokens();
-    if (staffTokens.length > 0) {
+    // Notify Admin ONLY (FCM)
+    const adminTokens = await getAdminFcmTokens();
+    if (adminTokens.length > 0) {
         const payload = {
           notification: {
             title: 'Cancellation Request!',
@@ -1835,11 +1927,12 @@ app.post('/delivery/request-cancel-otp', auth(['delivery']), async (req, res) =>
             click_action: `${process.env.FRONTEND_URL || ''}/admin.html`
           }
         };
-        const chunkedTokens = chunkArray(staffTokens, 100);
+        const chunkedTokens = chunkArray(adminTokens, 100);
         for (const chunk of chunkedTokens) {
-          try { await admin.messaging().sendEachForMulticast({ tokens: chunk, notification: payload.notification }); } catch(err) { console.error("FCM req-cancel error:", err); }
+          try { await admin.messaging().sendEachForMulticast({ tokens: chunk, notification: payload.notification }); } catch(err) { console.error("FCM req-cancel-admin error:", err); }
         }
     }
+
     await delivery.save();
 
     res.json({ 

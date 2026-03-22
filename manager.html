@@ -392,6 +392,36 @@ function saveTokenToServer(token) {
 </button>
     </div>
 
+    <!-- Inventory & Parcel Summary Dashboard -->
+    <div id="manager-summary-card" class="card" style="margin: 0 0 20px 0; background: #e3f2fd; border-left: 5px solid #2196f3; padding: 15px; min-width: 95%;">
+        <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-chart-line"></i> 📊 Inventory & Parcel Summary
+            <button class="btn-secondary btn-sm" onclick="loadManagerSummary()" style="padding: 2px 8px; font-size: 12px; margin-left: auto;">Refresh Stats 🔄</button>
+        </h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between;">
+            <div style="flex: 1; min-width: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <p style="margin: 0; color: #666; font-size: 12px; text-transform: uppercase;">Total Received</p>
+                <h2 id="sum-total-received" style="margin: 5px 0; color: #333;">0</h2>
+            </div>
+            <div style="flex: 1; min-width: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <p style="margin: 0; color: #d32f2f; font-size: 12px; text-transform: uppercase;">Pending Assign</p>
+                <h2 id="sum-pending-assign" style="margin: 5px 0; color: #d32f2f;">0</h2>
+            </div>
+            <div style="flex: 1; min-width: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <p style="margin: 0; color: #f57c00; font-size: 12px; text-transform: uppercase;">Out for Delivery</p>
+                <h2 id="sum-out-for-delivery" style="margin: 5px 0; color: #f57c00;">0</h2>
+            </div>
+            <div style="flex: 1; min-width: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <p style="margin: 0; color: #388e3c; font-size: 12px; text-transform: uppercase;">Delivered (Today)</p>
+                <h2 id="sum-delivered" style="margin: 5px 0; color: #388e3c;">0</h2>
+            </div>
+            <div style="flex: 1; min-width: 120px; background: #fffde7; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
+                <p style="margin: 0; color: #f9a825; font-size: 12px; text-transform: uppercase; font-weight: bold;">Cash Collection</p>
+                <h2 id="sum-cash-collection" style="margin: 5px 0; color: #fbc02d;">₹0</h2>
+            </div>
+        </div>
+    </div>
+
     <div class="tab-bar">
         <button class="tab-link active" onclick="openTab(event, 'tab-pickups')">Assign Pickups</button>
         <button class="tab-link" onclick="openTab(event, 'tab-bulk-assign')">Bulk Assign</button>
@@ -608,6 +638,24 @@ function saveTokenToServer(token) {
         let allPendingDeliveries = []; // For all pending deliveries
         let filtered = []; // For completed deliveries
 
+        // --- Manager Summary Statistics ---
+        async function loadManagerSummary() {
+            try {
+                const response = await fetch(`${API_BASE}/manager/summary`, { headers });
+                if (response.status === 401) { window.location.href = 'login.html'; return; }
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                document.getElementById('sum-total-received').textContent = data.totalReceived || 0;
+                document.getElementById('sum-pending-assign').textContent = data.pendingAssignment || 0;
+                document.getElementById('sum-out-for-delivery').textContent = data.outForDelivery || 0;
+                document.getElementById('sum-delivered').textContent = data.deliveredToday || 0;
+                document.getElementById('sum-cash-collection').textContent = `₹${data.cashInHand || 0}`;
+            } catch (err) {
+                console.error("Summary load error:", err);
+            }
+        }
+
         function formatDateToYYYYMMDD(dateString) {
             if (!dateString) return null;
             const date = new Date(dateString);
@@ -655,6 +703,8 @@ function saveTokenToServer(token) {
             if(tabName === 'tab-completed') loadCompletedDeliveries();
             if (tabName === 'tab-boys') loadMyBoys();
             if (tabName === 'tab-all-pending') loadAllPendingDeliveries();
+            
+            loadManagerSummary();
         }
 
         // --- 3. Modal/Helper Logic (Global) ---
@@ -1095,6 +1145,7 @@ async function printCompletedDeliveries() {
             };
 
             // Initial loads
+            loadManagerSummary();
             loadMyBoys().then(() => {
                 // Only load pickups *after* boys list is fetched
                 loadPendingPickups();
