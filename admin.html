@@ -433,8 +433,9 @@ function saveTokenToServer(token) {
     <div class="tab-bar">
         <button class="tab-link active" onclick="openTab(event, 'tab-book')">Book Courier</button>
         <button class="tab-link" onclick="openTab(event, 'tab-drafts')">Draft Orders</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-deliveries')">All Deliveries</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-cash-orders')">Cash Orders</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-deliveries')">All Bookings</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-ho-dispatch')">📤 HO Dispatch</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-users')">Staff Management</button>
         <button class="tab-link" onclick="openTab(event, 'tab-completed-deliveries')">Completed Deliveries</button>
         <button class="tab-link" onclick="openTab(event, 'tab-manage')">Manage Users</button>
         <button class="tab-link" onclick="openTab(event, 'tab-settings')">Business Settings</button>
@@ -548,6 +549,26 @@ function saveTokenToServer(token) {
                 </thead>
                 <tbody id="all-deliveries-body"></tbody>
             </table>
+        </div>
+    </div>
+
+    <div id="tab-ho-dispatch" class="tab-content">
+        <div class="card" style="max-width: 600px; margin: 0 auto; background: #fffde7; border-left: 5px solid #fbc02d; padding: 25px;">
+            <h2 style="margin-top: 0; color: #f57c00;">📤 Head Office Dispatch Scan</h2>
+            <p>Scan Tracking IDs here to mark them as "Dispatched from HO".</p>
+            <div style="display: flex; gap: 10px; margin-bottom:15px;">
+                <input type="text" id="dispatch-scan-input" placeholder="Scan Barcode..." style="flex: 1; padding: 12px; font-size: 1.1em; border: 2px solid #fbc02d; border-radius: 8px;">
+                <button id="dispatch-scan-btn" class="btn-primary" style="background: #f9a825; border: none; padding: 0 15px; color: white; border-radius: 8px; cursor: pointer;">Add</button>
+            </div>
+            <div id="dispatch-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px; background: white; margin-bottom: 20px;">
+                <ul id="dispatch-list" style="list-style: none; padding: 0; margin: 0;">
+                    <li id="dispatch-placeholder" style="color: #999; text-align: center; padding: 20px;">No parcels scanned yet.</li>
+                </ul>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 15px;">
+                <strong style="font-size: 1.1em;">Total Scanned: <span id="dispatch-count">0</span></strong>
+                <button id="confirm-dispatch-btn" class="btn-success" style="padding: 12px 25px; border-radius: 8px; cursor: pointer; border: none; font-weight: bold; font-size: 1em; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Confirm & Send from HO 🚀</button>
+            </div>
         </div>
     </div>
 
@@ -1926,6 +1947,60 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 //---18. Load Managers on Admin Page Load---
+// --- HO Dispatch Scanning Logic ---
+let dispatchScannedIds = [];
+
+function handleDispatchScan() {
+    const input = document.getElementById('dispatch-scan-input');
+    const tid = input.value.trim().toUpperCase();
+    if (!tid) return;
+    if (dispatchScannedIds.includes(tid)) { input.value = ''; return; }
+    
+    dispatchScannedIds.push(tid);
+    updateDispatchList();
+    input.value = '';
+}
+
+function updateDispatchList() {
+    const list = document.getElementById('dispatch-list');
+    const count = document.getElementById('dispatch-count');
+    if (dispatchScannedIds.length === 0) {
+        list.innerHTML = '<li id="dispatch-placeholder" style="color: #999; text-align: center; padding: 20px;">No parcels scanned yet.</li>';
+        count.textContent = '0';
+        return;
+    }
+    list.innerHTML = '';
+    dispatchScannedIds.forEach((id, idx) => {
+        const li = document.createElement('li');
+        li.style = "display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee;";
+        li.innerHTML = `<span>${idx+1}. <strong>${id}</strong></span><button class="btn-danger btn-sm" onclick="removeDispatchId('${id}')" style="padding: 2px 6px;">&times;</button>`;
+        list.appendChild(li);
+    });
+    count.textContent = dispatchScannedIds.length;
+}
+
+function removeDispatchId(id) {
+    dispatchScannedIds = dispatchScannedIds.filter(x => x !== id);
+    updateDispatchList();
+}
+
+async function confirmDispatch() {
+    if (dispatchScannedIds.length === 0) { alert('Kuch scan karo pehle!'); return; }
+    if (!confirm(`Kya aap ${dispatchScannedIds.length} parcels ko HO se dispatch karna chahte hain?`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/dispatch-bulk`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ trackingIds: dispatchScannedIds })
+        });
+        const d = await res.json();
+        alert(d.message);
+        dispatchScannedIds = [];
+        updateDispatchList();
+    } catch (err) { alert('Error: ' + err.message); }
+}
+
 async function loadManagersForDropdown() {
     const selects = ['assign-manager', 'edit-assign-manager'];
     
@@ -1980,6 +2055,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (printHandoverBtn) {
         printHandoverBtn.onclick = printHandoverSheet;
     }
+
+    // HO Dispatch Scanning listeners
+    const dispatchInput = document.getElementById('dispatch-scan-input');
+    if (dispatchInput) {
+        dispatchInput.onkeypress = (e) => { if (e.key === 'Enter') handleDispatchScan(); };
+    }
+    const dispatchBtn = document.getElementById('dispatch-scan-btn');
+    if (dispatchBtn) dispatchBtn.onclick = handleDispatchScan;
+
+    const confirmDispatchBtn = document.getElementById('confirm-dispatch-btn');
+    if (confirmDispatchBtn) confirmDispatchBtn.onclick = confirmDispatch;
 });
 
 //--- 19. Draft Orders Tab Logic ---

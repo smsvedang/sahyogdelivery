@@ -424,6 +424,7 @@ function saveTokenToServer(token) {
 
     <div class="tab-bar">
         <button class="tab-link active" onclick="openTab(event, 'tab-pickups')">Assign Pickups</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-branch-receive')">📥 Branch Receive</button>
         <button class="tab-link" onclick="openTab(event, 'tab-bulk-assign')">Bulk Assign</button>
         <button class="tab-link" onclick="openTab(event, 'tab-all-pending')">All Pending Deliveries</button>
         <button class="tab-link" onclick="openTab(event,'tab-completed')">Completed Deliveries</button>
@@ -452,7 +453,27 @@ function saveTokenToServer(token) {
         </div>
     </div>
 
-    <div id="tab-bulk-assign" class="tab-content">
+    </div>
+    
+    <div id="tab-branch-receive" class="tab-content">
+        <div class="card" style="max-width: 600px; margin: 0 auto; background: #e8f5e9; border-left: 5px solid #4caf50; padding: 25px;">
+            <h2 style="margin-top: 0; color: #2e7d32;">📥 Branch Receive Scan</h2>
+            <p>Office se aaye huye parcels ko yahan scan kar ke "Receive" karein.</p>
+            <div style="display: flex; gap: 10px; margin-bottom:15px;">
+                <input type="text" id="receive-scan-input" placeholder="Scan Barcode..." style="flex: 1; padding: 12px; font-size: 1.1em; border: 2px solid #4caf50; border-radius: 8px;">
+                <button id="receive-scan-btn" class="btn-success" style="padding: 0 15px; border-radius: 8px; border: none; cursor: pointer;">Add</button>
+            </div>
+            <div id="receive-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px; background: white; margin-bottom: 20px;">
+                <ul id="receive-list" style="list-style: none; padding: 0; margin: 0;">
+                    <li id="receive-placeholder" style="color: #999; text-align: center; padding: 20px;">Abhi tak koi parcel scan nahi hua.</li>
+                </ul>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 15px;">
+                <strong style="font-size: 1.1em;">Total Scanned: <span id="receive-count">0</span></strong>
+                <button id="confirm-receive-btn" class="btn-success" style="padding: 12px 25px; border-radius: 8px; font-weight: bold; font-size: 1em; background: #2e7d32; border: none; color: white;">Confirm Receipt 📦</button>
+            </div>
+        </div>
+    </div>
         <div class="card" style="min-width: 95%; overflow-x: auto;">
             <h2>Bulk Assignment</h2>
             <p>Pehle delivery boy select karein, fir unhe assign karne waale parcels select karein.</p>
@@ -654,6 +675,61 @@ function saveTokenToServer(token) {
             } catch (err) {
                 console.error("Summary load error:", err);
             }
+        }
+
+        // --- Branch Receive Scanning Logic ---
+        let receiveScannedIds = [];
+
+        function handleReceiveScan() {
+            const input = document.getElementById('receive-scan-input');
+            const tid = input.value.trim().toUpperCase();
+            if (!tid) return;
+            if (receiveScannedIds.includes(tid)) { input.value = ''; return; }
+            
+            receiveScannedIds.push(tid);
+            updateReceiveList();
+            input.value = '';
+        }
+
+        function updateReceiveList() {
+            const list = document.getElementById('receive-list');
+            const count = document.getElementById('receive-count');
+            if (receiveScannedIds.length === 0) {
+                list.innerHTML = '<li id="receive-placeholder" style="color: #999; text-align: center; padding: 20px;">Abhi tak koi parcel scan nahi hua.</li>';
+                count.textContent = '0';
+                return;
+            }
+            list.innerHTML = '';
+            receiveScannedIds.forEach((id, idx) => {
+                const li = document.createElement('li');
+                li.style = "display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee;";
+                li.innerHTML = `<span>${idx+1}. <strong>${id}</strong></span><button class="btn-danger btn-sm" onclick="removeReceiveId('${id}')" style="padding: 2px 6px;">&times;</button>`;
+                list.appendChild(li);
+            });
+            count.textContent = receiveScannedIds.length;
+        }
+
+        function removeReceiveId(id) {
+            receiveScannedIds = receiveScannedIds.filter(x => x !== id);
+            updateReceiveList();
+        }
+
+        async function confirmReceive() {
+            if (receiveScannedIds.length === 0) { alert('Kuch scan karo pehle!'); return; }
+            if (!confirm(`Kya aap ${receiveScannedIds.length} parcels ko branch par receive karna chahte hain?`)) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/manager/receive-bulk`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ trackingIds: receiveScannedIds })
+                });
+                const d = await res.json();
+                alert(d.message);
+                receiveScannedIds = [];
+                updateReceiveList();
+                loadManagerSummary();
+            } catch (err) { alert('Error: ' + err.message); }
         }
 
         function formatDateToYYYYMMDD(dateString) {
@@ -1138,6 +1214,17 @@ async function printCompletedDeliveries() {
             if(logoutBtn) logoutBtn.onclick = () => { localStorage.clear(); window.location.href = '/login.html'; };
             if(refreshAllPendingBtn) refreshAllPendingBtn.onclick = loadAllPendingDeliveries;
 
+            // Branch Receive listeners
+            const receiveInput = document.getElementById('receive-scan-input');
+            if(receiveInput) {
+                receiveInput.onkeypress = (e) => { if(e.key === 'Enter') handleReceiveScan(); };
+            }
+            const receiveBtn = document.getElementById('receive-scan-btn');
+            if(receiveBtn) receiveBtn.onclick = handleReceiveScan;
+
+            const confirmReceiveBtn = document.getElementById('confirm-receive-btn');
+            if(confirmReceiveBtn) confirmReceiveBtn.onclick = confirmReceive;
+
             const toggleCreateFormBtn = document.getElementById('toggle-create-form');
             if(toggleCreateFormBtn) toggleCreateFormBtn.onclick = () => {
                 const form = document.getElementById('create-boy-form');
@@ -1147,7 +1234,6 @@ async function printCompletedDeliveries() {
             // Initial loads
             loadManagerSummary();
             loadMyBoys().then(() => {
-                // Only load pickups *after* boys list is fetched
                 loadPendingPickups();
             });
         });
