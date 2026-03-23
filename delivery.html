@@ -444,36 +444,48 @@ function saveTokenToServer(token) {
             document.getElementById('completion-overlay').style.display = 'flex';
         }
 
-        function openCompleteSheet(tid) {
+        async function openCompleteSheet(tid) {
             activeTrackingId = tid;
-            const d = allDeliveries.find(x => x.trackingId === tid);
             document.getElementById('sheet-title').textContent = "Complete Delivery";
             document.getElementById('sheet-tracking').textContent = tid;
             document.getElementById('sheet-status-update').style.display = 'none';
             document.getElementById('sheet-complete-flow').style.display = 'block';
-            
+            document.getElementById('completion-overlay').style.display = 'flex';
+
             const codSection = document.getElementById('cod-section');
             const radioCash = document.querySelector('input[name="paymentType"][value="cash"]');
             const radioOnline = document.querySelector('input[name="paymentType"][value="online"]');
             const cashfreeBtn = document.getElementById('cashfree-pay-btn');
 
-            if (d.paymentMethod === 'COD') {
-                codSection.style.display = 'block';
-                if (d.codPaymentStatus === 'Paid - Online') {
-                    radioOnline.checked = true;
-                    radioCash.disabled = true;
-                    if (cashfreeBtn) cashfreeBtn.style.display = 'none';
+            // Reset to defaults
+            radioCash.checked = true;
+            radioCash.disabled = false;
+            radioOnline.disabled = false;
+            if (cashfreeBtn) cashfreeBtn.style.display = 'block';
+
+            // Fetch FRESH data to get correct codPaymentStatus
+            try {
+                const r = await fetch(`${API_BASE}/track/${tid}`);
+                const fresh = await r.json();
+                if (fresh.paymentMethod === 'COD') {
+                    codSection.style.display = 'block';
+                    if (fresh.codPaymentStatus === 'Paid - Online') {
+                        radioOnline.checked = true;
+                        radioCash.disabled = true;
+                        if (cashfreeBtn) cashfreeBtn.style.display = 'none';
+                    }
                 } else {
-                    radioCash.checked = true;
-                    radioCash.disabled = false;
-                    radioOnline.disabled = false;
-                    if (cashfreeBtn) cashfreeBtn.style.display = 'block';
+                    codSection.style.display = 'none';
                 }
-            } else {
-                codSection.style.display = 'none';
+            } catch(e) {
+                // Fallback to stale local data
+                const d = allDeliveries.find(x => x.trackingId === tid);
+                if (d?.paymentMethod === 'COD') {
+                    codSection.style.display = 'block';
+                } else {
+                    codSection.style.display = 'none';
+                }
             }
-            
-            document.getElementById('completion-overlay').style.display = 'flex';
         }
 
         function closeBottomSheet() {

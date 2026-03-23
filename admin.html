@@ -915,15 +915,21 @@ function saveTokenToServer(token) {
         let dispatchIds = [];
         let receiveIds = [];
         
-        function loadPendingDispatch() {
+        async function loadPendingDispatch() {
             const tbody = document.getElementById('pending-dispatch-body');
             tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Loading...</td></tr>';
-            const booked = allDeliveriesData.filter(d => d.currentStatus === 'Booked');
-            tbody.innerHTML = booked.length ? booked.map(d => `<tr>
-                <td><strong>${d.trackingId}</strong></td>
-                <td>${d.customerName}</td>
-                <td><button class="btn btn-outline btn-sm" onclick="addDispatchId('${d.trackingId}')"><i class="fas fa-plus"></i></button></td>
-            </tr>`).join('') : '<tr><td colspan="3" style="text-align:center;">No pending bookings</td></tr>';
+            try {
+                const r = await fetch(`${API_BASE}/admin/deliveries`, { headers });
+                const all = await r.json();
+                const booked = all.filter(d => d.currentStatus === 'Booked');
+                tbody.innerHTML = booked.length ? booked.map(d => `<tr>
+                    <td><strong>${d.trackingId}</strong></td>
+                    <td>${d.customerName}</td>
+                    <td><button class="btn btn-outline btn-sm" onclick="addDispatchId('${d.trackingId}')"><i class="fas fa-plus"></i></button></td>
+                </tr>`).join('') : '<tr><td colspan="3" style="text-align:center;">No pending bookings</td></tr>';
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Error loading</td></tr>';
+            }
         }
 
         function addDispatchId(id) {
@@ -986,7 +992,7 @@ function saveTokenToServer(token) {
         async function confirmDispatch() {
             if(!dispatchIds.length) return;
             const r = await fetch(`${API_BASE}/admin/dispatch-bulk`, { method: 'POST', headers, body: JSON.stringify({ trackingIds: dispatchIds }) });
-            if(r.ok) { alert('Dispatched'); dispatchIds=[]; updateScanList('dispatch-list', dispatchIds, 'dispatch-count'); }
+            if(r.ok) { alert('Dispatched!'); dispatchIds=[]; updateScanList('dispatch-list', dispatchIds, 'dispatch-count'); loadPendingDispatch(); }
         }
 
         const adminReceiveInput = document.getElementById('admin-receive-scan-input');
