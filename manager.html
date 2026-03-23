@@ -172,6 +172,7 @@ function saveTokenToServer(token) {
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-pending')"><i class="fas fa-clock"></i> All Active</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-completed')"><i class="fas fa-check-double"></i> Completed</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-boys')"><i class="fas fa-user-friends"></i> Delivery Boys</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-settings')"><i class="fas fa-cog"></i> Settings</div>
         </div>
     </div>
 
@@ -300,6 +301,7 @@ function saveTokenToServer(token) {
                                     <th>Customer</th>
                                     <th>Status</th>
                                     <th>Assigned Boy</th>
+                                    <th>Cancel OTP</th>
                                     <th>Payment</th>
                                     <th>Actions</th>
                                 </tr>
@@ -360,6 +362,20 @@ function saveTokenToServer(token) {
                             <tbody id="boys-body"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <div id="tab-settings" class="tab-content">
+                <div class="card" style="max-width: 500px;">
+                    <h2>Account Settings</h2>
+                    <h3 style="font-size: 1rem; color: var(--text-muted); margin-bottom: 20px;">Change Password</h3>
+                    <form id="change-pass-form">
+                        <label>Old Password</label>
+                        <input type="password" id="old-pass" required>
+                        <label>New Password</label>
+                        <input type="password" id="new-pass" required>
+                        <button type="submit" class="btn btn-primary" style="width:100%;">Update Password</button>
+                    </form>
                 </div>
             </div>
 
@@ -578,9 +594,10 @@ function saveTokenToServer(token) {
                     <td>${d.customerName}</td>
                     <td><strong>${d.currentStatus}</strong></td>
                     <td>${d.assignedTo?.name || '-'}</td>
+                    <td><strong style="color:var(--danger);">${d.cancellationOtp || '-'}</strong></td>
                     <td>${d.paymentMethod}</td>
                     <td><button class="btn btn-primary btn-sm" onclick="openReassignModal('${d._id}', '${d.assignedTo?.name || 'N/A'}')">Reassign</button></td>
-                </tr>`).join('') : '<tr><td colspan="6">No active deliveries</td></tr>';
+                </tr>`).join('') : '<tr><td colspan="7">No active deliveries</td></tr>';
             } catch(e) {}
         }
 
@@ -702,6 +719,16 @@ function saveTokenToServer(token) {
             };
 
             document.getElementById('logout-btn').onclick = () => { localStorage.clear(); window.location.href = 'login.html'; };
+
+            document.getElementById('change-pass-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const op = document.getElementById('old-pass').value;
+                const np = document.getElementById('new-pass').value;
+                try {
+                    const r = await fetch(`${API_BASE}/api/change-password`, { method: 'POST', headers, body: JSON.stringify({ oldPassword: op, newPassword: np }) });
+                    const d = await r.json(); alert(d.message); if(r.ok) e.target.reset();
+                } catch(e) { alert("Error changing password"); }
+            };
             
             loadManagerSummary(); loadMyBoys().then(() => loadPendingPickups());
         });

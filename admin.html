@@ -376,6 +376,7 @@ function saveTokenToServer(token) {
                         <th>Assigned Manager</th>
                         <th>Assigned Boy</th>
                         <th>OTP</th>
+                        <th>Cancel OTP</th>
                         <th>Date</th>
                         <th>Actions</th>
                     </tr>
@@ -632,16 +633,47 @@ function saveTokenToServer(token) {
 
         // --- Label Generation ---
         function generateSingleLabelHtml(name, address, trackingId, paymentMethod, phone, qrId, billAmount) {
-            const logo = businessSettings.logoUrl ? `<img src="${businessSettings.logoUrl}" style="max-height:40px;">` : `<strong>${businessSettings.businessName || 'Sahyog'}</strong>`;
-            const pay = (paymentMethod === 'COD') ? `COD: ₹${billAmount}` : 'Prepaid';
-            return `<div style="width:100mm; border:2px solid #000; padding:10px; font-family:Arial; background:#fff;">
-                <div style="display:flex; border-bottom:2px solid #000; padding-bottom:10px;">
-                    <div style="flex:1; border-right:1px solid #000; padding-right:10px;">${logo}</div>
-                    <div style="flex:1; padding-left:10px;"><strong>SHIP TO:</strong><br>${name}<br>${address}<br>Ph: ${phone}</div>
+            const biz = businessSettings || { businessName: 'Sahyog Medical', businessAddress: 'Admin Office', businessPhone: '' };
+            const pay = (paymentMethod === 'COD') ? `CASH ON DELIVERY` : 'PREPAID';
+            const payAmt = (paymentMethod === 'COD') ? `₹${billAmount}` : '₹0.00';
+            
+            return `<div style="width:105mm; border:2px solid #000; padding:15px; font-family:'Roboto',Arial; background:#fff; margin:0 auto; color:#000;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #000; padding-bottom:12px; margin-bottom:15px;">
+                    <div>${biz.logoUrl ? `<img src="${biz.logoUrl}" style="max-height:50px; display:block;">` : `<h1 style="margin:0; font-size:24px;">${biz.businessName}</h1>`}</div>
+                    <div style="text-align:right;">
+                        <span style="font-size:12px; font-weight:700;">TRACKING ID:</span><br>
+                        <span style="font-size:18px; font-weight:900;">${trackingId}</span>
+                    </div>
                 </div>
-                <div style="display:flex; align-items:center; padding-top:10px;">
-                    <div id="${qrId}" style="margin-right:20px;"></div>
-                    <div><strong>ID: ${trackingId}</strong><br><strong>PAY: ${pay}</strong></div>
+
+                <div style="display:flex; gap:20px; border-bottom:1px dashed #000; padding-bottom:15px; margin-bottom:15px;">
+                    <div style="flex:1;">
+                        <span style="font-size:10px; font-weight:700; text-transform:uppercase; color:#555;">FROM:</span><br>
+                        <div style="font-size:12px; line-height:1.4;">
+                            <strong>${biz.businessName}</strong><br>
+                            ${biz.businessAddress}<br>
+                            Ph: ${biz.businessPhone}
+                        </div>
+                    </div>
+                    <div style="flex:1; border-left:1px solid #ccc; padding-left:15px;">
+                        <span style="font-size:10px; font-weight:700; text-transform:uppercase; color:#555;">SHIP TO:</span><br>
+                        <div style="font-size:14px; line-height:1.4;">
+                            <strong>${name}</strong><br>
+                            ${address}<br>
+                            <strong>Ph: ${phone}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <div id="${qrId}"></div>
+                    <div style="text-align:right; flex:1;">
+                        <div style="display:inline-block; border:2px solid #000; padding:8px 15px; text-align:center;">
+                            <span style="font-size:12px; font-weight:700; display:block; border-bottom:1px solid #000; margin-bottom:4px;">${pay}</span>
+                            <span style="font-size:20px; font-weight:900;">${payAmt}</span>
+                        </div>
+                        <div style="margin-top:10px; font-size:10px; font-weight:700;">SAHYOG MEDICAL DELIVERY SERVICES</div>
+                    </div>
                 </div>
             </div>`;
         }
@@ -671,6 +703,7 @@ function saveTokenToServer(token) {
                     <td>${d.assignedByManager?.name || '-'}</td>
                     <td>${d.assignedTo?.name || '-'}</td>
                     <td><strong>${d.otp || '-'}</strong></td>
+                    <td><strong style="color:var(--danger);">${d.cancellationOtp || '-'}</strong></td>
                     <td>${formatDateToYYYYMMDD(d.createdAt)}</td>
                     <td><button class="btn btn-secondary btn-sm" onclick="reprintLabelByID('${d._id}')">Print</button></td>
                 </tr>`).join('');

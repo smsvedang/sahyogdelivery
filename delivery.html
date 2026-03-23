@@ -188,18 +188,31 @@ function saveTokenToServer(token) {
         </div>
 
         <div id="tab-profile" class="tab-content">
-            <div class="card" style="text-align:center;">
-                <i class="fas fa-user-circle" style="font-size:4rem; color:var(--primary); margin-bottom:16px;"></i>
-                <h2 id="full-name" style="margin:0;">Delivery Boy</h2>
-                <p id="phone-display" style="color:var(--text-muted); margin:4px 0 20px 0;">--</p>
-                <div style="border-top: 1px solid var(--border); padding-top:20px; display:grid; gap:12px;">
-                    <button class="btn btn-outline" onclick="askForNotificationPermission()"><i class="fas fa-bell"></i> Enable Notifications</button>
-                    <button class="btn btn-outline" onclick="window.history.pushState(null,'','/completed-delivery-view.html'); window.location.reload();"><i class="fas fa-check-double"></i> Completed Deliveries</button>
-                    <button class="btn btn-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            <div class="card" style="text-align:center; padding: 30px 20px;">
+                <div style="background: #f1f5f9; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                    <i class="fas fa-user-tie" style="font-size:3rem; color:var(--primary);"></i>
                 </div>
+                <h2 id="full-name" style="margin:0; font-family: 'Poppins';">Delivery Boy</h2>
+                <p id="phone-display" style="color:var(--text-muted); margin:4px 0 20px 0; font-weight:500;">--</p>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+                    <button class="btn btn-outline btn-sm" onclick="askForNotificationPermission()"><i class="fas fa-bell"></i> Enable</button>
+                    <button class="btn btn-outline btn-sm" onclick="window.history.pushState(null,'','/completed-delivery-view.html'); window.location.reload();"><i class="fas fa-check-double"></i> History</button>
+                </div>
+                <button class="btn btn-danger" style="width:100%; border-radius:12px;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
+
             <div class="card">
-                <h3>Contact Support</h3>
+                <h3 style="margin-top:0;"><i class="fas fa-key" style="color:var(--warning);"></i> Change Password</h3>
+                <form id="change-pass-form" onsubmit="handleChangePassword(event)">
+                    <input type="password" id="old-pass" placeholder="Current Password" required>
+                    <input type="password" id="new-pass" placeholder="New Password" required>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Update Password</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top:0;">Contact Support</h3>
                 <p style="font-size:0.85rem; color:var(--text-muted);">In case of any issues, contact management:</p>
                 <div style="display:flex; gap:10px; flex-direction:column;">
                     <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+917415543744'"><i class="fas fa-phone"></i> Order Support</button>
@@ -525,6 +538,21 @@ function saveTokenToServer(token) {
                     setTimeout(() => { closeCancelSheet(); loadDeliveries(true); }, 1000);
                 } else { alert("Wrong OTP"); }
             } catch(e) {}
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const oldPass = document.getElementById('old-pass').value;
+            const newPass = document.getElementById('new-pass').value;
+            btn.disabled = true;
+            try {
+                const r = await fetch(`${API_BASE}/api/change-password`, { method: 'POST', headers, body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass }) });
+                const data = await r.json();
+                alert(data.message);
+                if(r.ok) e.target.reset();
+            } catch(e) { alert("Error changing password"); }
+            btn.disabled = false;
         }
 
         // --- Helpers ---
