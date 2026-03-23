@@ -8,65 +8,65 @@
 
 <script>
     const firebaseConfig = {
-  apiKey: "AIzaSyDRcvcvaYSsw19ZmcOikz-FBReqJTtI03s",
-  authDomain: "sahyogdelivery.firebaseapp.com",
-  projectId: "sahyogdelivery",
-  storageBucket: "sahyogdelivery.firebasestorage.app",
-  messagingSenderId: "1049559335650",
-  appId: "1:1049559335650:web:2cb13685ce3c01b93e94bb",
-  measurementId: "G-6BSBHNQHYM"
-};
-firebase.initializeApp(firebaseConfig);
-const messaging = firebase.messaging();
-let fcmServiceWorkerRegPromise = null;
+        apiKey: "AIzaSyDRcvcvaYSsw19ZmcOikz-FBReqJTtI03s",
+        authDomain: "sahyogdelivery.firebaseapp.com",
+        projectId: "sahyogdelivery",
+        storageBucket: "sahyogdelivery.firebasestorage.app",
+        messagingSenderId: "1049559335650",
+        appId: "1:1049559335650:web:2cb13685ce3c01b93e94bb",
+        measurementId: "G-6BSBHNQHYM"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
+    let fcmServiceWorkerRegPromise = null;
 
-if ('serviceWorker' in navigator && 'PushManager' in window) {
-  fcmServiceWorkerRegPromise = (async () => {
-    try {
-      const existing = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-      const reg = existing || await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      await navigator.serviceWorker.ready;
-      return reg;
-    } catch (err) {
-      return null;
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        fcmServiceWorkerRegPromise = (async () => {
+            try {
+                const existing = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+                const reg = existing || await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                await navigator.serviceWorker.ready;
+                return reg;
+            } catch (err) {
+                return null;
+            }
+        })();
     }
-  })();
-}
 
-async function askForNotificationPermission() {
-  try {
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      await getPushToken();
-      alert("Notifications Enabled Successfully!");
-    } else {
-      alert("Permission denied. Enable notifications in site settings.");
+    async function askForNotificationPermission() {
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+                await getPushToken();
+                alert("Notifications Enabled Successfully!");
+            } else {
+                alert("Permission denied. Enable notifications in site settings.");
+            }
+        } catch (e) { alert("Error: " + e.message); }
     }
-  } catch(e) { alert("Error: " + e.message); }
-}
 
-async function getPushToken() {
-  try {
-    const serviceWorkerRegistration = fcmServiceWorkerRegPromise ? await fcmServiceWorkerRegPromise : null;
-    if (!serviceWorkerRegistration) return;
-    const token = await messaging.getToken({
-      vapidKey: "BIaBWwpMVcg8M1uGRb-f_fpoHXLTXWrSMVgJnpfcE3ggEUvksFvPOIRCb_EZRiU4UjIc2xCFSW7rAf1-gQ29kSs",
-      serviceWorkerRegistration
-    });
-    if (token) saveTokenToServer(token);
-  } catch (err) { alert("Push error: " + err.message); }
-}
+    async function getPushToken() {
+        try {
+            const serviceWorkerRegistration = fcmServiceWorkerRegPromise ? await fcmServiceWorkerRegPromise : null;
+            if (!serviceWorkerRegistration) return;
+            const token = await messaging.getToken({
+                vapidKey: "BIaBWwpMVcg8M1uGRb-f_fpoHXLTXWrSMVgJnpfcE3ggEUvksFvPOIRCb_EZRiU4UjIc2xCFSW7rAf1-gQ29kSs",
+                serviceWorkerRegistration
+            });
+            if (token) saveTokenToServer(token);
+        } catch (err) { alert("Push error: " + err.message); }
+    }
 
-function saveTokenToServer(token) {
-  fetch(`https://sahyogdeliverybackend.onrender.com/api/save-fcm-token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${localStorage.getItem("authToken")}`
-    },
-    body: JSON.stringify({ token })
-  }).catch(e => {});
-}
+    function saveTokenToServer(token) {
+        fetch(`https://sahyogdeliverybackend.onrender.com/api/save-fcm-token`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("authToken")}`
+            },
+            body: JSON.stringify({ token })
+        }).catch(e => { });
+    }
 </script>
 
 <head>
@@ -75,7 +75,9 @@ function saveTokenToServer(token) {
     <title>Sahyog Delivery - Delivery App</title>
     <link rel="icon" href="/favicon.png" type="image/png">
     <meta name="theme-color" content="#2563eb">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -94,72 +96,334 @@ function saveTokenToServer(token) {
             --radius: 16px;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
 
         /* Mobile Header */
-        .top-nav { background: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
-        .top-nav h1 { font-size: 1.1rem; margin: 0; font-family: 'Poppins', sans-serif; }
-        .top-nav .user-info { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; }
+        .top-nav {
+            background: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-nav h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .top-nav .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
 
         /* Main Scrollable Content */
-        .main-container { flex: 1; padding: 16px; padding-bottom: 100px; overflow-y: auto; }
+        .main-container {
+            flex: 1;
+            padding: 16px;
+            padding-bottom: 100px;
+            overflow-y: auto;
+        }
 
         /* Bottom Tab Bar */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 10px; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05); z-index: 1000; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: color 0.2s; flex: 1; }
-        .nav-item i { font-size: 1.25rem; }
-        .nav-item.active { color: var(--primary); }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 10px;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+            flex: 1;
+        }
+
+        .nav-item i {
+            font-size: 1.25rem;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
 
         /* Cards and Lists */
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 16px; position: relative; }
-        .delivery-card { border-left: 4px solid var(--primary); }
-        .delivery-card.picked-up { border-left-color: var(--warning); }
-        .delivery-card.out { border-left-color: var(--primary); }
-        
-        .tracking-id { font-weight: 700; color: var(--primary); font-size: 1rem; }
-        .customer-name { font-size: 0.95rem; font-weight: 600; margin-top: 8px; }
-        .address { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
-        .payment-label { font-size: 0.8rem; font-weight: 700; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            position: relative;
+        }
 
-        .btn { padding: 10px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: opacity 0.2s; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
-        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+        .delivery-card {
+            border-left: 4px solid var(--primary);
+        }
 
-        .action-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
+        .delivery-card.picked-up {
+            border-left-color: var(--warning);
+        }
+
+        .delivery-card.out {
+            border-left-color: var(--primary);
+        }
+
+        .tracking-id {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .customer-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .address {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .payment-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 16px;
+        }
 
         /* Status Badge */
-        .badge { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-        .status-picked { background: #fef3c7; color: #92400e; }
-        .status-out { background: #dbeafe; color: #1e40af; }
-        .status-delivered { background: #dcfce7; color: #166534; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
 
-        .search-container { position: sticky; top: 0; background: var(--bg); padding: 5px 0 15px 0; z-index: 90; }
-        .search-bar { background: white; border: 1px solid var(--border); border-radius: 50px; padding: 10px 20px; display: flex; align-items: center; gap: 10px; }
-        .search-bar input { border: none; outline: none; flex: 1; font-size: 0.9rem; }
+        .status-picked {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-out {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-delivered {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .search-container {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            padding: 5px 0 15px 0;
+            z-index: 90;
+        }
+
+        .search-bar {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-bar input {
+            border: none;
+            outline: none;
+            flex: 1;
+            font-size: 0.9rem;
+        }
 
         /* Modal / Overlay */
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: flex-end; }
-        .bottom-sheet { background: white; width: 100%; border-radius: 20px 20px 0 0; padding: 24px; animation: slideUp 0.3s ease; max-height: 90vh; overflow-y: auto; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: flex-end;
+        }
 
-        #scanner-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 1500; display: none; flex-direction: column; }
-        #reader { flex: 1; width: 100%; }
+        .bottom-sheet {
+            background: white;
+            width: 100%;
+            border-radius: 20px 20px 0 0;
+            padding: 24px;
+            animation: slideUp 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
 
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
 
-        .message { padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-top: 10px; font-weight: 500; }
-        .msg-success { background: #dcfce7; color: #166534; }
-        .msg-error { background: #fee2e2; color: #991b1b; }
+            to {
+                transform: translateY(0);
+            }
+        }
 
-        input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 1rem; margin-bottom: 12px; }
+        #scanner-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 1500;
+            display: none;
+            flex-direction: column;
+        }
+
+        #reader {
+            flex: 1;
+            width: 100%;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .msg-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .msg-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
     </style>
 </head>
+
 <body>
 
     <div class="top-nav">
@@ -171,18 +435,21 @@ function saveTokenToServer(token) {
     </div>
 
     <div class="main-container">
-        
+
         <div id="tab-dashboard" class="tab-content active">
             <div class="search-container">
                 <div class="search-bar">
                     <i class="fas fa-search" style="color:var(--text-muted);"></i>
-                    <input type="text" id="delivery-search" placeholder="Search tracking ID or name..." onkeyup="filterDeliveries()">
+                    <input type="text" id="delivery-search" placeholder="Search tracking ID or name..."
+                        onkeyup="filterDeliveries()">
                 </div>
             </div>
-            
+
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <span id="delivery-count" style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Loading deliveries...</span>
-                <button class="btn btn-outline btn-sm" onclick="loadDeliveries(true)"><i class="fas fa-rotate"></i> Refresh</button>
+                <span id="delivery-count" style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Loading
+                    deliveries...</span>
+                <button class="btn btn-outline btn-sm" onclick="loadDeliveries(true)"><i class="fas fa-rotate"></i>
+                    Refresh</button>
             </div>
 
             <div id="delivery-list">
@@ -196,17 +463,26 @@ function saveTokenToServer(token) {
 
         <div id="tab-profile" class="tab-content">
             <div class="card" style="text-align:center; padding: 30px 20px;">
-                <div style="background: #f1f5f9; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                <div
+                    style="background: #f1f5f9; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
                     <i class="fas fa-user-tie" style="font-size:3rem; color:var(--primary);"></i>
                 </div>
                 <h2 id="full-name" style="margin:0; font-family: 'Poppins';">Delivery Boy</h2>
                 <p id="phone-display" style="color:var(--text-muted); margin:4px 0 20px 0; font-weight:500;">--</p>
-                
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
-                    <button class="btn btn-outline btn-sm" onclick="askForNotificationPermission()"><i class="fas fa-bell"></i> Enable</button>
-                    <button class="btn btn-outline btn-sm" onclick="window.history.pushState(null,'','/completed-delivery-view.html'); window.location.reload();"><i class="fas fa-check-double"></i> History</button>
+                <div style="background:#fff7ed; border:1px solid #fdba74; border-radius:16px; padding:16px; margin-bottom:20px;">
+                    <p style="margin:0; color:#9a3412; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;">Today's Cash Received</p>
+                    <h3 id="profile-cash-today" style="margin:8px 0 0 0; font-size:2rem; color:#7c2d12;">₹0</h3>
                 </div>
-                <button class="btn btn-danger" style="width:100%; border-radius:12px;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+                    <button class="btn btn-outline btn-sm" onclick="askForNotificationPermission()"><i
+                            class="fas fa-bell"></i> Enable</button>
+                    <button class="btn btn-outline btn-sm"
+                        onclick="window.history.pushState(null,'','/completed-delivery-view.html'); window.location.reload();"><i
+                            class="fas fa-check-double"></i> History</button>
+                </div>
+                <button class="btn btn-danger" style="width:100%; border-radius:12px;" onclick="logout()"><i
+                        class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
 
             <div class="card">
@@ -222,8 +498,10 @@ function saveTokenToServer(token) {
                 <h3 style="margin-top:0;">Contact Support</h3>
                 <p style="font-size:0.85rem; color:var(--text-muted);">In case of any issues, contact management:</p>
                 <div style="display:flex; gap:10px; flex-direction:column;">
-                    <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+917415543744'"><i class="fas fa-phone"></i> Order Support</button>
-                    <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+919243714402'"><i class="fas fa-headset"></i> Technical Support</button>
+                    <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+917415543744'"><i
+                            class="fas fa-phone"></i> Order Support</button>
+                    <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+919243714402'"><i
+                            class="fas fa-headset"></i> Technical Support</button>
                 </div>
             </div>
         </div>
@@ -232,20 +510,22 @@ function saveTokenToServer(token) {
 
     <!-- Bottom Nav -->
     <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('tab-dashboard', this)"><i class="fas fa-truck-fast"></i> Deliveries</div>
-        <div class="nav-item" onclick="openScanner()"><i class="fas fa-qrcode"></i> Scan</div>
+        <div class="nav-item active" onclick="switchTab('tab-dashboard', this)"><i class="fas fa-truck-fast"></i>
+            Deliveries</div>
+        <div class="nav-item" onclick="openScanner()"><i class="fas fa-barcode"></i> Scan</div>
         <div class="nav-item" onclick="switchTab('tab-profile', this)"><i class="fas fa-user-tie"></i> Profile</div>
     </div>
 
     <!-- Scanner Overly -->
     <div id="scanner-view">
-        <div style="padding:16px; background:rgba(0,0,0,0.8); display:flex; justify-content:space-between; align-items:center; color:white;">
-            <span style="font-weight:700;">QR Scanner</span>
+        <div
+            style="padding:16px; background:rgba(0,0,0,0.8); display:flex; justify-content:space-between; align-items:center; color:white;">
+            <span style="font-weight:700;">Barcode Scanner</span>
             <i class="fas fa-times" style="font-size:1.5rem;" onclick="closeScanner()"></i>
         </div>
         <div id="reader"></div>
         <div style="padding:20px; color:white; text-align:center; font-size:0.9rem;">
-            Align the label QR code inside the box to scan.
+            Align the label barcode inside the box to scan.
         </div>
     </div>
 
@@ -254,9 +534,10 @@ function saveTokenToServer(token) {
         <div class="bottom-sheet" id="completion-sheet">
             <h2 id="sheet-title">Update Status</h2>
             <p id="sheet-tracking" style="font-weight:700; color:var(--primary); margin-top:-10px;"></p>
-            
+
             <div id="sheet-status-update">
-                <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:15px;">Confirm the next status of this parcel.</p>
+                <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:15px;">Confirm the next status of
+                    this parcel.</p>
                 <div id="dynamic-status-buttons" style="display:grid; gap:12px;">
                 </div>
             </div>
@@ -264,26 +545,33 @@ function saveTokenToServer(token) {
             <div id="sheet-complete-flow" style="display:none;">
                 <label>Enter Customer OTP</label>
                 <input type="password" id="otp-input" placeholder="Enter 4-digit OTP" maxlength="4" inputmode="numeric">
-                
-                <div id="cod-section" style="display:none; margin-bottom:15px; background: #fffbe6; padding: 15px; border-radius: 12px; border: 1px solid #ffe58f;">
+
+                <div id="cod-section"
+                    style="display:none; margin-bottom:15px; background: #fffbe6; padding: 15px; border-radius: 12px; border: 1px solid #ffe58f;">
                     <strong style="display:block; margin-bottom:10px;">COD Payment Method:</strong>
                     <div style="display:grid; gap:12px;">
                         <label style="display:flex; align-items:center; gap:10px; font-weight:500; margin:0;">
-                            <input type="radio" name="paymentType" value="cash" checked style="width:20px; height:20px; margin:0;"> Cash Received
+                            <input type="radio" name="paymentType" value="cash" checked
+                                style="width:20px; height:20px; margin:0;"> Cash Received
                         </label>
                         <label style="display:flex; align-items:center; gap:10px; font-weight:500; margin:0;">
-                            <input type="radio" name="paymentType" value="online" style="width:20px; height:20px; margin:0;"> Already Paid Online
+                            <input type="radio" name="paymentType" value="online"
+                                style="width:20px; height:20px; margin:0;"> Already Paid Online
                         </label>
                     </div>
-                    <button id="cashfree-pay-btn" class="btn btn-outline" style="width:100%; margin-top:15px; border-color:var(--primary); color:var(--primary);" onclick="initiateCashfreePayment(event)">💳 Pay Online via Cashfree</button>
+                    <button id="cashfree-pay-btn" class="btn btn-outline"
+                        style="width:100%; margin-top:15px; border-color:var(--primary); color:var(--primary);"
+                        onclick="initiateCashfreePayment(event)">💳 Pay Online via Cashfree</button>
                 </div>
 
-                <button class="btn btn-success" style="width:100%; border-radius:50px; padding:15px;" id="btn-complete-submit" onclick="submitCompletion()">Complete Delivery</button>
+                <button class="btn btn-success" style="width:100%; border-radius:50px; padding:15px;"
+                    id="btn-complete-submit" onclick="submitCompletion()">Complete Delivery</button>
             </div>
 
             <div id="sheet-msg" class="message" style="display:none;"></div>
-            
-            <button class="btn btn-outline" style="width:100%; margin-top:16px;" onclick="closeBottomSheet()">Close</button>
+
+            <button class="btn btn-outline" style="width:100%; margin-top:16px;"
+                onclick="closeBottomSheet()">Close</button>
         </div>
     </div>
 
@@ -292,9 +580,10 @@ function saveTokenToServer(token) {
         <div class="bottom-sheet">
             <h2>Cancel Order</h2>
             <p id="cancel-tracking" style="font-weight:700; color:var(--danger); margin-top:-10px;"></p>
-            
+
             <label>Select Reason</label>
-            <select id="cancel-reason" style="width:100%; padding:12px; border:1px solid var(--border); border-radius:12px; margin-bottom:15px;">
+            <select id="cancel-reason"
+                style="width:100%; padding:12px; border:1px solid var(--border); border-radius:12px; margin-bottom:15px;">
                 <option value="">Choose reason...</option>
                 <option value="customer no response">Customer no response</option>
                 <option value="Request for reschedule">Request for reschedule</option>
@@ -309,8 +598,10 @@ function saveTokenToServer(token) {
             <div id="cancel-msg" class="message" style="display:none;"></div>
 
             <div style="display:grid; gap:10px;">
-                <button class="btn btn-primary" id="btn-request-cancel" onclick="requestCancelOtp()">Request Cancellation</button>
-                <button class="btn btn-danger" id="btn-confirm-cancel" style="display:none;" onclick="confirmCancel()">Confirm Cancellation</button>
+                <button class="btn btn-primary" id="btn-request-cancel" onclick="requestCancelOtp()">Request
+                    Cancellation</button>
+                <button class="btn btn-danger" id="btn-confirm-cancel" style="display:none;"
+                    onclick="confirmCancel()">Confirm Cancellation</button>
                 <button class="btn btn-outline" onclick="closeCancelSheet()">Back</button>
             </div>
         </div>
@@ -339,11 +630,29 @@ function saveTokenToServer(token) {
 
         function filterDeliveries() {
             const q = document.getElementById('delivery-search').value.toLowerCase();
-            const filtered = allDeliveries.filter(d => 
-                d.trackingId.toLowerCase().includes(q) || 
+            const filtered = allDeliveries.filter(d =>
+                d.trackingId.toLowerCase().includes(q) ||
                 d.customerName.toLowerCase().includes(q)
             );
             renderList(filtered);
+        }
+
+        function getBarcodeScannerConfig(fps = 10) {
+            return {
+                fps,
+                qrbox: { width: 280, height: 120 },
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.CODABAR,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.ITF,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E
+                ]
+            };
         }
 
         // --- Data Loading ---
@@ -355,41 +664,49 @@ function saveTokenToServer(token) {
             try {
                 const r = await fetch(`${API_BASE}/delivery/my-deliveries?page=${currentPage}`, { headers });
                 const data = await r.json();
-                
+
                 if (isRefresh) allDeliveries = data.deliveries;
                 else allDeliveries = [...allDeliveries, ...data.deliveries];
-                
+
                 renderList(allDeliveries);
                 countEl.textContent = `Showing ${allDeliveries.length} of ${data.totalDeliveries} assigned`;
-                
-                document.getElementById('load-more-container').style.display = 
+
+                document.getElementById('load-more-container').style.display =
                     (allDeliveries.length < data.totalDeliveries) ? 'block' : 'none';
-                
+
                 currentPage++;
             } catch (e) {
                 countEl.textContent = 'Error loading deliveries.';
             }
         }
 
+        async function loadDeliverySummary() {
+            try {
+                const r = await fetch(`${API_BASE}/delivery/summary`, { headers });
+                const data = await r.json();
+                document.getElementById('profile-cash-today').textContent = `₹${data.todayCashReceived || 0}`;
+            } catch (e) { }
+        }
+
         function renderList(list) {
             const container = document.getElementById('delivery-list');
             container.innerHTML = list.map(d => `
-                <div class="card delivery-card ${d.currentStatus==='Out for Delivery'?'out':d.currentStatus==='Picked Up'?'picked-up':''}">
+                <div class="card delivery-card ${d.currentStatus === 'Out for Delivery' ? 'out' : d.currentStatus === 'Picked Up' ? 'picked-up' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                         <span class="tracking-id">${d.trackingId}</span>
-                        <span class="badge ${d.currentStatus==='Out for Delivery'?'status-out':d.currentStatus==='Picked Up'?'status-picked':'status-delivered'}">${d.currentStatus}</span>
+                        <span class="badge ${d.currentStatus === 'Out for Delivery' ? 'status-out' : d.currentStatus === 'Picked Up' ? 'status-picked' : 'status-delivered'}">${d.currentStatus}</span>
                     </div>
                     <div class="customer-name">${d.customerName}</div>
                     <div class="address"><i class="fas fa-location-dot"></i> ${d.customerAddress}</div>
                     <div class="payment-label">
                         <i class="fas fa-indian-rupee-sign"></i> 
                         ${d.paymentMethod} (₹${d.billAmount})
-                        ${(d.codPaymentStatus||'').includes('Paid') ? '<span class="badge badge-success" style="font-size:0.6rem;">PAID</span>' : ''}
+                        ${(d.codPaymentStatus || '').includes('Paid') ? '<span class="badge badge-success" style="font-size:0.6rem;">PAID</span>' : ''}
                     </div>
                     <div class="action-row">
-                        ${d.currentStatus !== 'Out for Delivery' ? 
-                            `<button class="btn btn-outline" onclick="openManualUpdate('${d.trackingId}', '${d.currentStatus}')"><i class="fas fa-pen-to-square"></i> Status</button>` 
-                            : `<button class="btn btn-primary" onclick="openCompleteSheet('${d.trackingId}')"><i class="fas fa-check-circle"></i> Complete</button>`}
+                        ${d.currentStatus !== 'Out for Delivery' ?
+                    `<button class="btn btn-outline" onclick="openManualUpdate('${d.trackingId}', '${d.currentStatus}')"><i class="fas fa-pen-to-square"></i> Status</button>`
+                    : `<button class="btn btn-primary" onclick="openCompleteSheet('${d.trackingId}')"><i class="fas fa-check-circle"></i> Complete</button>`}
                         <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:${d.customerPhone}'" style="grid-column: span 1;"><i class="fas fa-phone"></i> Call</button>
                         <button class="btn btn-outline btn-sm" onclick="openCancelSheet('${d.trackingId}')" style="color:var(--danger);border-color:var(--danger);"><i class="fas fa-ban"></i> Cancel</button>
                     </div>
@@ -401,13 +718,13 @@ function saveTokenToServer(token) {
         function openScanner() {
             document.getElementById('scanner-view').style.display = 'flex';
             scanner = new Html5Qrcode("reader");
-            scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (id) => {
+            scanner.start({ facingMode: "environment" }, getBarcodeScannerConfig(), (id) => {
                 id = id.trim().toUpperCase();
                 const d = allDeliveries.find(x => x.trackingId === id);
                 if (d) {
                     if (navigator.vibrate) navigator.vibrate(100);
                     closeScanner();
-                    
+
                     if (d.currentStatus === 'Out for Delivery') {
                         openCompleteSheet(id);
                     } else if (d.currentStatus === 'Picked Up') {
@@ -431,7 +748,7 @@ function saveTokenToServer(token) {
             document.getElementById('sheet-tracking').textContent = tid;
             document.getElementById('sheet-complete-flow').style.display = 'none';
             document.getElementById('sheet-status-update').style.display = 'block';
-            
+
             const btnContainer = document.getElementById('dynamic-status-buttons');
             if (currentStatus === 'Out for Delivery') {
                 btnContainer.innerHTML = '<p>Parcel is Out for Delivery. Use the "Complete" button directly.</p>';
@@ -440,7 +757,7 @@ function saveTokenToServer(token) {
             } else {
                 btnContainer.innerHTML = '<button class="btn btn-primary" style="width:100%; border-radius:50px; padding:15px; font-weight:700;" onclick="processStatusUpdate(\'Picked Up\')">Mark as Picked Up</button>';
             }
-            
+
             document.getElementById('completion-overlay').style.display = 'flex';
         }
 
@@ -477,7 +794,7 @@ function saveTokenToServer(token) {
                 } else {
                     codSection.style.display = 'none';
                 }
-            } catch(e) {
+            } catch (e) {
                 // Fallback to stale local data
                 const d = allDeliveries.find(x => x.trackingId === tid);
                 if (d?.paymentMethod === 'COD') {
@@ -501,7 +818,7 @@ function saveTokenToServer(token) {
             document.getElementById('sheet-status-update').style.display = 'none';
             document.getElementById('sheet-complete-flow').style.display = 'none';
             document.getElementById('completion-overlay').style.display = 'flex';
-            
+
             await processStatusUpdate(status);
         }
 
@@ -509,12 +826,12 @@ function saveTokenToServer(token) {
             const msgEl = document.getElementById('sheet-msg');
             msgEl.style.display = 'block';
             msgEl.textContent = 'Updating...';
-            
+
             try {
-                const r = await fetch(`${API_BASE}/delivery/update-status`, { 
-                    method: 'POST', 
-                    headers, 
-                    body: JSON.stringify({ trackingId: activeTrackingId, status }) 
+                const r = await fetch(`${API_BASE}/delivery/update-status`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ trackingId: activeTrackingId, status })
                 });
                 if (r.ok) {
                     msgEl.className = "message msg-success";
@@ -533,10 +850,10 @@ function saveTokenToServer(token) {
             const msgEl = document.getElementById('sheet-msg');
 
             if (!otp || otp.length < 4) return alert("Enter valid 4-digit OTP");
-            
+
             msgEl.style.display = 'block';
             msgEl.textContent = 'Verifying...';
-            
+
             try {
                 const r = await fetch(`${API_BASE}/delivery/complete`, {
                     method: 'POST',
@@ -547,7 +864,7 @@ function saveTokenToServer(token) {
                 if (r.ok) {
                     msgEl.className = "message msg-success";
                     msgEl.textContent = "Delivery Completed!";
-                    setTimeout(() => { closeBottomSheet(); loadDeliveries(true); }, 1000);
+                    setTimeout(() => { closeBottomSheet(); loadDeliveries(true); loadDeliverySummary(); }, 1000);
                 } else {
                     msgEl.className = "message msg-error";
                     msgEl.textContent = data.message || "Invalid OTP or error.";
@@ -576,9 +893,9 @@ function saveTokenToServer(token) {
             if (!reason) return alert("Select reason");
             const msgEl = document.getElementById('cancel-msg');
             msgEl.style.display = 'block'; msgEl.textContent = "Requesting OTP...";
-            
+
             try {
-                const r = await fetch(`${API_BASE}/delivery/request-cancel-otp`, { method:'POST', headers, body: JSON.stringify({ trackingId: activeTrackingId }) });
+                const r = await fetch(`${API_BASE}/delivery/request-cancel-otp`, { method: 'POST', headers, body: JSON.stringify({ trackingId: activeTrackingId }) });
                 if (r.ok) {
                     msgEl.className = "message msg-success";
                     msgEl.textContent = "OTP Sent to Admin. Get it from Office.";
@@ -586,7 +903,7 @@ function saveTokenToServer(token) {
                     document.getElementById('btn-confirm-cancel').style.display = 'block';
                     document.getElementById('btn-request-cancel').style.display = 'none';
                 }
-            } catch(e) {}
+            } catch (e) { }
         }
 
         async function confirmCancel() {
@@ -596,13 +913,13 @@ function saveTokenToServer(token) {
             if (!otp) return alert("Enter OTP");
 
             try {
-                const r = await fetch(`${API_BASE}/delivery/confirm-cancel`, { method:'POST', headers, body: JSON.stringify({ trackingId: activeTrackingId, otp, reason }) });
+                const r = await fetch(`${API_BASE}/delivery/confirm-cancel`, { method: 'POST', headers, body: JSON.stringify({ trackingId: activeTrackingId, otp, reason }) });
                 if (r.ok) {
                     msgEl.className = "message msg-success";
                     msgEl.textContent = "Cancelled Successfully";
                     setTimeout(() => { closeCancelSheet(); loadDeliveries(true); }, 1000);
                 } else { alert("Wrong OTP"); }
-            } catch(e) {}
+            } catch (e) { }
         }
 
         async function handleChangePassword(e) {
@@ -615,23 +932,23 @@ function saveTokenToServer(token) {
                 const r = await fetch(`${API_BASE}/api/change-password`, { method: 'POST', headers, body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass }) });
                 const data = await r.json();
                 alert(data.message);
-                if(r.ok) e.target.reset();
-            } catch(e) { alert("Error changing password"); }
+                if (r.ok) e.target.reset();
+            } catch (e) { alert("Error changing password"); }
             btn.disabled = false;
         }
 
         // --- Helpers ---
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-        function handleOverlayClick(e) { if(e.target.classList.contains('overlay')) { closeBottomSheet(); closeCancelSheet(); } }
+        function handleOverlayClick(e) { if (e.target.classList.contains('overlay')) { closeBottomSheet(); closeCancelSheet(); } }
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('delivery-name-top').textContent = localStorage.getItem('userName') || 'Delivery';
             document.getElementById('full-name').textContent = localStorage.getItem('userName') || 'Delivery Boy';
-            
+
             const params = new URLSearchParams(window.location.search);
             const pTid = params.get('trackingId');
-            if(pTid) {
+            if (pTid) {
                 window.history.replaceState({}, document.title, "/delivery.html");
                 setTimeout(() => {
                     alert("✨ Payment Confirmed! Please input OTP to complete.");
@@ -640,14 +957,15 @@ function saveTokenToServer(token) {
             }
 
             loadDeliveries(true);
+            loadDeliverySummary();
         });
 
         // --- Cashfree Payment ---
-        const cashfree = Cashfree({ mode: "production" }); 
+        const cashfree = Cashfree({ mode: "production" });
         async function initiateCashfreePayment(e) {
             e.preventDefault();
             const d = allDeliveries.find(x => x.trackingId === activeTrackingId);
-            if(!d) return;
+            if (!d) return;
             try {
                 const r = await fetch(`${API_BASE}/api/create-payment-order`, {
                     method: 'POST',
@@ -655,17 +973,18 @@ function saveTokenToServer(token) {
                     body: JSON.stringify({ trackingId: d.trackingId, amount: d.billAmount })
                 });
                 const res = await r.json();
-                if(res.payment_session_id) {
+                if (res.payment_session_id) {
                     cashfree.checkout({ paymentSessionId: res.payment_session_id });
                 } else alert('Failed to create payment session');
-            } catch(err) { alert('Payment error: ' + err.message); }
+            } catch (err) { alert('Payment error: ' + err.message); }
         }
 
         messaging.onMessage((payload) => {
             if (payload.notification.title.includes("Payment")) {
-                alert("Payment Received! 💰"); loadDeliveries(true);
+                alert("Payment Received! 💰"); loadDeliveries(true); loadDeliverySummary();
             }
         });
     </script>
 </body>
+
 </html>

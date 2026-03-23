@@ -209,8 +209,12 @@ function saveTokenToServer(token) {
                         <h3 id="sum-delivered">0</h3>
                     </div>
                     <div class="stat-card" style="border-left: 4px solid #fbc02d; background: #fffde7;">
-                        <p>Cash Collection</p>
+                        <p>Cash In Hand</p>
                         <h3 id="sum-cash-collection">₹0</h3>
+                    </div>
+                    <div class="stat-card" style="border-left: 4px solid #0f766e; background: #ecfeff;">
+                        <p>Cash Received Today</p>
+                        <h3 id="sum-cash-received">₹0</h3>
                     </div>
                 </div>
             </div>
@@ -487,6 +491,23 @@ function saveTokenToServer(token) {
         }
 
         function formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN') : '-'; }
+        function getBarcodeScannerConfig(fps = 15) {
+            return {
+                fps,
+                qrbox: { width: 280, height: 120 },
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.CODABAR,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.ITF,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E
+                ]
+            };
+        }
 
         // --- Data ---
         async function loadManagerSummary() {
@@ -498,6 +519,7 @@ function saveTokenToServer(token) {
                 document.getElementById('sum-out-for-delivery').textContent = d.outForDelivery || 0;
                 document.getElementById('sum-delivered').textContent = d.deliveredToday || 0;
                 document.getElementById('sum-cash-collection').textContent = `₹${d.cashInHand || 0}`;
+                document.getElementById('sum-cash-received').textContent = `₹${d.todayCashReceived || 0}`;
             } catch(e) {}
         }
 
@@ -606,7 +628,7 @@ function saveTokenToServer(token) {
             } else {
                 div.style.display = 'block'; btn.innerHTML = '<i class="fas fa-stop"></i> Stop Camera';
                 receiveScanner = new Html5Qrcode("receive-reader");
-                receiveScanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
+                receiveScanner.start({ facingMode: "environment" }, getBarcodeScannerConfig(), (id) => {
                     id = id.trim().toUpperCase();
                     if (id && !receiveScannedIds.includes(id)) { receiveScannedIds.push(id); updateReceiveList(); if(navigator.vibrate) navigator.vibrate(100); }
                 });
