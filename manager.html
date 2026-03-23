@@ -668,23 +668,31 @@ function saveTokenToServer(token) {
 
         function applyFilter() {
             const track = document.getElementById('searchTrack').value.toLowerCase();
-            const date = document.getElementById('searchDate').value; // YYYY-MM-DD
+            const date = document.getElementById('searchDate').value;
             const pay = document.getElementById('paymentFilter').value;
             
             const filtered = completedDeliveries.filter(d => {
                 const mTrack = d.trackingId.toLowerCase().includes(track);
-                const compDate = d.completedAt ? new Date(d.completedAt).toISOString().split('T')[0] : '';
+                const compDate = (d.completedAt || d.updatedAt) ? new Date(d.completedAt || d.updatedAt).toISOString().split('T')[0] : '';
                 const mDate = !date || compDate === date;
                 const mPay = !pay || d.paymentMethod === pay;
                 return mTrack && mDate && mPay;
             });
 
-            document.getElementById('completed-body').innerHTML = filtered.map(d => `<tr>
-                <td>${d.trackingId}</td>
-                <td>${formatDate(d.createdAt)}</td>
-                <td>${formatDate(d.completedAt)}</td>
-                <td>${d.paymentMethod}</td>
-            </tr>`).join('');
+            const isCancelled = d => d.statusUpdates?.some(s => s.status === 'Cancelled');
+
+            document.getElementById('completed-body').innerHTML = filtered.map(d => {
+                const cancelled = isCancelled(d);
+                const tag = cancelled 
+                    ? `<span style="background:#e53935;color:#fff;padding:2px 8px;border-radius:20px;font-size:0.72rem;font-weight:700;margin-left:6px;">RTO</span>`
+                    : `<span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:20px;font-size:0.72rem;font-weight:700;margin-left:6px;">DELIVERED</span>`;
+                return `<tr style="${cancelled ? 'background:#fff3f3;' : ''}">
+                    <td><strong>${d.trackingId}</strong>${tag}</td>
+                    <td>${formatDate(d.createdAt)}</td>
+                    <td>${formatDate(cancelled ? d.updatedAt : d.completedAt)}</td>
+                    <td>${d.paymentMethod}</td>
+                </tr>`;
+            }).join('');
         }
 
         // --- Boys Management ---

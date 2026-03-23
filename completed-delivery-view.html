@@ -69,8 +69,9 @@
                 <tr>
                     <th>Tracking ID</th>
                     <th>Booked</th>
-                    <th>Delivered</th>
+                    <th>Completed</th>
                     <th>Payment</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -114,14 +115,19 @@
 
         function render(list) {
             const tbody = document.getElementById("tableBody");
-            tbody.innerHTML = list.length ? list.map(d => `
-                <tr>
+            tbody.innerHTML = list.length ? list.map(d => {
+                const cancelled = d.statusUpdates?.some(s => s.status === 'Cancelled');
+                const tag = cancelled
+                    ? `<span style="background:#e53935;color:#fff;padding:2px 8px;border-radius:20px;font-size:0.72rem;font-weight:700;">RTO</span>`
+                    : `<span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:20px;font-size:0.72rem;">DELIVERED</span>`;
+                return `<tr style="${cancelled ? 'background:#fff3f3;' : ''}">
                     <td style="font-weight:600; color:var(--primary);">${d.trackingId}</td>
                     <td>${formatDate(d.createdAt)}</td>
-                    <td>${formatDate(d.completedAt)}</td>
+                    <td>${formatDate(cancelled ? d.updatedAt : d.completedAt)}</td>
                     <td><span style="font-weight:500;">${d.paymentMethod}</span></td>
-                </tr>
-            `).join('') : '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted);">No records found</td></tr>';
+                    <td>${tag}</td>
+                </tr>`;
+            }).join('') : '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">No records found</td></tr>';
         }
 
         function applyFilter() {
