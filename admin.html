@@ -96,351 +96,180 @@ function saveTokenToServer(token) {
     <link rel="icon" href="/favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="/favicon.png">
 
-    <meta name="theme-color" content="#f1c27d">
+    <meta name="theme-color" content="#2563eb">
     <link rel="manifest" href="/manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* General Styles */
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        h1, h2 { color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #ccc; margin-bottom: 20px;}
-        .header button { padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button { cursor: pointer; border-radius: 5px; padding: 10px 15px; border: none; margin: 2px; }
-        button.btn-primary { background-color: #007bff; color: white; }
-        button.btn-secondary { background-color: #6c757d; color: white; }
-        button.btn-danger { background-color: #dc3545; color: white; }
-        button.btn-warning { background-color: #ffc107; color: black; }
-        button.btn-success { background-color: #28a745; color: white; }
-        button.print { background: #6c757d; color: white; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        input, select { width: calc(100% - 24px); padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: middle; }
-        th { background-color: #e9ecef; }
-        td button.btn-sm { padding: 5px 8px; font-size: 0.85em; margin-right: 3px;}
-        .footer { text-align: center; margin-top: 30px; color: #888; font-size: 0.9em; }
-
-        /* Tabs */
-        .tab-bar { border-bottom: 2px solid #dee2e6; margin-bottom: 20px; }
-        .tab-bar button { background: #e9ecef; border: none; padding: 10px 15px; cursor: pointer; font-size: 16px; border-radius: 5px 5px 0 0; margin-bottom: -2px; border: 1px solid #dee2e6; border-bottom: none; }
-        .tab-bar button.active { background: #ffffff; border-bottom: 2px solid #ffffff; font-weight: bold; }
-        .tab-content { display: none; padding-top: 10px; }
-        .tab-content.active { display: block; }
-        .container { display: flex; flex-wrap: wrap; gap: 20px; }
-        .card { background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 25px; flex: 1; min-width: 400px; border: 1px solid #dee2e6; }
-
-        /* Results & Label */
-        #result { padding: 15px; border-radius: 5px; margin-bottom: 20px; word-break: break-all; font-size: 0.95em; }
-        #result.success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
-        #result.error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
-        #label { border: 2px dashed #6c757d; padding: 20px; display: none; margin-top: 20px; background: white; }
-        #label-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 15px; }
-        #qrcode-tracking { width: 128px; height: 128px; margin: 10px auto; }
-        #qrcode-tracking img { display: block; margin: auto; }
-
-        /* Modal Styles */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background-color: #fefefe; padding: 30px; border: 1px solid #888; border-radius: 8px; width: 80%; max-width: 500px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .modal-content h2 { margin-top: 0; }
-        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1; }
-        .close-button:hover { color: black; }
-
-        /* User Status Indicator */
-        .status-active { color: #198754; font-weight: bold; }
-        .status-inactive { color: #dc3545; font-weight: bold; }
-
-        /* Print Specific Styles */
-        @media print {
-            body * { visibility: hidden; }
-            #label, #label * { visibility: visible; }
-            #label { position: static; left: 0; top: 0; width: 100mm; min-height: 140mm; height: auto; border: 2px dashed #6c757d !important; box-shadow: none; margin: 10px; padding: 10px; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            #label p { margin: 3px 0; font-size: 10pt;}
-            #label h3 { font-size: 12pt; margin: 5px 0;}
-            #label span { font-size: 10pt; }
-            #qrcode-tracking img { width: 100px !important; height: 100px !important; }
-             button, .header, .tab-bar, .tab-content:not(#tab-book), #booking-form, #result, #action-buttons, .footer, #manage-users-area, #all-deliveries-table { display: none !important; }
-             #tab-book, .container, #result-area, #label { display: block !important; }
-              html, body { width: 100mm; height: 140mm; margin: 0; padding: 0; }
+        :root {
+            --sidebar-width: 260px;
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #64748b;
+            --success: #059669;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --radius: 12px;
         }
 
-        /* Checkbox Size */
-        #all-deliveries-table input[type="checkbox"] { transform: scale(1.5); margin: 0 5px 0 3px; cursor: pointer; }
-        #select-all-checkbox { transform: scale(1.5); cursor: pointer; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; display: flex; flex-direction: row; min-height: 100vh; width: 100vw; overflow-x: hidden; }
 
-        /* Users Accordion (Foldable) */
-        #user-controls { margin-bottom: 12px; display:flex; gap:10px; align-items:center; }
-        .role-section { margin-bottom: 12px; border: 1px solid #e9ecef; border-radius: 6px; background: #fff; overflow: hidden; }
-        .role-header { padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
-        .role-title { font-weight:700; font-size:1.02em; }
-        .role-count { color:#666; margin-left: 8px; font-weight:600; }
-        .role-body { padding: 8px 14px 14px 14px; border-top:1px solid #f6f6f6; }
-        .user-card { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #f0f0f0; }
-        .user-left { display:flex; flex-direction:column; gap:2px; }
-        .user-meta { color:#666; font-size:0.9em; margin-left:10px; }
-        .user-actions button { margin-left:8px; }
-        .badge { display:inline-block; padding:4px 8px; border-radius:12px; font-size:0.8em; margin-left:8px; }
-        .badge-role { background:#e9ecef; color:#333; }
-        .badge.no-token { background:#ffe6e6; color:#a00; border:1px solid #f5c2c2; padding:3px 7px; font-weight:700; }
-        .no-users { color:#666; padding:8px 14px; }
-        .filter-box { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px; }
-        .filter-box input, .filter-box select { width: auto; min-width: 170px; margin-bottom: 0; }
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #1e293b;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
 
-        /* Mobile Friendly Styles */
-        /* =========================
-   📱 MOBILE RESPONSIVE FIX
-========================= */
-@media (max-width: 768px) {
+        .sidebar-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
 
-  body {
-    padding: 8px;
-  }
+        .sidebar-header img { width: 32px; border-radius: 6px; }
+        .sidebar-header h2 { font-size: 1.25rem; margin: 0; font-family: 'Poppins', sans-serif; }
 
-  .header {
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-  }
+        .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+        .nav-item {
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #94a3b8;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--primary); color: white; border-right: 4px solid #fff; }
 
-  .header h1 {
-    font-size: 18px;
-  }
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; position: relative; }
+        
+        .top-bar {
+            height: 64px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
 
-  .tab-bar {
-    overflow-x: auto;
-    white-space: nowrap;
-  }
+        .user-info { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+        
+        #hamburger { display: none; font-size: 20px; cursor: pointer; color: var(--text-main); }
 
-  .tab-bar button {
-    font-size: 14px;
-    padding: 8px 10px;
-  }
+        .content-area { padding: 24px; }
 
-  .container {
-    flex-direction: column;
-  }
+        /* Generic UI Elements */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 24px; }
+        .card h2 { margin: 0 0 20px 0; font-size: 1.25rem; font-family: 'Poppins', sans-serif; display: flex; align-items: center; gap: 10px; }
 
-  .card {
-    min-width: 100% !important;
-    padding: 15px;
-  }
+        .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 8px; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); color: white; padding: 10px 20px; border-radius: 8px; }
+        .btn-secondary { background: var(--secondary); color: white; padding: 10px 20px; border-radius: 8px; }
+        .btn-success { background: var(--success); color: white; padding: 10px 20px; border-radius: 8px; }
+        .btn-danger { background: var(--danger); color: white; padding: 10px 20px; border-radius: 8px; }
+        .btn-warning { background: var(--warning); color: white; padding: 10px 20px; border-radius: 8px; }
 
-  table {
-    font-size: 13px;
-  }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; font-size: 0.9375rem; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.875rem; color: var(--text-muted); }
 
-  table thead {
-    display: none;
-  }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+        th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 2px solid var(--border); }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.875rem; vertical-align: middle; }
+        tr:hover td { background: #f8fafc; }
 
-  table tr {
-    display: block;
-    border: 1px solid #ddd;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    padding: 8px;
-  }
+        .filter-box { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .filter-box input, .filter-box select { width: auto; margin-bottom: 0; min-width: 150px; }
 
-  table td {
-    display: flex;
-    justify-content: space-between;
-    border: none;
-    padding: 6px 4px;
-  }
+        /* Status Badges */
+        .badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
 
-  table td::before {
-    content: attr(data-label);
-    font-weight: bold;
-    color: #555;
-  }
+        /* Print Overlay */
+        @media print {
+            .sidebar, .top-bar, .nav-item, button, .tab-content:not(.active), #hamburger { display: none !important; }
+            body { background: white; }
+            .main-content { overflow: visible; display: block; }
+            .content-area { padding: 0; overflow: visible; }
+            #label { display: block !important; border: 2px dashed #000 !important; width: 100mm; margin: 0 auto; }
+        }
 
-  button {
-    width: 100%;
-    margin-top: 5px;
-  }
- /* User cards container */
-  .user-list,
-  .users-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
+        /* Mobile Adjustments */
+        @media (max-width: 992px) {
+            .sidebar { position: fixed; left: -100%; top: 0; bottom: 0; box-shadow: 20px 0 50px rgba(0,0,0,0.1); }
+            .sidebar.open { left: 0; }
+            #hamburger { display: block !important; }
+        }
 
-  /* Each user card */
-  .user-card,
-  .user-item {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 12px;
-    background: #fff;
-  }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* Name & role */
-  .user-card h4,
-  .user-item h4 {
-    margin: 0 0 6px;
-    font-size: 16px;
-  }
-
-  .user-role {
-    font-size: 13px;
-    font-weight: bold;
-    color: #555;
-    margin-bottom: 8px;
-  }
-
-  /* Token / device info */
-  .user-meta {
-    font-size: 13px;
-    color: #666;
-    margin-bottom: 10px;
-    word-break: break-word;
-  }
-
-  /* Action buttons stack */
-  .user-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .user-actions button {
-    width: 100%;
-    padding: 8px;
-    font-size: 14px;
-  }
-
-  /* Accordion headers */
-  .accordion-header {
-    padding: 10px;
-    font-size: 15px;
-  }
-
-  /* Accordion body */
-  .accordion-body {
-    padding: 10px;
-  }
-
-  /* Disable desktop table view */
-  .manage-users table {
-    display: none;
-  }
-
- /* 🔍 Search & controls – breathing space */
-  #user-controls {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    margin-bottom: 18px;
-  }
-
-  #user-controls input[type="search"] {
-    width: 100%;
-    padding: 14px;
-    font-size: 15px;
-  }
-
-  #user-controls label {
-    font-size: 14px;
-  }
-
-  #user-controls button {
-    width: 100%;
-    padding: 10px;
-  }
-
-  /* 📦 Role section spacing */
-  .role-section {
-    margin-bottom: 18px;
-    border-radius: 10px;
-  }
-
-  .role-header {
-    padding: 14px 16px;
-    font-size: 16px;
-  }
-
-  .role-body {
-    padding: 14px;
-  }
-
-  /* 👤 User card – make it airy */
-  .user-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 14px 12px;
-    margin-bottom: 12px;
-    border-radius: 10px;
-  }
-
-  .user-left {
-    width: 100%;
-  }
-
-  .user-left strong {
-    font-size: 16px;
-    line-height: 1.3;
-  }
-
-  .user-meta {
-    margin-top: 4px;
-    margin-left: 0;
-    font-size: 14px;
-    line-height: 1.4;
-  }
-
-  /* 🎯 Actions – stacked & separated */
-  .user-card > div:last-child {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
-  }
-
-  .user-card button {
-    width: 100%;
-    padding: 10px;
-    font-size: 14px;
-  }
-
-  /* 🏷️ Badges breathing */
-  .badge {
-    margin-left: 6px;
-    margin-top: 4px;
-  }
-
-  /* 👥 Manager grouping (delivery boys) */
-  .role-body > div[style*="border-bottom"] {
-    padding: 10px 0 6px;
-    margin-bottom: 10px;
-    font-size: 15px;
-  }
-
-}
+        .pending-cash-row { background: #fffbeb; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Sahyog Medical Admin (Welcome, <span id="admin-name"></span>)</h1>
-        <button id="logout-btn" class="btn-danger">Logout</button>
-        <button onclick="askForNotificationPermission()">
-  Enable Notifications 🔔
-</button>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="/favicon.png" alt="Logo">
+            <h2>Sahyog Admin</h2>
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-item tab-link active" onclick="openTab(event, 'tab-book')"><i class="fas fa-plus-circle"></i> Book Courier</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-drafts')"><i class="fas fa-file-invoice"></i> Draft Orders</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-deliveries')"><i class="fas fa-list"></i> All Bookings</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-ho-dispatch')"><i class="fas fa-truck-loading"></i> HO Dispatch</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-admin-receive')"><i class="fas fa-file-import"></i> Admin Receive</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-cash-orders')"><i class="fas fa-money-bill-wave"></i> Cash Orders</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-completed-deliveries')"><i class="fas fa-check-double"></i> Completed</div>
+            <!-- Staff Management removed as per user request -->
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-settings')"><i class="fas fa-cog"></i> Settings</div>
+        </div>
     </div>
 
-    <div class="tab-bar">
-        <button class="tab-link active" onclick="openTab(event, 'tab-book')">Book Courier</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-drafts')">Draft Orders</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-deliveries')">All Bookings</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-ho-dispatch')">📤 HO Dispatch</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-users')">Staff Management</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-completed-deliveries')">Completed Deliveries</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-manage')">Manage Users</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-settings')">Business Settings</button>
-    </div>
+    <div class="main-content">
+        <div class="top-bar">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="fas fa-bars" id="hamburger" onclick="toggleSidebar()"></i>
+                <div class="user-info">
+                    <i class="fas fa-user-circle" style="font-size: 24px; color: var(--primary);"></i> 
+                    <span id="admin-name" style="font-size: 0.9375rem;">Admin Dashboard</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:12px;">
+                 <button class="btn btn-secondary" onclick="askForNotificationPermission()" title="Enable Notifications"><i class="fas fa-bell"></i></button>
+                 <button id="logout-btn" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+        <div class="content-area">
 
     <div id="tab-book" class="tab-content active">
         <div class="container">
@@ -578,6 +407,31 @@ function saveTokenToServer(token) {
         </div>
     </div>
 
+    <div id="tab-admin-receive" class="tab-content">
+        <div class="card" style="max-width: 600px; margin: 0 auto; background: #e8f5e9; border-left: 5px solid #2e7d32; padding: 25px;">
+            <h2 style="margin-top: 0; color: #1b5e20;">📥 Admin Received Scan (Returns)</h2>
+            <p>Scan Tracking IDs here to mark them as "Received by Admin". (Cancelled/Returned Parcels)</p>
+            <div style="display: flex; gap: 10px; margin-bottom:15px;">
+                <input type="text" id="admin-receive-scan-input" placeholder="Scan Barcode..." style="flex: 1; padding: 12px; font-size: 1.1em; border: 2px solid #2e7d32; border-radius: 8px;">
+                <button id="admin-receive-scan-btn" class="btn-success" style="padding: 0 15px; border-radius: 8px; cursor: pointer;">Add</button>
+            </div>
+            
+            <div style="margin-bottom: 20px; text-align: center;">
+                <button id="start-camera-admin-receive" class="btn-secondary" style="background: #2e7d32; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">📷 Open Camera Scanner</button>
+                <div id="admin-receive-reader" style="width: 100%; max-width: 100%; margin: 15px auto; display: none; border-radius: 10px; overflow: hidden; border: 2px solid #2e7d32;"></div>
+            </div>
+            <div id="admin-receive-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px; background: white; margin-bottom: 20px;">
+                <ul id="admin-receive-list" style="list-style: none; padding: 0; margin: 0;">
+                    <li id="admin-receive-placeholder" style="color: #999; text-align: center; padding: 20px;">No parcels scanned yet.</li>
+                </ul>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 15px;">
+                <strong style="font-size: 1.1em;">Total Scanned: <span id="admin-receive-count">0</span></strong>
+                <button id="confirm-admin-receive-btn" class="btn-success" style="padding: 12px 25px; border-radius: 8px; cursor: pointer; border: none; font-weight: bold; font-size: 1em; background: #2e7d32;">Confirm & Mark Received 📦</button>
+            </div>
+        </div>
+    </div>
+
     <div id="tab-cash-orders" class="tab-content">
         <div class="card" style="min-width: 95%; overflow-x: auto;">
             <h2>COD Cash Orders</h2>
@@ -633,55 +487,6 @@ function saveTokenToServer(token) {
         </div>
     </div>
 
-    <div id="tab-manage" class="tab-content">
-        <div class="card" style="min-width: 95%; overflow-x: auto;">
-            <h2>Manage Users</h2>
-            <button id="add-user-btn" class="btn-primary" style="margin-bottom: 15px;">+ Create User</button>
-
-<div id="add-user-container" style="display:none; margin-bottom:20px;">
-    <div style="padding:20px; background:white; border-radius:8px; border:1px solid #ddd;">
-        <h3>Create New User</h3>
-        <form id="add-user-form">
-            <label>Name:</label>
-            <input type="text" id="add-user-name" required>
-
-            <label>Email (Username):</label>
-            <input type="email" id="add-user-email" required>
-
-            <label>Phone:</label>
-            <input type="text" id="add-user-phone">
-
-            <label>Password:</label>
-            <input type="text" id="add-user-password" required>
-
-            <label>Role:</label>
-            <select id="add-user-role" required>
-                <option value="delivery">Delivery Boy</option>
-                <option value="manager">Manager</option>
-                <option value="admin">Admin</option>
-            </select>
-          <div id="manager-select-box">
-    <label>Assign to Manager (required for Delivery Boys):</label>
-    <select id="assign-manager"></select>
-</div>
-
-            <button type="submit" class="btn-success" style="margin-top:15px;">Create User</button>
-        </form>
-        <div id="add-user-result" class="message"></div>
-    </div>
-</div>
-
-<div id="user-controls">
-    <input type="search" id="user-search" placeholder="Search name, email or phone" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:6px;">
-    <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:#555;"><input type="checkbox" id="show-inactive"> Show inactive</label>
-    <button id="collapse-all-btn" class="btn-secondary">Collapse All</button>
-    <button id="expand-all-btn" class="btn-secondary">Expand All</button>
-</div>
-
-<div id="users-accordion"></div>
-<p id="users-empty" class="no-users" style="display:none;">No users found.</p> 
-        </div>
-    </div>
 
     <div id="tab-settings" class="tab-content">
         <div class="card" style="min-width: 95%;">
@@ -709,6 +514,9 @@ function saveTokenToServer(token) {
             <div id="settings-result" class="message" style="margin-top: 15px;"></div>
         </div>
     </div>
+
+        </div> <!-- Close content-area -->
+    </div> <!-- Close main-content -->
 
     <div id="user-edit-modal" class="modal">
         <div class="modal-content">
@@ -2118,7 +1926,119 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const startCamBtn = document.getElementById('start-camera-dispatch');
     if (startCamBtn) startCamBtn.onclick = toggleDispatchCamera;
+
+    // Admin Receive Scanning listeners
+    const adminReceiveInput = document.getElementById('admin-receive-scan-input');
+    if (adminReceiveInput) {
+        adminReceiveInput.onkeypress = (e) => { if (e.key === 'Enter') handleAdminReceiveScan(); };
+    }
+    const adminReceiveScanBtn = document.getElementById('admin-receive-scan-btn');
+    if (adminReceiveScanBtn) adminReceiveScanBtn.onclick = handleAdminReceiveScan;
+
+    const confirmAdminReceiveBtnActual = document.getElementById('confirm-admin-receive-btn');
+    if (confirmAdminReceiveBtnActual) confirmAdminReceiveBtnActual.onclick = confirmAdminReceive;
+
+    const startAdminCamBtn = document.getElementById('start-camera-admin-receive');
+    if (startAdminCamBtn) startAdminCamBtn.onclick = toggleAdminReceiveCamera;
 });
+
+// Admin Receive Scanning Logic
+let adminReceiveScannedIds = [];
+
+function handleAdminReceiveScan() {
+    const input = document.getElementById('admin-receive-scan-input');
+    const tid = input.value.trim().toUpperCase();
+    if (!tid) return;
+    if (adminReceiveScannedIds.includes(tid)) { input.value = ''; return; }
+    
+    adminReceiveScannedIds.push(tid);
+    updateAdminReceiveList();
+    input.value = '';
+}
+
+function updateAdminReceiveList() {
+    const list = document.getElementById('admin-receive-list');
+    const count = document.getElementById('admin-receive-count');
+    if (adminReceiveScannedIds.length === 0) {
+        list.innerHTML = '<li id="admin-receive-placeholder" style="color: #999; text-align: center; padding: 20px;">No parcels scanned yet.</li>';
+        count.textContent = '0';
+        return;
+    }
+    list.innerHTML = '';
+    adminReceiveScannedIds.forEach((id, idx) => {
+        const li = document.createElement('li');
+        li.style = "display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee;";
+        li.innerHTML = `<span>${idx+1}. <strong>${id}</strong></span><button class="btn-danger btn-sm" onclick="removeAdminReceiveId('${id}')" style="padding: 2px 6px;">&times;</button>`;
+        list.appendChild(li);
+    });
+    count.textContent = adminReceiveScannedIds.length;
+}
+
+function removeAdminReceiveId(id) {
+    adminReceiveScannedIds = adminReceiveScannedIds.filter(x => x !== id);
+    updateAdminReceiveList();
+}
+
+async function confirmAdminReceive() {
+    if (adminReceiveScannedIds.length === 0) { alert('Kuch scan karo pehle!'); return; }
+    if (!confirm(`Kya aap ${adminReceiveScannedIds.length} parcels ko Admin Received mark karna chahte hain?`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/receive-bulk`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ trackingIds: adminReceiveScannedIds })
+        });
+        const d = await res.json();
+        alert(d.message);
+        adminReceiveScannedIds = [];
+        updateAdminReceiveList();
+        loadAllDeliveries();
+    } catch (err) { alert('Error: ' + err.message); }
+}
+
+let adminReceiveHtml5QrCode = null;
+async function toggleAdminReceiveCamera() {
+    const readerDiv = document.getElementById('admin-receive-reader');
+    const startBtn = document.getElementById('start-camera-admin-receive');
+    
+    if (adminReceiveHtml5QrCode) {
+        try {
+            await adminReceiveHtml5QrCode.stop();
+            adminReceiveHtml5QrCode = null;
+            readerDiv.style.display = 'none';
+            startBtn.innerHTML = '📷 Open Camera Scanner';
+            startBtn.style.background = '#2e7d32';
+        } catch(err) { console.error("Err stopping scanner:", err); }
+        return;
+    }
+
+    readerDiv.style.display = 'block';
+    startBtn.innerHTML = '🛑 Stop Camera';
+    startBtn.style.background = '#d32f2f';
+
+    adminReceiveHtml5QrCode = new Html5Qrcode("admin-receive-reader");
+    const config = { fps: 15, qrbox: { width: 300, height: 180 } };
+
+    adminReceiveHtml5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            const tid = decodedText.trim().toUpperCase();
+            if (tid && !adminReceiveScannedIds.includes(tid)) {
+                adminReceiveScannedIds.push(tid);
+                updateAdminReceiveList();
+                if (navigator.vibrate) navigator.vibrate(100);
+            }
+        },
+        (errorMessage) => { /* ignore */ }
+    ).catch(err => {
+        alert("Camera access failed: " + err);
+        readerDiv.style.display = 'none';
+        startBtn.innerHTML = '📷 Open Camera Scanner';
+        adminReceiveHtml5QrCode = null;
+    });
+}
 
 //--- 19. Draft Orders Tab Logic ---
 async function loadDrafts() {

@@ -709,7 +709,13 @@ app.get('/manager/completed', auth(['manager']), async (req, res) => {
 app.get('/manager/completed-deliveries', auth(['manager']), async (req, res) => {
   const list = await Delivery.find({
     assignedByManager: req.user.userId,
-    statusUpdates: { $elemMatch: { status: 'Delivered' } }
+    statusUpdates: { $elemMatch: { status: 'Delivered' } },
+    $or: [
+        { paymentMethod: 'Prepaid' },
+        { codPaymentStatus: 'Paid - Online' },
+        { codPaymentStatus: 'Not Applicable' },
+        { paymentMethod: 'COD', codPaymentStatus: 'Paid - Cash', cashReceivedByAdmin: true }
+    ]
   }).populate('assignedTo', 'name');
   res.json(list);
 });
@@ -866,6 +872,26 @@ app.post('/admin/dispatch-bulk', auth(['admin']), async (req, res) => {
   }
 });
 
+// 7.10b. Bulk Receive at Admin (SCAN)
+app.post('/admin/receive-bulk', auth(['admin']), async (req, res) => {
+  try {
+    const { trackingIds } = req.body;
+    if (!trackingIds || !Array.isArray(trackingIds)) return res.status(400).json({ message: "trackingIds array required" });
+
+    const result = await Delivery.updateMany(
+      { trackingId: { $in: trackingIds } },
+      { 
+        $push: { statusUpdates: { status: 'Received by Admin', timestamp: new Date() } }
+      }
+    );
+
+    res.json({ message: `${result.modifiedCount} parcels marked as Received by Admin.` });
+  } catch (err) {
+    console.error("Admin receive error:", err);
+    res.status(500).json({ message: "Server error during admin receive" });
+  }
+});
+
 // 7.10. Bulk Receive at Branch (SCAN)
 app.post('/manager/receive-bulk', auth(['manager']), async (req, res) => {
   try {
@@ -873,10 +899,7 @@ app.post('/manager/receive-bulk', auth(['manager']), async (req, res) => {
     if (!trackingIds || !Array.isArray(trackingIds)) return res.status(400).json({ message: "trackingIds array required" });
 
     const results = await Delivery.updateMany(
-      { 
-        trackingId: { $in: trackingIds }, 
-        assignedByManager: req.user.userId 
-      },
+      { trackingId: { $in: trackingIds } },
       { 
         $set: { 
           assignedTo: null, 
@@ -1824,7 +1847,7 @@ app.get('/delivery/my-deliveries', auth(['delivery']), async (req, res) => {
       assignedTo: req.user.userId,
       statusUpdates: {
         $not: {
-          $elemMatch: { status: { $in: ["Delivered", "Cancelled", "Rescheduled"] } }
+          $elemMatch: { status: { $in: ["Delivered", "Cancelled"] } }
         }
       }
     };
@@ -1969,7 +1992,7 @@ app.post('/delivery/complete', auth(['delivery', 'admin', 'manager']), async (re
       }
     }
 
-    res.json({ success: true, message: "Delivery completed successfully", trackingId: delivery.trackingId });
+    res.json({ success: true, message: "Delivery completed successfully", trackingId: delivery.trackingId, status: "Delivered" });
   } catch (error) {
     console.error("Complete Delivery Error:", error);
     res.status(400).json({ success: false, message: error.message });
@@ -2051,6 +2074,13 @@ app.post('/delivery/confirm-cancel', auth(['delivery']), async (req, res) => {
     });
     delivery.cancellationReason = reason;
     delivery.cancellationOtp = null; // Clear OTP after use
+
+    // If rescheduled, unassign so it can be re-assigned after manager receive
+    if (isReschedule) {
+      delivery.assignedTo = null;
+      delivery.assignedBoyDetails = null;
+    }
+
     await delivery.save();
 
     // --- AUTO-SYNC (UPDATE) ---
@@ -2304,6 +2334,66 @@ app.post("/api/cashfree-webhook", async (req, res) => {
     } catch (err) {
       console.error("Webhook error:", err);
       return res.sendStatus(500);
+    }
+});
+
+// --- CASH CONFIRMATION ---
+app.post('/admin/confirm-cash/:id', auth(['admin']), async (req, res) => {
+  try {
+    const delivery = await Delivery.findByIdAndUpdate(req.params.id, { 
+        cashReceivedByAdmin: true,
+        cashReceivedAt: new Date()
+    }, { new: true });
+    if (!delivery) return res.status(404).json({ message: "Order not found" });
+    res.json({ success: true, message: "Cash receipt confirmed", delivery });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/manager/confirm-cash/:id', auth(['manager']), async (req, res) => {
+  try {
+    const delivery = await Delivery.findOneAndUpdate(
+      { _id: req.params.id, assignedByManager: req.user.userId }, 
+      { 
+          cashReceivedByAdmin: true,
+          cashReceivedAt: new Date()
+      }, 
+      { new: true }
+    );
+    if (!delivery) return res.status(404).json({ message: "Order not found or not assigned to you" });
+    res.json({ success: true, message: "Cash receipt confirmed", delivery });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/admin/pending-cash-orders', auth(['admin']), async (req, res) => {
+    try {
+        const orders = await Delivery.find({
+            paymentMethod: 'COD',
+            codPaymentStatus: 'Paid - Cash',
+            cashReceivedByAdmin: { $ne: true },
+            statusUpdates: { $elemMatch: { status: 'Delivered' } }
+        }).populate('assignedTo', 'name').sort({ updatedAt: -1 });
+        res.json(orders);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.get('/manager/pending-cash-orders', auth(['manager']), async (req, res) => {
+    try {
+        const orders = await Delivery.find({
+            assignedByManager: req.user.userId,
+            paymentMethod: 'COD',
+            codPaymentStatus: 'Paid - Cash',
+            cashReceivedByAdmin: { $ne: true },
+            statusUpdates: { $elemMatch: { status: 'Delivered' } }
+        }).populate('assignedTo', 'name').sort({ updatedAt: -1 });
+        res.json(orders);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 // --- (NEW) Start Server ---
