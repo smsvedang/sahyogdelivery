@@ -4,6 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
+
 <script>
     const firebaseConfig = {
   apiKey: "AIzaSyDRcvcvaYSsw19ZmcOikz-FBReqJTtI03s",
@@ -14,13 +15,10 @@
   appId: "1:1049559335650:web:2cb13685ce3c01b93e94bb",
   measurementId: "G-6BSBHNQHYM"
 };
-    </script>
-<script>
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 let fcmServiceWorkerRegPromise = null;
-</script>
-<script>
+
 if ('serviceWorker' in navigator && 'PushManager' in window) {
   fcmServiceWorkerRegPromise = (async () => {
     try {
@@ -35,1370 +33,678 @@ if ('serviceWorker' in navigator && 'PushManager' in window) {
     }
   })();
 }
-</script>
-<script>
+
 async function askForNotificationPermission() {
   const permission = await Notification.requestPermission();
   if (permission === "granted") {
     console.log("Notification allowed ✅");
-    await getPushToken();
-  } else {
-    console.log("Notification denied ❌");
+    getPushToken();
   }
 }
-</script>
-<script>
+
 async function getPushToken() {
   try {
     const serviceWorkerRegistration = fcmServiceWorkerRegPromise ? await fcmServiceWorkerRegPromise : null;
-    if (!serviceWorkerRegistration) {
-      throw new Error('No active service worker for FCM');
-    }
-
+    if (!serviceWorkerRegistration) return;
     const token = await messaging.getToken({
       vapidKey: "BIaBWwpMVcg8M1uGRb-f_fpoHXLTXWrSMVgJnpfcE3ggEUvksFvPOIRCb_EZRiU4UjIc2xCFSW7rAf1-gQ29kSs",
       serviceWorkerRegistration
     });
-
-    if (token) {
-      console.log("Push Token:", token);
-      saveTokenToServer(token);
-    } else {
-      console.log("No token received");
-    }
-  } catch (err) {
-    console.error("Token error:", err);
-  }
+    if (token) saveTokenToServer(token);
+  } catch (err) {}
 }
-</script>
-<script>
+
 function saveTokenToServer(token) {
-  fetch(`${API_BASE}/api/save-fcm-token`, {
+  fetch(`https://sahyogdeliverybackend.onrender.com/api/save-fcm-token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${localStorage.getItem("authToken")}`
     },
     body: JSON.stringify({ token })
-  })
-  .then(res => res.json())
-  .then(data => console.log("✅ Token saved:", data))
-  .catch(err => console.error("❌ Token save failed:", err));
+  }).catch(e => {});
 }
 </script>
 
 <head>
-    <meta name="google-site-verification" content="sUd2hKr4JhoLKMQku6aNRgVeSmyvtjQcuT6ZB4aagRQ" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manager Dashboard - Sahyog Medical</title>
+    <title>Sahyog - Manager Dashboard</title>
     <link rel="icon" href="/favicon.png" type="image/png">
-    <link rel="apple-touch-icon" href="/favicon.png">
-
-    <meta name="theme-color" content="#f1c27d">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
+    <meta name="theme-color" content="#2563eb">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #f1c27d; /* Sahyog Blue */
-            --secondary-color: #6c757d; /* Muted Gray */
-            --accent-color: #28a745; /* Green for success/highlight */
-            --background-light: #f8f9fa; /* Very light background */
-            --background-dark: #e9ecef; /* Slightly darker background */
-            --text-dark: #343a40; /* Dark text */
-            --text-muted: #6c757d; /* Muted text */
+            --sidebar-width: 260px;
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #64748b;
+            --success: #059669;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --bg: #f1f5f9;
             --card-bg: #ffffff;
-            --border-color: #dee2e6;
-            --shadow-light: rgba(0,0,0,0.08);
-            --shadow-hover: rgba(0,0,0,0.15);
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --radius: 12px;
         }
 
-        /* General Styles */
-        body { 
-            font-family: 'Open Sans', sans-serif; 
-            background-color: var(--background-light); 
-            margin: 0; 
-            padding: 20px; 
-            color: var(--text-dark);
-        }
-        
-        h1, h2, h3 { 
-            color: var(--text-dark); 
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding-bottom: 20px; 
-            border-bottom: 2px solid var(--primary-color); 
-            margin-bottom: 25px;
-        }
-        
-        .header button { 
-            padding: 10px 15px; 
-            background: #dc3545; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .header button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px var(--shadow-light);
-        }
-        
-        button { 
-            cursor: pointer; 
-            border-radius: 8px; 
-            padding: 12px 18px; 
-            border: none; 
-            margin: 5px; 
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px var(--shadow-light);
-        }
-        
-        button.btn-primary { 
-            background-color: var(--primary-color); 
-            color: var(--text-dark); 
-            border: 2px solid var(--primary-color);
-        }
-        
-        button.btn-primary:hover {
-            background-color: var(--text-dark);
-            color: var(--primary-color);
-        }
-        
-        button.btn-secondary { 
-            background-color: var(--secondary-color); 
-            color: white; 
-        }
-        
-        button.btn-danger { 
-            background-color: #dc3545; 
-            color: white; 
-        }
-        
-        button:disabled { 
-            background-color: #ccc; 
-            cursor: not-allowed; 
-            transform: none;
-            box-shadow: none;
-        }
-        
-        input, select { 
-            width: calc(100% - 24px); 
-            padding: 12px; 
-            margin-bottom: 15px; 
-            border: 2px solid var(--border-color); 
-            border-radius: 8px; 
-            font-size: 16px; 
-            transition: border-color 0.3s ease;
-        }
-        
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-        
-        label { 
-            display: block; 
-            font-weight: 600; 
-            margin-bottom: 5px; 
-            color: var(--text-dark);
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px; 
-            background: var(--card-bg); 
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 8px 20px var(--shadow-light);
-        }
-        
-        th, td { 
-            border: 1px solid var(--border-color); 
-            padding: 12px; 
-            text-align: left; 
-            vertical-align: middle; 
-        }
-        
-        th { 
-            background-color: var(--primary-color); 
-            color: var(--text-dark);
-            font-weight: 700;
-            font-size: 1em;
-        }
-        
-        td select { 
-            width: 100%; 
-            font-size: 14px; 
-            padding: 8px; 
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .footer { 
-            text-align: center; 
-            margin-top: 40px; 
-            color: var(--text-muted); 
-            font-size: 0.9em; 
-        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; display: flex; min-height: 100vh; overflow-x: hidden; }
 
-        /* Tabs */
-        .tab-bar { 
-            border-bottom: 2px solid var(--border-color); 
-            margin-bottom: 25px; 
-            background: var(--card-bg);
-            border-radius: 12px 12px 0 0;
-            padding: 0;
-            box-shadow: 0 4px 12px var(--shadow-light);
-        }
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: #1e293b; color: white; display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; z-index: 1000; }
+        .sidebar-header { padding: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header img { width: 32px; border-radius: 6px; }
+        .sidebar-header h2 { font-size: 1.1rem; margin: 0; font-family: 'Poppins', sans-serif; }
         
-        .tab-bar button { 
-            background: var(--background-light); 
-            border: none; 
-            padding: 15px 20px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            border-radius: 12px 12px 0 0; 
-            margin-bottom: -2px; 
-            border: 1px solid var(--border-color); 
-            border-bottom: none; 
-            font-weight: 600;
-            color: var(--text-muted);
-            transition: all 0.3s ease;
-        }
-        
-        .tab-bar button.active { 
-            background: var(--card-bg); 
-            border-bottom: 2px solid var(--card-bg); 
-            font-weight: bold; 
-            color: var(--primary-color);
-            box-shadow: 0 4px 8px var(--shadow-light);
-        }
-        
-        .tab-content { 
-            display: none; 
-            padding-top: 10px; 
-        }
-        
-        .tab-content.active { 
-            display: block; 
-        }
-        
-        .card { 
-            background-color: var(--card-bg); 
-            border-radius: 15px; 
-            box-shadow: 0 8px 20px var(--shadow-light); 
-            padding: 25px; 
-            border: 1px solid var(--border-color); 
-            margin-bottom: 25px; 
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 25px var(--shadow-hover);
-        }
+        .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+        .nav-item { padding: 12px 24px; display: flex; align-items: center; gap: 12px; color: #94a3b8; text-decoration: none; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; font-weight: 500; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--primary); color: white; border-right: 4px solid #fff; }
 
-        /* User Status Indicator */
-        .status-active { 
-            color: var(--accent-color); 
-            font-weight: bold; 
-        }
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; min-height: 100vh; position: relative; width: calc(100% - var(--sidebar-width)); }
+        .top-bar { height: 64px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 999; }
+        #hamburger { display: none; font-size: 20px; cursor: pointer; }
+
+        .content-area { padding: 24px; overflow-y: auto; }
+
+        /* Generic UI */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 24px; }
+        .card h2 { margin: 0 0 20px 0; font-size: 1.25rem; font-family: 'Poppins', sans-serif; display: flex; align-items: center; gap: 10px; }
         
-        .status-inactive { 
-            color: #dc3545; 
-            font-weight: bold; 
-        }
-        
-        /* Message Styles */
-        .message { 
-            padding: 15px; 
-            margin-top: 15px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            display: none; 
-        }
-        
-        .message.success { 
-            display: block; 
-            background-color: #d1e7dd; 
-            color: #0f5132; 
-            border: 1px solid #badbcc; 
-        }
-        
-        .message.error { 
-            display: block; 
-            background-color: #f8d7da; 
-            color: #842029; 
-            border: 1px solid #f5c2c7; 
-        }
+        .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: var(--secondary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
 
-        /* Mobile Responsiveness */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; font-size: 0.9375rem; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.875rem; color: var(--text-muted); }
 
-            .header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border); }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+        tr:hover td { background: #f8fafc; }
 
-            .header h1 {
-                font-size: 1.5em;
-            }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .stat-card { background: white; padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .stat-card p { margin: 0; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; }
+        .stat-card h3 { margin: 8px 0 0 0; font-size: 1.5rem; font-family: 'Poppins', sans-serif; }
 
-            .card {
-                padding: 20px;
-                overflow-x: auto;
-            }
+        .badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
 
-            .tab-bar button {
-                padding: 12px 15px;
-                font-size: 14px;
-            }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-            table {
-                font-size: 14px;
-            }
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: var(--radius); width: 90%; max-width: 500px; position: relative; }
 
-            th, td {
-                padding: 8px;
-            }
+        @media (max-width: 992px) {
+            .sidebar { position: fixed; left: -100%; top: 0; bottom: 0; }
+            .sidebar.open { left: 0; }
+            .main-content { width: 100%; }
+            #hamburger { display: block; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Manager Dashboard (Welcome, <span id="manager-name"></span>)</h1>
-        <button id="logout-btn" class="btn-danger">Logout</button>
-        <button onclick="askForNotificationPermission()">
-  Enable Notifications 🔔
-</button>
-    </div>
 
-    <!-- Inventory & Parcel Summary Dashboard -->
-    <div id="manager-summary-card" class="card" style="margin: 0 0 20px 0; background: #e3f2fd; border-left: 5px solid #2196f3; padding: 15px; min-width: 95%;">
-        <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
-            <i class="fas fa-chart-line"></i> 📊 Inventory & Parcel Summary
-            <button class="btn-secondary btn-sm" onclick="loadManagerSummary()" style="padding: 2px 8px; font-size: 12px; margin-left: auto;">Refresh Stats 🔄</button>
-        </h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between;">
-            <div style="flex: 1; min-width: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <p style="margin: 0; color: #666; font-size: 12px; text-transform: uppercase;">Total Received</p>
-                <h2 id="sum-total-received" style="margin: 5px 0; color: #333;">0</h2>
-            </div>
-            <div style="flex: 1; min-width: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <p style="margin: 0; color: #d32f2f; font-size: 12px; text-transform: uppercase;">Pending Assign</p>
-                <h2 id="sum-pending-assign" style="margin: 5px 0; color: #d32f2f;">0</h2>
-            </div>
-            <div style="flex: 1; min-width: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <p style="margin: 0; color: #f57c00; font-size: 12px; text-transform: uppercase;">Out for Delivery</p>
-                <h2 id="sum-out-for-delivery" style="margin: 5px 0; color: #f57c00;">0</h2>
-            </div>
-            <div style="flex: 1; min-width: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <p style="margin: 0; color: #388e3c; font-size: 12px; text-transform: uppercase;">Delivered (Today)</p>
-                <h2 id="sum-delivered" style="margin: 5px 0; color: #388e3c;">0</h2>
-            </div>
-            <div style="flex: 1; min-width: 120px; background: #fffde7; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
-                <p style="margin: 0; color: #f9a825; font-size: 12px; text-transform: uppercase; font-weight: bold;">Cash Collection</p>
-                <h2 id="sum-cash-collection" style="margin: 5px 0; color: #fbc02d;">₹0</h2>
-            </div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="/favicon.png" alt="Logo">
+            <h2>Sahyog Manager</h2>
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-item tab-link active" onclick="openTab(event, 'tab-dash')"><i class="fas fa-th-large"></i> Dashboard</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-pickups')"><i class="fas fa-truck"></i> Assign Pickups</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-branch-receive')"><i class="fas fa-file-import"></i> Branch Receive</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-bulk-assign')"><i class="fas fa-boxes"></i> Bulk Assign</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-pending')"><i class="fas fa-clock"></i> All Active</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-completed')"><i class="fas fa-check-double"></i> Completed</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-boys')"><i class="fas fa-user-friends"></i> Delivery Boys</div>
         </div>
     </div>
 
-    <div class="tab-bar">
-        <button class="tab-link active" onclick="openTab(event, 'tab-pickups')">Assign Pickups</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-branch-receive')">📥 Branch Receive</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-bulk-assign')">Bulk Assign</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-all-pending')">All Pending Deliveries</button>
-        <button class="tab-link" onclick="openTab(event,'tab-completed')">Completed Deliveries</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-boys')">Manage Delivery Boys</button>
-    </div>
-
-    <div id="tab-pickups" class="tab-content active">
-        <div class="card" style="min-width: 95%; overflow-x: auto;">
-            <h2>Pending Pickups (Ready to Assign)</h2>
-            <p>Yeh woh deliveries hain jo Admin ne aapko assign ki hain, lekin aapne abhi tak kisi delivery boy ko nahi di hain.</p>
-            <button id="refresh-pickups-btn" class="btn-secondary">Refresh List</button>
-            <table id="pickups-table">
-                <thead>
-                    <tr>
-                        <th>Tracking ID</th>
-                        <th>Customer</th>
-                        <th>Address</th>
-                        <th>Payment</th>
-                        <th>Date Booked</th>
-                        <th>Assign To</th>
-                    </tr>
-                </thead>
-                <tbody id="pickups-body">
-                    </tbody>
-            </table>
-        </div>
-    </div>
-
-    </div>
-    
-    <div id="tab-branch-receive" class="tab-content">
-        <div class="card" style="max-width: 600px; margin: 0 auto; background: #e8f5e9; border-left: 5px solid #4caf50; padding: 25px;">
-            <h2 style="margin-top: 0; color: #2e7d32;">📥 Branch Receive Scan</h2>
-            <p>Office se aaye huye parcels ko yahan scan kar ke "Receive" karein.</p>
-            <div style="display: flex; gap: 10px; margin-bottom:15px;">
-                <input type="text" id="receive-scan-input" placeholder="Scan Barcode..." style="flex: 1; padding: 12px; font-size: 1.1em; border: 2px solid #4caf50; border-radius: 8px;">
-                <button id="receive-scan-btn" class="btn-success" style="padding: 0 15px; border-radius: 8px; border: none; cursor: pointer;">Add</button>
+    <div class="main-content">
+        <div class="top-bar">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <i class="fas fa-bars" id="hamburger" onclick="toggleSidebar()"></i>
+                <div style="font-weight:600;"><i class="fas fa-user-circle" style="color:var(--primary);"></i> <span id="manager-name-top">Manager</span></div>
             </div>
-
-            <div style="margin-bottom: 20px; text-align: center;">
-                <button id="start-camera-receive" class="btn-secondary" style="background: #2e7d32; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">📷 Open branch Scanner</button>
-                <div id="receive-reader" style="width: 100%; max-width: 100%; margin: 15px auto; display: none; border-radius: 10px; overflow: hidden; border: 2px solid #4caf50;"></div>
-            </div>
-            <div id="receive-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px; background: white; margin-bottom: 20px;">
-                <ul id="receive-list" style="list-style: none; padding: 0; margin: 0;">
-                    <li id="receive-placeholder" style="color: #999; text-align: center; padding: 20px;">Abhi tak koi parcel scan nahi hua.</li>
-                </ul>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 15px;">
-                <strong style="font-size: 1.1em;">Total Scanned: <span id="receive-count">0</span></strong>
-                <button id="confirm-receive-btn" class="btn-success" style="padding: 12px 25px; border-radius: 8px; font-weight: bold; font-size: 1em; background: #2e7d32; border: none; color: white;">Confirm Receipt 📦</button>
+            <div style="display:flex; gap:12px;">
+                <button class="btn btn-secondary" onclick="askForNotificationPermission()"><i class="fas fa-bell"></i></button>
+                <button id="logout-btn" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
         </div>
-    </div>
-        <div class="card" style="min-width: 95%; overflow-x: auto;">
-            <h2>Bulk Assignment</h2>
-            <p>Pehle delivery boy select karein, fir unhe assign karne waale parcels select karein.</p>
+
+        <div class="content-area">
             
-            <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 200px;">
-                    <label for="bulk-boy-select">Select Delivery Boy:</label>
-                    <select id="bulk-boy-select" style="margin-bottom: 0;">
-                        <option value="">Select a boy...</option>
-                    </select>
+            <div id="tab-dash" class="tab-content active">
+                <div class="stat-grid">
+                    <div class="stat-card" style="border-left: 4px solid var(--primary);">
+                        <p>Total Received</p>
+                        <h3 id="sum-total-received">0</h3>
+                    </div>
+                    <div class="stat-card" style="border-left: 4px solid var(--danger);">
+                        <p>Pending Assign</p>
+                        <h3 id="sum-pending-assign">0</h3>
+                    </div>
+                    <div class="stat-card" style="border-left: 4px solid var(--warning);">
+                        <p>Out for Delivery</p>
+                        <h3 id="sum-out-for-delivery">0</h3>
+                    </div>
+                    <div class="stat-card" style="border-left: 4px solid var(--success);">
+                        <p>Delivered Today</p>
+                        <h3 id="sum-delivered">0</h3>
+                    </div>
+                    <div class="stat-card" style="border-left: 4px solid #fbc02d; background: #fffde7;">
+                        <p>Cash Collection</p>
+                        <h3 id="sum-cash-collection">₹0</h3>
+                    </div>
                 </div>
-                <button id="assign-selected-btn" class="btn-primary" onclick="assignSelectedDeliveries()">Assign Selected Parcels</button>
-                <button id="refresh-bulk-btn" class="btn-secondary" onclick="loadBulkPickups()">Refresh List</button>
             </div>
 
-            <table id="bulk-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40px;"><input type="checkbox" id="select-all-bulk" onclick="toggleSelectAllBulk(this)"></th>
-                        <th>Tracking ID</th>
-                        <th>Customer</th>
-                        <th>Address</th>
-                        <th>Payment</th>
-                        <th>Date Booked</th>
-                    </tr>
-                </thead>
-                <tbody id="bulk-body">
-                </tbody>
-            </table>
+            <div id="tab-pickups" class="tab-content">
+                <div class="card">
+                    <h2>Pending Pickups <button class="btn btn-secondary btn-sm" onclick="loadPendingPickups()" style="margin-left:auto;"><i class="fas fa-sync"></i></button></h2>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tracking ID</th>
+                                    <th>Customer</th>
+                                    <th>Address</th>
+                                    <th>Payment</th>
+                                    <th>Date</th>
+                                    <th>Assign To</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pickups-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-branch-receive" class="tab-content">
+                <div class="card" style="max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: var(--success);"><i class="fas fa-file-import"></i> Branch Receive Scan</h2>
+                    <p style="color:var(--text-muted); font-size:0.9rem;">Scan Tracking IDs here to receive parcels from Head Office.</p>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="text" id="receive-scan-input" placeholder="Scan Barcode..." style="margin:0;">
+                        <button id="receive-scan-btn" class="btn btn-success">Add</button>
+                    </div>
+                    <div style="text-align:center; margin-bottom:15px;">
+                        <button id="start-camera-receive" class="btn btn-secondary" onclick="toggleReceiveCamera()"><i class="fas fa-camera"></i> Open Camera</button>
+                        <div id="receive-reader" style="width: 100%; margin-top:15px; display:none; border-radius:10px; overflow:hidden; border:2px solid var(--success);"></div>
+                    </div>
+                    <div id="scan-list-box" style="max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:#f8fafc; padding:10px;">
+                        <ul id="receive-list" style="list-style:none; padding:0; margin:0;">
+                            <li style="text-align:center; color:#94a3b8; padding:20px;">No items scanned</li>
+                        </ul>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+                        <strong>Total: <span id="receive-count">0</span></strong>
+                        <button id="confirm-receive-btn" class="btn btn-primary" onclick="confirmReceive()">Confirm Received</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-bulk-assign" class="tab-content">
+                <div class="card">
+                    <h2>Bulk Assignment</h2>
+                    <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:20px;">
+                        <div style="flex:1; min-width:200px;">
+                            <label>Select Delivery Boy:</label>
+                            <select id="bulk-boy-select" style="margin:0;"></select>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:flex-end;">
+                            <button class="btn btn-primary" onclick="assignSelectedDeliveries()">Assign Selected</button>
+                            <button class="btn btn-secondary" onclick="loadBulkPickups()"><i class="fas fa-sync"></i></button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all-bulk" onclick="toggleSelectAllBulk(this)"></th>
+                                    <th>Tracking ID</th>
+                                    <th>Customer</th>
+                                    <th>Address</th>
+                                    <th>Payment</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bulk-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-pending" class="tab-content">
+                <div class="card">
+                    <h2>Active Deliveries <button class="btn btn-secondary btn-sm" onclick="loadAllPendingDeliveries()" style="margin-left:auto;"><i class="fas fa-sync"></i></button></h2>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tracking ID</th>
+                                    <th>Customer</th>
+                                    <th>Status</th>
+                                    <th>Assigned Boy</th>
+                                    <th>Payment</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-pending-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-completed" class="tab-content">
+                <div class="card">
+                    <h2>Completed Deliveries</h2>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+                        <input type="text" id="searchTrack" placeholder="Search Tracking ID" onkeyup="applyFilter()" style="width:200px; margin:0;">
+                        <input type="date" id="searchDate" onchange="applyFilter()" style="width:160px; margin:0;">
+                        <select id="paymentFilter" onchange="applyFilter()" style="width:150px; margin:0;">
+                            <option value="">All Payments</option>
+                            <option value="COD">COD</option>
+                            <option value="Prepaid">Prepaid</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export</button>
+                        <button class="btn btn-primary" onclick="printCompleted()"><i class="fas fa-print"></i> Print</button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tracking ID</th>
+                                    <th>Booked</th>
+                                    <th>Delivered</th>
+                                    <th>Payment</th>
+                                </tr>
+                            </thead>
+                            <tbody id="completed-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-boys" class="tab-content">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h2>My Delivery Boys</h2>
+                        <button class="btn btn-primary" onclick="openModal('add-boy-modal')"><i class="fas fa-user-plus"></i> Add Boy</button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="boys-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <div id="tab-all-pending" class="tab-content">
-        <div class="card" style="min-width: 95%; overflow-x: auto;">
-            <h2>All My Pending Deliveries</h2>
-            <p>Yeh list aapke sabhi active orders dikhati hai (jo abhi tak 'Delivered' ya 'Cancelled' nahi hue hain).</p>
-            <button id="refresh-all-pending-btn" class="btn-secondary">Refresh List</button>
-            <table id="all-pending-table">
-                <thead>
-                    <tr>
-                        <th>Tracking ID</th>
-                        <th>Customer Name</th>
-                        <th>Address</th>
-                        <th>Status</th>
-                        <th>Assigned Boy</th>
-                        <th>Payment</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="all-pending-body">
-                    </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="tab-boys" class="tab-content">
-        <div class="card" id="manage-boys-area">
-            <h2>Manage My Delivery Boys</h2>
-            <button id="toggle-create-form" class="btn-primary" style="margin-bottom: 20px;">Create a User</button>
-            <form id="create-boy-form" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; display: none;">
-                 <h3>Add New Delivery Boy</h3>
-                <label for="boy-name">Name:</label>
-                <input type="text" id="boy-name" required>
-                <label for="boy-email">Email (Username):</label>
-                <input type="email" id="boy-email" required>
-                 <label for="boy-phone">Phone:</label>
-                <input type="text" id="boy-phone">
-                <label for="boy-password">Password:</label>
-                <input type="text" id="boy-password" required>
-                <button type="submit" class="btn-primary">Create Delivery Boy</button>
-                <div id="create-boy-result" class="message"></div>
+    <!-- Modals -->
+    <div id="add-boy-modal" class="modal">
+        <div class="modal-content">
+            <span style="position:absolute; right:20px; top:20px; cursor:pointer; font-size:24px;" onclick="closeModal('add-boy-modal')">&times;</span>
+            <h2>Add Delivery Boy</h2>
+            <form id="create-boy-form">
+                <label>Name</label><input type="text" id="boy-name" required>
+                <label>Email (Username)</label><input type="email" id="boy-email" required>
+                <label>Phone</label><input type="text" id="boy-phone">
+                <label>Password</label><input type="text" id="boy-password" required>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Create Boy</button>
             </form>
-
-            <h3>My Delivery Boys List</h3>
-             <button id="refresh-boys-btn" class="btn-secondary">Refresh List</button>
-            <table id="boys-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="boys-body">
-                    </tbody>
-            </table>
         </div>
     </div>
 
-    <div id="tab-completed" class="tab-content">
-    <div class="card" style="overflow:auto;">
-        <h2>Completed Deliveries</h2>
-        <div class="filter-box">
-            <input type="text" id="searchTrack" placeholder="Search Tracking ID" onkeyup="applyFilter()">
-            <input type="date" id="searchDate" onchange="applyFilter()">
-            <select id="paymentFilter" onchange="applyFilter()">
-                <option value="">All Payments</option>
-                <option value="COD">Cash on Delivery</option>
-                <option value="Prepaid">Prepaid</option>
+    <div id="edit-boy-modal" class="modal">
+        <div class="modal-content">
+            <span style="position:absolute; right:20px; top:20px; cursor:pointer; font-size:24px;" onclick="closeModal('edit-boy-modal')">&times;</span>
+            <h2>Edit Delivery Boy</h2>
+            <input type="hidden" id="edit-boy-id">
+            <label>Name</label><input type="text" id="edit-boy-name">
+            <label>Email</label><input type="email" id="edit-boy-email">
+            <label>Phone</label><input type="text" id="edit-boy-phone">
+            <label>New Password (optional)</label><input type="text" id="edit-boy-pass">
+            <label>Status</label>
+            <select id="edit-boy-status">
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
             </select>
-            <button onclick="exportExcel()">Export Excel</button>
-            <button class="print" onclick="printCompletedDeliveries()">Print</button>
+            <button onclick="saveBoyEdit()" class="btn btn-primary" style="width:100%;">Save Changes</button>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Tracking ID</th>
-                    <th>Booking Date</th>
-                    <th>Delivery Date</th>
-                    <th>Payment</th>
-                </tr>
-            </thead>
-            <tbody id="completed-body"></tbody>
-        </table>
-    </div>
-</div>
-
-    <div id="edit-boy-modal" class="modal" style="display:none;align-items:center;justify-content:center;">
- <div style="background:white;padding:20px;border-radius:8px;width:350px;">
-  <h3>Edit Delivery Boy</h3>
-
-  <input type="hidden" id="edit-boy-id">
-
-  <label>Name</label>
-  <input type="text" id="edit-boy-name">
-
-  <label>Email</label>
-  <input type="email" id="edit-boy-email">
-
-  <label>Phone</label>
-  <input type="text" id="edit-boy-phone">
-
-  <label>New Password (optional)</label>
-  <input type="text" id="edit-boy-pass">
-
-  <label>Status</label>
-  <select id="edit-boy-status">
-    <option value="true">Active</option>
-    <option value="false">Inactive</option>
-  </select>
-
-  <button onclick="saveBoyEdit()" class="btn-success" style="margin-top:10px;">Save</button>
-  <button onclick="document.getElementById('edit-boy-modal').style.display='none'" class="btn-danger">Close</button>
- </div>
-</div>
-
-    <div id="reassign-modal" class="modal" style="display:none; position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:9999;">
- <div style="background:white;padding:20px;border-radius:8px;width:90%;max-width:420px; box-shadow:0 8px 24px rgba(0,0,0,0.3); position:relative;">
-  <button onclick="document.getElementById('reassign-modal').style.display='none'" style="position:absolute;right:12px;top:10px;border:none;background:transparent;font-size:20px;cursor:pointer;">&times;</button>
-  <h3 style="margin-top:0;">Reassign Delivery</h3>
-  <input type="hidden" id="reassign-delivery-id">
-  <p style="margin-bottom:6px;">Tracking ID: <strong><span id="reassign-tracking-id"></span></strong></p>
-  <p style="margin-top:0;margin-bottom:12px;">Currently Assigned: <span id="current-assigned-boy"></span></p>
-
-  <label for="new-delivery-boy-select">New Delivery Boy</label>
-  <select id="new-delivery-boy-select" style="width:100%; padding:10px; margin-bottom:15px; border-radius:5px;">
-    <option value="">Select a boy</option>
-  </select>
-
-  <div style="display:flex; gap:10px; justify-content:flex-end;">
-    <button onclick="confirmReassignment()" class="btn-success" style="margin-top:10px;">Confirm</button>
-    <button onclick="document.getElementById('reassign-modal').style.display='none'" class="btn-danger" style="margin-top:10px;">Cancel</button>
-  </div>
- </div>
-</div>
-
-     <div class="footer">
-        Copyright © <span id="copyright-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved.<br>
-        contact us :<br> Order Support: +91 7415543744<br>Technical Support: +91 9243714402
     </div>
 
+    <div id="reassign-modal" class="modal">
+        <div class="modal-content">
+            <span style="position:absolute; right:20px; top:20px; cursor:pointer; font-size:24px;" onclick="closeModal('reassign-modal')">&times;</span>
+            <h2>Reassign Delivery</h2>
+            <input type="hidden" id="reassign-delivery-id">
+            <p>ID: <strong id="reassign-tracking-id"></strong></p>
+            <p>Current: <span id="current-assigned-boy"></span></p>
+            <label>New Delivery Boy</label>
+            <select id="new-delivery-boy-select"></select>
+            <button onclick="confirmReassignment()" class="btn btn-primary" style="width:100%;">Confirm Reassign</button>
+        </div>
+    </div>
 
     <script>
-        // --- 1. Global Variables ---
         const API_BASE = 'https://sahyogdeliverybackend.onrender.com';
         const token = localStorage.getItem('authToken');
         const role = localStorage.getItem('userRole');
         const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-        let myDeliveryBoys = []; // Store boys for assignment dropdown
-        let deliveries = []; // For completed deliveries
-        let allPendingDeliveries = []; // For all pending deliveries
-        let filtered = []; // For completed deliveries
 
-        // --- Manager Summary Statistics ---
-        async function loadManagerSummary() {
-            try {
-                const response = await fetch(`${API_BASE}/manager/summary`, { headers });
-                if (response.status === 401) { window.location.href = 'login.html'; return; }
-                if (!response.ok) return;
-                const data = await response.json();
-                
-                document.getElementById('sum-total-received').textContent = data.totalReceived || 0;
-                document.getElementById('sum-pending-assign').textContent = data.pendingAssignment || 0;
-                document.getElementById('sum-out-for-delivery').textContent = data.outForDelivery || 0;
-                document.getElementById('sum-delivered').textContent = data.deliveredToday || 0;
-                document.getElementById('sum-cash-collection').textContent = `₹${data.cashInHand || 0}`;
-            } catch (err) {
-                console.error("Summary load error:", err);
-            }
-        }
+        if (!token || role !== 'manager') { window.location.href = 'login.html'; }
 
-        // --- Branch Receive Scanning Logic ---
+        let myDeliveryBoys = [];
+        let completedDeliveries = [];
+        let allPendingDeliveries = [];
         let receiveScannedIds = [];
 
-        function handleReceiveScan() {
-            const input = document.getElementById('receive-scan-input');
-            const tid = input.value.trim().toUpperCase();
-            if (!tid) return;
-            if (receiveScannedIds.includes(tid)) { input.value = ''; return; }
+        // --- UI ---
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function openTab(e, id) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(e) e.currentTarget.classList.add('active');
+            if(window.innerWidth <= 992) toggleSidebar();
             
-            receiveScannedIds.push(tid);
-            updateReceiveList();
-            input.value = '';
-        }
-
-        function updateReceiveList() {
-            const list = document.getElementById('receive-list');
-            const count = document.getElementById('receive-count');
-            if (receiveScannedIds.length === 0) {
-                list.innerHTML = '<li id="receive-placeholder" style="color: #999; text-align: center; padding: 20px;">Abhi tak koi parcel scan nahi hua.</li>';
-                count.textContent = '0';
-                return;
-            }
-            list.innerHTML = '';
-            receiveScannedIds.forEach((id, idx) => {
-                const li = document.createElement('li');
-                li.style = "display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee;";
-                li.innerHTML = `<span>${idx+1}. <strong>${id}</strong></span><button class="btn-danger btn-sm" onclick="removeReceiveId('${id}')" style="padding: 2px 6px;">&times;</button>`;
-                list.appendChild(li);
-            });
-            count.textContent = receiveScannedIds.length;
-        }
-
-        function removeReceiveId(id) {
-            receiveScannedIds = receiveScannedIds.filter(x => x !== id);
-            updateReceiveList();
-        }
-
-        async function confirmReceive() {
-            if (receiveScannedIds.length === 0) { alert('Kuch scan karo pehle!'); return; }
-            if (!confirm(`Kya aap ${receiveScannedIds.length} parcels ko branch par receive karna chahte hain?`)) return;
-
-            try {
-                const res = await fetch(`${API_BASE}/manager/receive-bulk`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ trackingIds: receiveScannedIds })
-                });
-                const d = await res.json();
-                alert(d.message);
-                receiveScannedIds = [];
-                updateReceiveList();
-                loadManagerSummary();
-            } catch (err) { alert('Error: ' + err.message); }
-        }
-
-        let receiveHtml5QrCode = null;
-        async function toggleReceiveCamera() {
-            const readerDiv = document.getElementById('receive-reader');
-            const startBtn = document.getElementById('start-camera-receive');
-            
-            if (receiveHtml5QrCode) {
-                try {
-                    await receiveHtml5QrCode.stop();
-                    receiveHtml5QrCode = null;
-                    readerDiv.style.display = 'none';
-                    startBtn.innerHTML = '📷 Open branch Scanner';
-                    startBtn.style.background = '#2e7d32';
-                } catch(err) { console.error("Err stopping scanner:", err); }
-                return;
-            }
-
-            readerDiv.style.display = 'block';
-            startBtn.innerHTML = '🛑 Stop Camera';
-            startBtn.style.background = '#d32f2f';
-
-            receiveHtml5QrCode = new Html5Qrcode("receive-reader");
-            const config = { fps: 15, qrbox: { width: 300, height: 180 } };
-
-            receiveHtml5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                (decodedText) => {
-                    const tid = decodedText.trim().toUpperCase();
-                    if (tid && !receiveScannedIds.includes(tid)) {
-                        receiveScannedIds.push(tid);
-                        updateReceiveList();
-                        if (navigator.vibrate) navigator.vibrate(100);
-                    }
-                },
-                (errorMessage) => { /* ignore */ }
-            ).catch(err => {
-                alert("Camera access failed: " + err);
-                readerDiv.style.display = 'none';
-                startBtn.innerHTML = '📷 Open branch Scanner';
-                receiveHtml5QrCode = null;
-            });
-        }
-
-        function formatDateToYYYYMMDD(dateString) {
-            if (!dateString) return null;
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return null; // Check for "Invalid Date"
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        function loadTable(list){
-            let tbody=document.getElementById("completed-body");
-            tbody.innerHTML="";
-
-            if (list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No Completed Deliveries Found</td></tr>`;
-                return;
-            }
-
-            list.forEach(d=>{
-                tbody.innerHTML+=`
-                <tr>
-                    <td>${d.trackingId}</td>
-                    <td>${d.createdAt? formatDateToYYYYMMDD(d.createdAt) : "-"}</td>
-                    <td>${d.completedAt? formatDateToYYYYMMDD(d.completedAt) : "-"}</td>
-                    <td>${d.paymentMethod||"-"}</td>
-                </tr>`;
-            });
-        }
-
-        // --- 2. Tab Logic (Global) ---
-        function openTab(event, tabName) {
-            let i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) { if(tabcontent[i]) tabcontent[i].style.display = "none"; }
-            tablinks = document.getElementsByClassName("tab-link");
-            for (i = 0; i < tablinks.length; i++) { if(tablinks[i]) tablinks[i].className = tablinks[i].className.replace(" active", ""); }
-            const currentTab = document.getElementById(tabName);
-            if (currentTab) currentTab.style.display = "block";
-            if (event && event.currentTarget) event.currentTarget.className += " active";
-            
-            // Refresh data when tabs are opened
-            if (tabName === 'tab-pickups') loadPendingPickups();
-            if (tabName === 'tab-bulk-assign') loadBulkPickups();
-            if(tabName === 'tab-completed') loadCompletedDeliveries();
-            if (tabName === 'tab-boys') loadMyBoys();
-            if (tabName === 'tab-all-pending') loadAllPendingDeliveries();
-            
+            if(id === 'tab-pickups') loadPendingPickups();
+            if(id === 'tab-bulk-assign') loadBulkPickups();
+            if(id === 'tab-pending') loadAllPendingDeliveries();
+            if(id === 'tab-completed') loadCompletedDeliveries();
+            if(id === 'tab-boys') loadMyBoys();
             loadManagerSummary();
         }
 
-        // --- 3. Modal/Helper Logic (Global) ---
-        function openModal(modalId) { /* ... (add if modals are needed) ... */ }
-        function closeModal(modalId) { /* ... (add if modals are needed) ... */ }
+        function formatDate(d) { return d ? new Date(d).toLocaleDateString('en-IN') : '-'; }
 
-        // --- 4. Data Loading Functions ---
-
-        // (Loads boys for Tab 3 AND for the dropdowns)
-        async function loadMyBoys() {
-            const tbody = document.getElementById('boys-body');
-            myDeliveryBoys = []; // Reset global list
-            if (tbody) tbody.innerHTML = '<tr><td colspan="5">Loading delivery boys...</td></tr>';
-
+        // --- Data ---
+        async function loadManagerSummary() {
             try {
-                const response = await fetch(`${API_BASE}/manager/my-boys`, { headers });
-                if (response.status === 401) { window.location.href = 'login.html'; return; }
-                 if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-                const users = await response.json();
-                myDeliveryBoys = users; // Store globally
-
-                if (tbody) { // Update table only if the element exists
-                    tbody.innerHTML = '';
-                    if(users.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No delivery boys found. Add one below.</td></tr>';
-                    } else {
-                        users.forEach(user => {
-                            const row = document.createElement('tr');
-                            const statusClass = user.isActive ? 'status-active' : 'status-inactive';
-                            row.innerHTML = `
-                                <td>${user.name || 'N/A'}</td>
-                                <td>${user.email || 'N/A'}</td>
-                                <td>${user.phone || 'N/A'}</td>
-                                <td><span class="${statusClass}">${user.isActive ? 'Active' : 'Inactive'}</span></td>
-                                <td>
-   <button class="btn-secondary" onclick="openEditBoy('${user._id}','${user.name}','${user.email}','${user.phone}',${user.isActive})">Edit</button>
-</td>
-                            `;
-                            tbody.appendChild(row);
-                        });
-                    }
-                }
-                return true; // Indicate success for .then()
-
-            } catch (err) {
-                 console.error("Error loading my boys:", err);
-                 if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="color: red; text-align: center;">Error loading boys: ${err.message}</td></tr>`;
-                 return false; // Indicate failure
-            }
+                const r = await fetch(`${API_BASE}/manager/summary`, { headers });
+                const d = await r.json();
+                document.getElementById('sum-total-received').textContent = d.totalReceived || 0;
+                document.getElementById('sum-pending-assign').textContent = d.pendingAssignment || 0;
+                document.getElementById('sum-out-for-delivery').textContent = d.outForDelivery || 0;
+                document.getElementById('sum-delivered').textContent = d.deliveredToday || 0;
+                document.getElementById('sum-cash-collection').textContent = `₹${d.cashInHand || 0}`;
+            } catch(e) {}
         }
 
-        // (Loads unassigned pickups for Tab 1)
+        async function loadMyBoys() {
+            try {
+                const r = await fetch(`${API_BASE}/manager/my-boys`, { headers });
+                myDeliveryBoys = await r.json();
+                const tbody = document.getElementById('boys-body');
+                tbody.innerHTML = myDeliveryBoys.map(u => `<tr>
+                    <td>${u.name}</td>
+                    <td>${u.email}</td>
+                    <td>${u.phone || '-'}</td>
+                    <td><span class="badge ${u.isActive?'badge-success':'badge-danger'}">${u.isActive?'Active':'Inactive'}</span></td>
+                    <td><button class="btn btn-secondary btn-sm" onclick="openEditBoy('${u._id}','${u.name}','${u.email}','${u.phone}',${u.isActive})">Edit</button></td>
+                </tr>`).join('');
+                
+                // Pop dropdowns
+                ['bulk-boy-select', 'new-delivery-boy-select'].forEach(id => {
+                    const el = document.getElementById(id); if(!el) return;
+                    el.innerHTML = '<option value="">Select a boy...</option>' + myDeliveryBoys.filter(b=>b.isActive).map(b => `<option value="${b._id}">${b.name}</option>`).join('');
+                });
+            } catch(e) {}
+        }
+
         async function loadPendingPickups() {
             const tbody = document.getElementById('pickups-body');
-            if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="6">Loading pickups assigned to you...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
             try {
-                // Ensure myDeliveryBoys are loaded before proceeding
-                if (myDeliveryBoys.length === 0) {
-                    await loadMyBoys(); // Wait for boys to load
-                }
+                if(!myDeliveryBoys.length) await loadMyBoys();
+                const r = await fetch(`${API_BASE}/manager/assigned-pickups`, { headers });
+                const deliveries = await r.json();
+                tbody.innerHTML = deliveries.length ? deliveries.map(d => `<tr>
+                    <td>${d.trackingId}</td>
+                    <td>${d.customerName}</td>
+                    <td>${d.customerAddress}</td>
+                    <td>${d.paymentMethod==='COD'?'₹'+d.billAmount:'Prepaid'}</td>
+                    <td>${formatDate(d.createdAt)}</td>
+                    <td>
+                        <select onchange="assignDelivery('${d._id}', this.value)" style="margin:0; padding:5px; font-size:0.8rem;">
+                            <option value="">Assign to...</option>
+                            ${myDeliveryBoys.filter(b=>b.isActive).map(b=> `<option value="${b._id}">${b.name}</option>`).join('')}
+                        </select>
+                    </td>
+                </tr>`).join('') : '<tr><td colspan="6">No pending pickups</td></tr>';
+            } catch(e) {}
+        }
 
-                const response = await fetch(`${API_BASE}/manager/assigned-pickups`, { headers });
-                if (response.status === 401) { window.location.href = 'login.html'; return; }
-                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-                const deliveries = await response.json();
-                tbody.innerHTML = '';
-                if(deliveries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No pending pickups to assign.</td></tr>'; return;
-                }
-                deliveries.forEach(d => {
-                    const row = document.createElement('tr');
-                    const date = new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                    
-                    // Build dropdown using the globally stored myDeliveryBoys list
-                    let assignDropdownHTML = `<select id="assign-${d._id}" onchange="assignDelivery('${d._id}', this.value)">`;
-                    assignDropdownHTML += `<option value="">Assign to...</option>`;
-                    if (myDeliveryBoys && myDeliveryBoys.length > 0) {
-                        myDeliveryBoys.forEach(boy => {
-                            if (boy.isActive) {
-                                 assignDropdownHTML += `<option value="${boy._id}">${boy.name}</option>`;
-                            }
-                        });
-                    } else {
-                        assignDropdownHTML += `<option value="" disabled>No active boys</option>`;
-                    }
-                    assignDropdownHTML += `</select>`;
+        async function assignDelivery(deliveryId, boyId) {
+            if(!boyId) return;
+            const r = await fetch(`${API_BASE}/manager/assign-delivery/${deliveryId}`, { method: 'PATCH', headers, body: JSON.stringify({ assignedBoyId: boyId }) });
+            if(r.ok) { alert('Assigned'); loadPendingPickups(); }
+        }
 
-                    row.innerHTML = `
-                        <td>${d.trackingId}</td>
-                        <td>${d.customerName || 'N/A'}</td>
-                        <td>${d.customerAddress || 'N/A'}</td>
-                        <td>${d.paymentMethod === 'COD' ? ('₹' + d.billAmount) : 'Prepaid'}</td>
-                        <td>${date}</td>
-                        <td>${assignDropdownHTML}</td>
-                    `;
-                    tbody.appendChild(row);
+        // --- Branch Receive ---
+        function updateReceiveList() {
+            const list = document.getElementById('receive-list');
+            list.innerHTML = receiveScannedIds.length ? receiveScannedIds.map(id => `<li style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
+                <strong>${id}</strong><button class="btn btn-danger btn-sm" onclick="removeReceiveId('${id}')" style="padding:2px 6px;">&times;</button>
+            </li>`).join('') : '<li style="text-align:center; color:#94a3b8; padding:20px;">No items scanned</li>';
+            document.getElementById('receive-count').textContent = receiveScannedIds.length;
+        }
+        function removeReceiveId(id) { receiveScannedIds = receiveScannedIds.filter(x => x !== id); updateReceiveList(); }
+        
+        async function confirmReceive() {
+            if(!receiveScannedIds.length) return;
+            const r = await fetch(`${API_BASE}/manager/receive-bulk`, { method: 'POST', headers, body: JSON.stringify({ trackingIds: receiveScannedIds }) });
+            if(r.ok) { alert('Received'); receiveScannedIds=[]; updateReceiveList(); loadManagerSummary(); }
+        }
+
+        let receiveScanner = null;
+        async function toggleReceiveCamera() {
+            const div = document.getElementById('receive-reader');
+            const btn = document.getElementById('start-camera-receive');
+            if (receiveScanner) {
+                await receiveScanner.stop(); receiveScanner = null; div.style.display = 'none'; btn.innerHTML = '<i class="fas fa-camera"></i> Open Camera';
+            } else {
+                div.style.display = 'block'; btn.innerHTML = '<i class="fas fa-stop"></i> Stop Camera';
+                receiveScanner = new Html5Qrcode("receive-reader");
+                receiveScanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
+                    id = id.trim().toUpperCase();
+                    if (id && !receiveScannedIds.includes(id)) { receiveScannedIds.push(id); updateReceiveList(); if(navigator.vibrate) navigator.vibrate(100); }
                 });
-            } catch (err) {
-                 console.error("Error loading pickups:", err);
-                 tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">Error loading pickups: ${err.message}</td></tr>`;
             }
         }
 
-        // (Loads ALL active deliveries for Tab 2)
-        async function loadAllPendingDeliveries() {
-            const tbody = document.getElementById('all-pending-body');
-            if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="6">Loading all pending deliveries...</td></tr>'; // *** FIX: Colspan 6 (Address column added) ***
-            try {
-                const response = await fetch(`${API_BASE}/manager/all-pending-deliveries`, { headers })
-                if (response.status === 401) { window.location.href = 'login.html'; return; }
-                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-                
-                const deliveries = await response.json();
-                allPendingDeliveries = deliveries; // Store globally
-                tbody.innerHTML = ''; // Clear loading
-
-                if (deliveries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No pending deliveries found.</td></tr>'; // *** FIX: Colspan 6 (Address column added) ***
-                    return;
-                }
-
-                deliveries.forEach(d => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${d.trackingId}</td>
-                        <td>${d.customerName || 'N/A'}</td>
-                        <td>${d.customerAddress || 'N/A'}</td>
-                        <td>
-                            <strong>${d.currentStatus}</strong>
-                            ${d.currentStatus === 'Reassigned' ? '<span style="background-color:#ffe0b2; padding: 3px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 5px;">Reassigned</span>' : ''}
-                        </td>
-                        <td>
-                            ${d.assignedTo ? (d.assignedTo.name + ' (' + (d.assignedTo.phone || (d.assignedBoyDetails?.phone || 'N/A')) + ')') : (d.assignedBoyDetails ? (d.assignedBoyDetails.name + ' (' + (d.assignedBoyDetails.phone || 'N/A') + ')') : 'N/A')}
-                        </td>
-                        <td>${d.paymentMethod}</td>
-                        <td>
-                            ${d.currentStatus !== 'Delivered' && d.currentStatus !== 'Cancelled' ? 
-                                '<button class="btn-primary" onclick="openReassignModal(\'' + d._id + '\', \'' + (d.assignedTo ? d.assignedTo.name : 'N/A') + '\')">Reassign</button>' : 
-                                ''
-                            }
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (err) {
-                 console.error("Error loading all pending deliveries:", err);
-                 tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">Error: ${err.message}</td></tr>`; // *** FIX: Colspan 6 (Address column added) ***
-            }
-        }
-
-        // --- Completed Deliveries Loader for Manager ---
-async function loadCompletedDeliveries(){
-    const tbody = document.getElementById('completed-body');
-    if(!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="4">Loading...</td></tr>`;
-
-    try{
-        const res = await fetch(`${API_BASE}/manager/completed-deliveries`,{headers});
-        const data = await res.json();
-        deliveries = data;
-        filtered = data;
-        loadTable(filtered);
-
-    }catch(e){
-        tbody.innerHTML = `<tr><td colspan="4" style="color:red">Error: ${e.message}</td></tr>`;
-    }
-}
-
-function applyFilter(){
-    let t=document.getElementById("searchTrack").value.toLowerCase();
-    let date=document.getElementById("searchDate").value;
-    let p=document.getElementById("paymentFilter").value;
-
-    filtered = deliveries.filter(d=>{
-        let matchTrack = d.trackingId.toLowerCase().includes(t);
-        let formattedCompletedAt = formatDateToYYYYMMDD(d.completedAt);
-        let mDate = !date || (formattedCompletedAt && formattedCompletedAt === date);
-        let mPay = !p || d.paymentMethod===p;
-        return matchTrack && mDate && mPay;
-    });
-
-    loadTable(filtered);
-}
-
-function exportExcel(){
-    let csv="Tracking ID,Booking Date,Delivery Date,Payment\n";
-    filtered.forEach(d=>{
-        csv+=`${d.trackingId},${formatDateToYYYYMMDD(d.createdAt)},${formatDateToYYYYMMDD(d.completedAt) || "-"},${d.paymentMethod}\n`;
-    });
-
-    let blob=new Blob([csv],{type:"text/csv"});
-    let url=URL.createObjectURL(blob);
-    let a=document.createElement("a");
-    a.href=url;
-    a.download="Completed_Deliveries.csv";
-    a.click();
-}
-async function printCompletedDeliveries() {
-    // Build a compact printable page similar to delivery-boy print style
-    const rows = filtered.map(d => {
-        return `<tr><td>${d.trackingId}</td><td>${formatDateToYYYYMMDD(d.createdAt)||'-'}</td><td>${formatDateToYYYYMMDD(d.completedAt)||'-'}</td><td>${d.paymentMethod||'-'}</td></tr>`;
-    }).join('');
-
-    const title = 'Completed Delivery Records';
-
-    // Fetch business settings for logo/name (best-effort)
-    let settings = {};
-    try {
-        const r = await fetch(`${API_BASE}/public/settings`);
-        if (r.ok) settings = await r.json();
-    } catch (e) { /* ignore */ }
-
-    const logoHtml = settings.logoUrl ? `<img src="${settings.logoUrl}" style="height:40px; margin-right:10px;"/>` : '';
-    const bizName = settings.businessName || 'Sahyog Medical';
-    const printedBy = localStorage.getItem('userName') || '';
-
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
-    <style>
-      body{font-family: Arial, Helvetica, sans-serif; padding:20px; color:#222}
-      .header{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
-      .header h1{font-size:16px;margin:0}
-      .header .sub{font-size:12px;color:#666}
-      table{border-collapse:collapse; width:70%; margin:0 auto;}
-      th,td{border:1px solid #ddd; padding:8px; text-align:left}
-      th{background:#f8f9fa}
-      footer{font-size:10px; text-align:center; margin-top:18px; color:#666}
-      @media print { body{padding:8mm} }
-    </style>
-    </head><body>
-    <div class="header">${logoHtml}<div style="text-align:center;"><h1>${bizName}</h1><div class="sub">${title}</div></div></div>
-    <table>
-      <thead><tr><th>Tracking ID</th><th>Booking Date</th><th>Delivery Date</th><th>Payment</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:#666">No completed deliveries</td></tr>'}</tbody>
-    </table>
-    <footer>Printed by ${printedBy} • ${location.href}</footer>
-    </body></html>`;
-
-    const w = window.open('', '_blank', 'width=800,height=600');
-    if (!w) { alert('Allow popups to print.'); return; }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    setTimeout(function() { w.print(); setTimeout(function() { w.close(); }, 500); }, 200);
-}
-
-        // --- 5. Action Handlers ---
-        async function handleCreateBoySubmit(e) {
-             e.preventDefault();
-             const resultDiv = document.getElementById('create-boy-result');
-             if(!resultDiv) return;
-             resultDiv.textContent = 'Creating...';
-             resultDiv.className = 'message';
-             const formData = {
-                 name: document.getElementById('boy-name').value,
-                 email: document.getElementById('boy-email').value,
-                 phone: document.getElementById('boy-phone').value,
-                 password: document.getElementById('boy-password').value
-             };
-             try {
-                const response = await fetch(`${API_BASE}/manager/create-delivery-boy`, { method: 'POST', headers, body: JSON.stringify(formData) });
-                const data = await response.json();
-                 if (response.ok) {
-                     resultDiv.textContent = data.message;
-                     resultDiv.className = 'message success';
-                     e.target.reset();
-                     loadMyBoys(); // Refresh list
-                 } else {
-                     resultDiv.textContent = `Error: ${data.message}`;
-                     resultDiv.className = 'message error';
-                 }
-             } catch (err) {
-                 console.error("Create boy error:", err);
-                 resultDiv.textContent = 'Server error during creation.';
-                 resultDiv.className = 'message error';
-            }
-        }
-
-        async function assignDelivery(deliveryId, assignedBoyId) {
-             if (!assignedBoyId) return; // Ignore if "Assign to..." is selected
-             
-             // Find the select element to disable it
-             const selectEl = document.getElementById(`assign-${deliveryId}`);
-             if (selectEl) selectEl.disabled = true;
-
-             try {
-                const response = await fetch(`${API_BASE}/manager/assign-delivery/${deliveryId}`, {
-                    method: 'PATCH',
-                    headers: headers,
-                    body: JSON.stringify({ assignedBoyId })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert('Delivery assigned successfully!');
-                    loadPendingPickups(); // Refresh the list
-                    loadAllPendingDeliveries(); // Refresh the all pending list too
-                } else {
-                     alert(`Error assigning: ${data.message}`);
-                     if (selectEl) selectEl.disabled = false; // Re-enable on failure
-                }
-             } catch (err) {
-                  console.error("Assign delivery error:", err);
-                  alert('Server error during assignment.');
-                  if (selectEl) selectEl.disabled = false; // Re-enable on failure
-             }
-        }
-
-        // --- Bulk Assign Functions ---
+        // --- Bulk Assign ---
         async function loadBulkPickups() {
             const tbody = document.getElementById('bulk-body');
-            const boySelect = document.getElementById('bulk-boy-select');
-            if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="6">Loading pickups...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
             try {
-                if (myDeliveryBoys.length === 0) {
-                    await loadMyBoys();
-                }
-
-                // Update boy select dropdown
-                boySelect.innerHTML = '<option value="">Select a boy...</option>';
-                myDeliveryBoys.forEach(boy => {
-                    if (boy.isActive) {
-                        const opt = document.createElement('option');
-                        opt.value = boy._id;
-                        opt.textContent = boy.name;
-                        boySelect.appendChild(opt);
-                    }
-                });
-
-                const response = await fetch(`${API_BASE}/manager/assigned-pickups`, { headers });
-                if (response.status === 401) { window.location.href = 'login.html'; return; }
-                const deliveries = await response.json();
-                tbody.innerHTML = '';
-                if(deliveries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No pending pickups to assign.</td></tr>'; return;
-                }
-                deliveries.forEach(d => {
-                    const row = document.createElement('tr');
-                    const date = new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                    row.innerHTML = `
-                        <td><input type="checkbox" class="bulk-check" value="${d._id}"></td>
-                        <td>${d.trackingId}</td>
-                        <td>${d.customerName || 'N/A'}</td>
-                        <td>${d.customerAddress || 'N/A'}</td>
-                        <td>${d.paymentMethod === 'COD' ? ('₹' + d.billAmount) : 'Prepaid'}</td>
-                        <td>${date}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (err) {
-                console.error("Error loading bulk pickups:", err);
-                tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">Error: ${err.message}</td></tr>`;
-            }
+                const r = await fetch(`${API_BASE}/manager/assigned-pickups`, { headers });
+                const deliveries = await r.json();
+                tbody.innerHTML = deliveries.length ? deliveries.map(d => `<tr>
+                    <td><input type="checkbox" class="bulk-check" value="${d._id}"></td>
+                    <td>${d.trackingId}</td>
+                    <td>${d.customerName}</td>
+                    <td>${d.customerAddress}</td>
+                    <td>${d.paymentMethod==='COD'?'₹'+d.billAmount:'Prepaid'}</td>
+                </tr>`).join('') : '<tr><td colspan="5">No pending pickups</td></tr>';
+            } catch(e) {}
         }
-
-        function toggleSelectAllBulk(source) {
-            const checkboxes = document.getElementsByClassName('bulk-check');
-            for(let i=0; i<checkboxes.length; i++) {
-                checkboxes[i].checked = source.checked;
-            }
-        }
-
+        function toggleSelectAllBulk(s) { document.querySelectorAll('.bulk-check').forEach(cb => cb.checked = s.checked); }
         async function assignSelectedDeliveries() {
             const boyId = document.getElementById('bulk-boy-select').value;
-            if (!boyId) {
-                alert('Please select a delivery boy first!');
-                return;
-            }
-
-            const selectedCheckboxes = document.querySelectorAll('.bulk-check:checked');
-            const deliveryIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-
-            if (deliveryIds.length === 0) {
-                alert('Please select at least one parcel!');
-                return;
-            }
-
-            if (!confirm(`Are you sure you want to assign ${deliveryIds.length} parcels to this boy?`)) return;
-
-            const btn = document.getElementById('assign-selected-btn');
-            btn.disabled = true;
-            btn.textContent = 'Assigning...';
-
-            try {
-                const response = await fetch(`${API_BASE}/manager/bulk-assign-deliveries`, {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ deliveryIds, assignedBoyId: boyId })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert(`Successfully processed! ${data.results.filter(r => r.status === 'success').length} parcels assigned.`);
-                    loadBulkPickups();
-                    loadPendingPickups(); 
-                    loadAllPendingDeliveries();
-                } else {
-                    alert(`Error: ${data.message}`);
-                }
-            } catch (err) {
-                console.error("Bulk assign error:", err);
-                alert('Server error during bulk assignment.');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Assign Selected Parcels';
-            }
+            const ids = Array.from(document.querySelectorAll('.bulk-check:checked')).map(cb => cb.value);
+            if(!boyId || !ids.length) return alert('Select boy and parcels');
+            const r = await fetch(`${API_BASE}/manager/bulk-assign-deliveries`, { method: 'POST', headers, body: JSON.stringify({ deliveryIds: ids, assignedBoyId: boyId }) });
+            if(r.ok) { alert('Assigned Successfully'); loadBulkPickups(); }
         }
 
-        // --- 6. Security Guard & Initial Load (Main Execution) ---
+        // --- Active / Completed ---
+        async function loadAllPendingDeliveries() {
+            const tbody = document.getElementById('all-pending-body');
+            tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+            try {
+                const r = await fetch(`${API_BASE}/manager/all-pending-deliveries`, { headers });
+                allPendingDeliveries = await r.json();
+                tbody.innerHTML = allPendingDeliveries.length ? allPendingDeliveries.map(d => `<tr>
+                    <td>${d.trackingId}</td>
+                    <td>${d.customerName}</td>
+                    <td><strong>${d.currentStatus}</strong></td>
+                    <td>${d.assignedTo?.name || '-'}</td>
+                    <td>${d.paymentMethod}</td>
+                    <td><button class="btn btn-primary btn-sm" onclick="openReassignModal('${d._id}', '${d.assignedTo?.name || 'N/A'}')">Reassign</button></td>
+                </tr>`).join('') : '<tr><td colspan="6">No active deliveries</td></tr>';
+            } catch(e) {}
+        }
+
+        async function loadCompletedDeliveries() {
+            const tbody = document.getElementById('completed-body');
+            tbody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+            try {
+                const r = await fetch(`${API_BASE}/manager/completed-deliveries`, { headers });
+                completedDeliveries = await r.json();
+                applyFilter();
+            } catch(e) {}
+        }
+
+        function applyFilter() {
+            const track = document.getElementById('searchTrack').value.toLowerCase();
+            const date = document.getElementById('searchDate').value; // YYYY-MM-DD
+            const pay = document.getElementById('paymentFilter').value;
+            
+            const filtered = completedDeliveries.filter(d => {
+                const mTrack = d.trackingId.toLowerCase().includes(track);
+                const compDate = d.completedAt ? new Date(d.completedAt).toISOString().split('T')[0] : '';
+                const mDate = !date || compDate === date;
+                const mPay = !pay || d.paymentMethod === pay;
+                return mTrack && mDate && mPay;
+            });
+
+            document.getElementById('completed-body').innerHTML = filtered.map(d => `<tr>
+                <td>${d.trackingId}</td>
+                <td>${formatDate(d.createdAt)}</td>
+                <td>${formatDate(d.completedAt)}</td>
+                <td>${d.paymentMethod}</td>
+            </tr>`).join('');
+        }
+
+        // --- Boys Management ---
+        function openEditBoy(id, name, email, phone, status) {
+            document.getElementById('edit-boy-id').value = id;
+            document.getElementById('edit-boy-name').value = name;
+            document.getElementById('edit-boy-email').value = email;
+            document.getElementById('edit-boy-phone').value = phone || '';
+            document.getElementById('edit-boy-status').value = status.toString();
+            openModal('edit-boy-modal');
+        }
+
+        async function saveBoyEdit() {
+            const id = document.getElementById('edit-boy-id').value;
+            const body = {
+                name: document.getElementById('edit-boy-name').value,
+                email: document.getElementById('edit-boy-email').value,
+                phone: document.getElementById('edit-boy-phone').value,
+                password: document.getElementById('edit-boy-pass').value || null,
+                isActive: document.getElementById('edit-boy-status').value === "true"
+            };
+            const r = await fetch(`${API_BASE}/manager/user/${id}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+            if(r.ok) { alert('Updated'); closeModal('edit-boy-modal'); loadMyBoys(); }
+        }
+
+        // --- Reassign ---
+        function openReassignModal(id, current) {
+            document.getElementById('reassign-delivery-id').value = id;
+            const d = allPendingDeliveries.find(x => x._id === id);
+            document.getElementById('reassign-tracking-id').textContent = d ? d.trackingId : '-';
+            document.getElementById('current-assigned-boy').textContent = current;
+            openModal('reassign-modal');
+        }
+
+        async function confirmReassignment() {
+            const id = document.getElementById('reassign-delivery-id').value;
+            const boyId = document.getElementById('new-delivery-boy-select').value;
+            if(!boyId) return alert('Select boy');
+            const r = await fetch(`${API_BASE}/manager/reassign-delivery/${id}`, { method: 'POST', headers, body: JSON.stringify({ newDeliveryBoyId: boyId }) });
+            if(r.ok) { alert('Reassigned'); closeModal('reassign-modal'); loadAllPendingDeliveries(); }
+        }
+
+        // --- Export/Print ---
+        function exportCSV() {
+            let csv = "Tracking ID,Booking Date,Delivery Date,Payment\n";
+            completedDeliveries.forEach(d => { csv += `${d.trackingId},${formatDate(d.createdAt)},${formatDate(d.completedAt)},${d.paymentMethod}\n`; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'Deliveries.csv'; a.click();
+        }
+
+        async function printCompleted() {
+            const rows = completedDeliveries.map(d => `<tr><td>${d.trackingId}</td><td>${formatDate(d.createdAt)}</td><td>${formatDate(d.completedAt)}</td><td>${d.paymentMethod}</td></tr>`).join('');
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><style>table{width:100%; border-collapse:collapse;} th,td{border:1px solid #ddd; padding:8px; text-align:left;} th{background:#f4f4f4;}</style></head><body><h2>Completed Deliveries</h2><table><thead><tr><th>ID</th><th>Booked</th><th>Delivered</th><th>Payment</th></tr></thead><tbody>${rows}</tbody></table><script>window.print();<\/script></body></html>`);
+            win.document.close();
+        }
+
+        // --- Init ---
         document.addEventListener('DOMContentLoaded', () => {
-            if (!token || role !== 'manager') {
-                localStorage.clear();
-                window.location.href = 'login.html';
-                return;
-            }
-            const managerNameEl = document.getElementById('manager-name');
-            const copyrightYearEl = document.getElementById('copyright-year');
-            if(managerNameEl) managerNameEl.textContent = localStorage.getItem('userName');
-            if(copyrightYearEl) copyrightYearEl.textContent = new Date().getFullYear();
-
-            // Setup static listeners
-            const refreshPickupsBtn = document.getElementById('refresh-pickups-btn');
-            const createBoyForm = document.getElementById('create-boy-form');
-            const refreshBoysBtn = document.getElementById('refresh-boys-btn');
-            const logoutBtn = document.getElementById('logout-btn');
-            const refreshAllPendingBtn = document.getElementById('refresh-all-pending-btn');
-
-            if(refreshPickupsBtn) refreshPickupsBtn.onclick = loadPendingPickups;
-            if(createBoyForm) createBoyForm.addEventListener('submit', handleCreateBoySubmit);
-            if(refreshBoysBtn) refreshBoysBtn.onclick = loadMyBoys;
-            if(logoutBtn) logoutBtn.onclick = () => { localStorage.clear(); window.location.href = '/login.html'; };
-            if(refreshAllPendingBtn) refreshAllPendingBtn.onclick = loadAllPendingDeliveries;
-
-            // Branch Receive listeners
-            const receiveInput = document.getElementById('receive-scan-input');
-            if(receiveInput) {
-                receiveInput.onkeypress = (e) => { if(e.key === 'Enter') handleReceiveScan(); };
-            }
-            const receiveBtn = document.getElementById('receive-scan-btn');
-            if(receiveBtn) receiveBtn.onclick = handleReceiveScan;
-
-            const confirmReceiveBtn = document.getElementById('confirm-receive-btn');
-            if (confirmReceiveBtn) confirmReceiveBtn.onclick = confirmReceive;
-
-            const startCamBtn = document.getElementById('start-camera-receive');
-            if (startCamBtn) startCamBtn.onclick = toggleReceiveCamera;
-
-            const toggleCreateFormBtn = document.getElementById('toggle-create-form');
-            if(toggleCreateFormBtn) toggleCreateFormBtn.onclick = () => {
-                const form = document.getElementById('create-boy-form');
-                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('manager-name-top').textContent = localStorage.getItem('userName') || 'Manager';
+            
+            document.getElementById('create-boy-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const d = {
+                    name: document.getElementById('boy-name').value,
+                    email: document.getElementById('boy-email').value,
+                    phone: document.getElementById('boy-phone').value,
+                    password: document.getElementById('boy-password').value
+                };
+                const r = await fetch(`${API_BASE}/manager/create-delivery-boy`, { method: 'POST', headers, body: JSON.stringify(d) });
+                if(r.ok) { alert('Boy Created'); closeModal('add-boy-modal'); loadMyBoys(); e.target.reset(); }
             };
 
-            // Initial loads
-            loadManagerSummary();
-            loadMyBoys().then(() => {
-                loadPendingPickups();
-            });
+            const input = document.getElementById('receive-scan-input');
+            input.onkeypress = (e) => {
+                if(e.key === 'Enter') {
+                    const v = input.value.trim().toUpperCase();
+                    if(v && !receiveScannedIds.includes(v)) { receiveScannedIds.push(v); updateReceiveList(); }
+                    input.value = '';
+                }
+            };
+            document.getElementById('receive-scan-btn').onclick = () => {
+                const v = input.value.trim().toUpperCase();
+                if(v && !receiveScannedIds.includes(v)) { receiveScannedIds.push(v); updateReceiveList(); }
+                input.value = '';
+            };
+
+            document.getElementById('logout-btn').onclick = () => { localStorage.clear(); window.location.href = 'login.html'; };
+            
+            loadManagerSummary(); loadMyBoys().then(() => loadPendingPickups());
         });
-
-        function openEditBoy(id,name,email,phone,status){
- document.getElementById('edit-boy-modal').style.display='flex';
- document.getElementById('edit-boy-id').value = id;
- document.getElementById('edit-boy-name').value = name;
- document.getElementById('edit-boy-email').value = email;
- document.getElementById('edit-boy-phone').value = phone;
- document.getElementById('edit-boy-status').value = status;
-}
-
-// Save update
-async function saveBoyEdit() {
-    const id = document.getElementById('edit-boy-id').value;
-
-    const body = {
-        name: document.getElementById('edit-boy-name').value,
-        email: document.getElementById('edit-boy-email').value,
-        phone: document.getElementById('edit-boy-phone').value,
-        password: document.getElementById('edit-boy-pass').value || null,
-        isActive: document.getElementById('edit-boy-status').value === "true"
-    };
-
-    const res = await fetch(`${API_BASE}/manager/user/${id}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(body)
-    });
-
-    const data = await res.json();
-    alert(data.message);
-
-    if(res.ok){
-        document.getElementById('edit-boy-modal').style.display='none';
-        loadMyBoys();
-    }
-}
-
-// --- Reassign Logic ---
-async function openReassignModal(deliveryId, currentAssignedName) {
-    document.getElementById('reassign-delivery-id').value = deliveryId;
-
-    // Try to find locally cached pending delivery first
-    let delivery = allPendingDeliveries.find(d => d._id === deliveryId);
-    if (!delivery) {
-        // Fetch latest pending deliveries as fallback
-        try {
-            const resp = await fetch(`${API_BASE}/manager/all-pending-deliveries`, { headers });
-            if (resp.ok) {
-                const list = await resp.json();
-                allPendingDeliveries = list;
-                delivery = allPendingDeliveries.find(d => d._id === deliveryId);
-            }
-        } catch (e) {
-            console.error('Failed to fetch pending deliveries for modal:', e);
-        }
-    }
-
-    document.getElementById('reassign-tracking-id').textContent = delivery ? (delivery.trackingId || 'N/A') : 'N/A';
-
-    // Show current assigned boy with phone if available
-    const assignedText = delivery ? (delivery.assignedTo ? (delivery.assignedTo.name + ' (' + (delivery.assignedTo.phone || (delivery.assignedBoyDetails?.phone || 'N/A')) + ')') : (delivery.assignedBoyDetails ? (delivery.assignedBoyDetails.name + ' (' + (delivery.assignedBoyDetails.phone || 'N/A') + ')') : 'N/A')) : currentAssignedName || 'N/A';
-    document.getElementById('current-assigned-boy').textContent = assignedText;
-
-    const select = document.getElementById('new-delivery-boy-select');
-    select.innerHTML = '<option value="">Select a boy</option>';
-
-    if (myDeliveryBoys.length > 0) {
-        myDeliveryBoys.forEach(boy => {
-            if (boy.isActive) {
-                const option = document.createElement('option');
-                option.value = boy._id;
-                option.textContent = boy.name;
-                select.appendChild(option);
-            }
-        });
-    }
-    document.getElementById('reassign-modal').style.display = 'flex';
-}
-
-async function confirmReassignment() {
-    const deliveryId = document.getElementById('reassign-delivery-id').value;
-    const newDeliveryBoyId = document.getElementById('new-delivery-boy-select').value;
-
-    if (!newDeliveryBoyId) {
-        alert('Please select a new delivery boy.');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE}/manager/reassign-delivery/${deliveryId}`, {
-            method: 'POST',
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ newDeliveryBoyId })
-        });
-
-        if (response.status === 401) { window.location.href = 'login.html'; return; }
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error ${response.status}`);
-        }
-
-        alert('Delivery reassigned successfully!');
-        document.getElementById('reassign-modal').style.display = 'none';
-        loadAllPendingDeliveries(); // Refresh the list
-
-    } catch (error) {
-        console.error("Reassignment failed:", error);
-        alert(`Failed to reassign delivery: ${error.message}`);
-    }
-}
     </script>
 </body>
 </html>

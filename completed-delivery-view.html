@@ -1,166 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Completed Deliveries Report</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-
-body{
-    font-family: Arial, sans-serif;
-    background:#f4f6f9;
-    padding:20px;
-}
-
-/* Header */
-h2{
-    text-align:center;
-    margin-bottom:15px;
-}
-
-/* Top Controls */
-.filter-box{
-    display:flex;
-    flex-wrap: wrap;
-    justify-content:space-between;
-    gap:10px;
-    margin-bottom:20px;
-}
-
-.filter-box input,.filter-box select{
-    padding:10px;
-    border:1px solid #ccc;
-    width:200px;
-    border-radius:5px;
-}
-
-button{
-    padding:10px 15px;
-    cursor:pointer;
-    border:none;
-    border-radius:5px;
-    background:#007bff;
-    color:white;
-}
-
-button.secondary{ background:#28a745; }
-button.print{ background:#6c757d; }
-
-/* Table */
-table{
-    width:100%;
-    border-collapse: collapse;
-    background:white;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-
-th,td{
-    padding:10px;
-    border:1px solid #ddd;
-    text-align:left;
-}
-
-th{ background:#e9ecef; }
-
-@media print{
-    button,.filter-box{ display:none; }
-    body{ background:white; }
-}
-
-</style>
+    <meta charset="UTF-8">
+    <title>Sahyog - Completed Deliveries</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --radius: 12px;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .header h1 { font-family: 'Poppins', sans-serif; font-size: 1.25rem; margin: 0; }
+        
+        .filter-card { background: white; padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        input, select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; outline: none; flex: 1; min-width: 150px; }
+        
+        .btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-main); }
+        
+        .table-container { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border); }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+        tr:last-child td { border-bottom: none; }
+        
+        @media print {
+            .filter-card, .btn, .back-btn { display: none !important; }
+            body { padding: 0; background: white; }
+            .table-container { border: none; box-shadow: none; }
+        }
+    </style>
 </head>
 <body>
 
-<h2>📦 Completed Delivery Records</h2>
+    <div class="header">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <button class="btn btn-outline back-btn" onclick="window.location.href='delivery.html'"><i class="fas fa-arrow-left"></i></button>
+            <h1>Completed Records</h1>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export</button>
+            <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+        </div>
+    </div>
 
-<div class="filter-box">
-    <input type="text" id="searchTrack" placeholder="Search Tracking ID" onkeyup="applyFilter()">
-    
-    <input type="date" id="searchDate" onchange="applyFilter()">
+    <div class="filter-card">
+        <input type="text" id="searchTrack" placeholder="Search Tracking ID" onkeyup="applyFilter()">
+        <input type="date" id="searchDate" onchange="applyFilter()">
+        <select id="paymentFilter" onchange="applyFilter()">
+            <option value="">All Payments</option>
+            <option value="COD">COD</option>
+            <option value="Prepaid">Prepaid</option>
+        </select>
+    </div>
 
-    <select id="paymentFilter" onchange="applyFilter()">
-        <option value="">All Payments</option>
-        <option value="COD">Cash on Delivery</option>
-        <option value="Prepaid">Prepaid</option>
-    </select>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tracking ID</th>
+                    <th>Booked</th>
+                    <th>Delivered</th>
+                    <th>Payment</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
 
-    <button onclick="exportExcel()">Export Excel</button>
-    <button class="print" onclick="window.print()">Print</button>
-</div>
+    <script>
+        const deliveries = JSON.parse(localStorage.getItem("completedDeliveries")) || [];
+        let filtered = deliveries;
 
-<table>
-<thead>
-    <tr>
-        <th>Tracking ID</th>
-        <th>Booking Date</th>
-        <th>Delivery Date</th>
-        <th>Payment</th>
-    </tr>
-</thead>
-<tbody id="tableBody"></tbody>
-</table>
+        function formatDate(d) {
+            if (!d) return '-';
+            const date = new Date(d);
+            return date.toLocaleDateString('en-IN');
+        }
 
-<script>
-let deliveries = JSON.parse(localStorage.getItem("completedDeliveries")) || [];
-let filtered = deliveries;
+        function formatISODate(d) {
+            if (!d) return null;
+            const date = new Date(d);
+            return date.toISOString().split('T')[0];
+        }
 
-function loadTable(list){
-    let tbody=document.getElementById("tableBody");
-    tbody.innerHTML="";
+        function render(list) {
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = list.length ? list.map(d => `
+                <tr>
+                    <td style="font-weight:600; color:var(--primary);">${d.trackingId}</td>
+                    <td>${formatDate(d.createdAt)}</td>
+                    <td>${formatDate(d.completedAt)}</td>
+                    <td><span style="font-weight:500;">${d.paymentMethod}</span></td>
+                </tr>
+            `).join('') : '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted);">No records found</td></tr>';
+        }
 
-    list.forEach(d=>{
-        tbody.innerHTML+=`
-        <tr>
-            <td>${d.trackingId}</td>
-            <td>${d.createdAt? new Date(d.createdAt).toLocaleDateString() : "-"}</td>
-            <td>${d.completedAt? formatDateToYYYYMMDD(d.completedAt) : "-"}</td>
-            <td>${d.paymentMethod||"-"}</td>
-        </tr>`;
-    });
-}
+        function applyFilter() {
+            const track = document.getElementById("searchTrack").value.toLowerCase();
+            const date = document.getElementById("searchDate").value;
+            const pay = document.getElementById("paymentFilter").value;
 
-function applyFilter(){
-    let t=document.getElementById("searchTrack").value.toLowerCase();
-    let date=document.getElementById("searchDate").value;
-    let p=document.getElementById("paymentFilter").value;
+            filtered = deliveries.filter(d => {
+                const mTrack = d.trackingId.toLowerCase().includes(track);
+                const mDate = !date || formatISODate(d.completedAt) === date;
+                const mPay = !pay || d.paymentMethod === pay;
+                return mTrack && mDate && mPay;
+            });
+            render(filtered);
+        }
 
-    filtered = deliveries.filter(d=>{
-        let matchTrack = d.trackingId.toLowerCase().includes(t);
-        let formattedCompletedAt = formatDateToYYYYMMDD(d.completedAt);
-        let mDate = !date || (formattedCompletedAt && formattedCompletedAt === date);
-        let mPay = !p || d.paymentMethod===p;
-        return matchTrack && mDate && mPay;
-    });
+        function exportCSV() {
+            let csv = "Tracking ID,Booking Date,Delivery Date,Payment\n";
+            filtered.forEach(d => {
+                csv += `${d.trackingId},${formatDate(d.createdAt)},${formatDate(d.completedAt)},${d.paymentMethod}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = "Completed_Deliveries.csv"; a.click();
+        }
 
-    loadTable(filtered);
-}
-
-function exportExcel(){
-    let csv="Tracking ID,Booking Date,Delivery Date,Payment\n";
-    filtered.forEach(d=>{
-        csv+=`${d.trackingId},${formatDateToYYYYMMDD(d.createdAt)},${formatDateToYYYYMMDD(d.completedAt) || "-"},${d.paymentMethod}\n`;
-    });
-
-    let blob=new Blob([csv],{type:"text/csv"});
-    let url=URL.createObjectURL(blob);
-    let a=document.createElement("a");
-    a.href=url;
-    a.download="Completed_Deliveries.csv";
-    a.click();
-}
-
-function formatDateToYYYYMMDD(dateString) {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return null; // Check for "Invalid Date"
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-loadTable(deliveries); // load at start
-</script>
-
+        render(deliveries);
+    </script>
 </body>
 </html>

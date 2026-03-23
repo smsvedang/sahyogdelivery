@@ -1066,7 +1066,7 @@ function saveTokenToServer(token) {
 
             for(let id in actions) { let el = document.getElementById(id); if(el) el.onclick = actions[id]; }
 
-            loadManagersForDropdown(); loadAllDeliveries(); loadDrafts();
+            loadManagersForDropdown(); loadAllDeliveries(); loadDrafts(); loadBusinessSettings();
         });
 
         setInterval(loadDrafts, 60000);

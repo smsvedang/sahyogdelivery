@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+
 <script>
     const firebaseConfig = {
   apiKey: "AIzaSyDRcvcvaYSsw19ZmcOikz-FBReqJTtI03s",
@@ -13,1312 +16,533 @@
   appId: "1:1049559335650:web:2cb13685ce3c01b93e94bb",
   measurementId: "G-6BSBHNQHYM"
 };
-    </script>
-<script>
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 let fcmServiceWorkerRegPromise = null;
-</script>
-<script>
+
 if ('serviceWorker' in navigator && 'PushManager' in window) {
   fcmServiceWorkerRegPromise = (async () => {
     try {
       const existing = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
       const reg = existing || await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       await navigator.serviceWorker.ready;
-      console.log('✅ FCM Service Worker ready:', reg.scope);
       return reg;
     } catch (err) {
-      console.error('❌ FCM Service Worker registration failed:', err);
       return null;
     }
   })();
 }
-</script>
-<script>
+
 async function askForNotificationPermission() {
   const permission = await Notification.requestPermission();
-  if (permission === "granted") {
-    console.log("Notification allowed ✅");
-    await getPushToken();
-  } else {
-    console.log("Notification denied ❌");
-  }
+  if (permission === "granted") getPushToken();
 }
-</script>
-<script>
+
 async function getPushToken() {
   try {
     const serviceWorkerRegistration = fcmServiceWorkerRegPromise ? await fcmServiceWorkerRegPromise : null;
-    if (!serviceWorkerRegistration) {
-      throw new Error('No active service worker for FCM');
-    }
-
+    if (!serviceWorkerRegistration) return;
     const token = await messaging.getToken({
       vapidKey: "BIaBWwpMVcg8M1uGRb-f_fpoHXLTXWrSMVgJnpfcE3ggEUvksFvPOIRCb_EZRiU4UjIc2xCFSW7rAf1-gQ29kSs",
       serviceWorkerRegistration
     });
-
-    if (token) {
-      console.log("Push Token:", token);
-      saveTokenToServer(token);
-    } else {
-      console.log("No token received");
-    }
-  } catch (err) {
-    console.error("Token error:", err);
-  }
+    if (token) saveTokenToServer(token);
+  } catch (err) {}
 }
-</script>
-<script>
+
 function saveTokenToServer(token) {
-  fetch(`${API_BASE}/api/save-fcm-token`, {
+  fetch(`https://sahyogdeliverybackend.onrender.com/api/save-fcm-token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${localStorage.getItem("authToken")}`
     },
     body: JSON.stringify({ token })
-  })
-  .then(res => res.json())
-  .then(data => console.log("✅ Token saved:", data))
-  .catch(err => console.error("❌ Token save failed:", err));
+  }).catch(e => {});
 }
 </script>
 
 <head>
-    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-    <meta name="google-site-verification" content="sUd2hKr4JhoLKMQku6aNRgVeSmyvtjQcuT6ZB4aagRQ" />
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Panel - Sahyog</title>
- <link rel="icon" href="/favicon.png" type="image/png">
-    <link rel="apple-touch-icon" href="/favicon.png">
-
-    <meta name="theme-color" content="#f1c27d">
-    <link rel="manifest" href="/manifest.json">
-
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sahyog Delivery - Delivery App</title>
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <meta name="theme-color" content="#2563eb">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #f1c27d; /* Sahyog Blue */
-            --secondary-color: #6c757d; /* Muted Gray */
-            --accent-color: #28a745; /* Green for success/highlight */
-            --background-light: #f8f9fa; /* Very light background */
-            --background-dark: #e9ecef; /* Slightly darker background */
-            --text-dark: #343a40; /* Dark text */
-            --text-muted: #6c757d; /* Muted text */
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #64748b;
+            --success: #059669;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --bg: #f8fafc;
             --card-bg: #ffffff;
-            --border-color: #dee2e6;
-            --shadow-light: rgba(0,0,0,0.08);
-            --shadow-hover: rgba(0,0,0,0.15);
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --radius: 16px;
         }
 
-        body {
-            font-family: 'Open Sans', sans-serif;
-            margin: 0;
-            padding: 15px;
-            background-color: var(--background-light);
-            color: var(--text-dark);
-            min-height: 100vh;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--primary-color);
-        }
+        /* Mobile Header */
+        .top-nav { background: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .top-nav h1 { font-size: 1.1rem; margin: 0; font-family: 'Poppins', sans-serif; }
+        .top-nav .user-info { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; }
 
-        .header h1 {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            font-size: 2em;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
+        /* Main Scrollable Content */
+        .main-container { flex: 1; padding: 16px; padding-bottom: 100px; overflow-y: auto; }
 
-        .header button {
-            padding: 10px 15px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
+        /* Bottom Tab Bar */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 10px; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05); z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: color 0.2s; flex: 1; }
+        .nav-item i { font-size: 1.25rem; }
+        .nav-item.active { color: var(--primary); }
 
-        button {
-            cursor: pointer;
-            border-radius: 8px;
-            padding: 12px 18px;
-            border: none;
-            margin: 5px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px var(--shadow-light);
-        }
-
-        button.btn-primary { background-color: var(--primary-color); color: var(--text-dark); }
-        button.btn-secondary { background-color: var(--secondary-color); color: white; }
-        button.btn-success { background-color: var(--accent-color); color: white; }
-        button.btn-danger { background-color: #dc3545; color: white; }
-
-        input[type="text"], input[type="password"] {
-            padding: 12px;
-            width: calc(100% - 24px);
-            max-width: 400px;
-            margin-bottom: 15px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-
-        input[type="text"]:focus, input[type="password"]:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        .message {
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: 8px;
-            font-weight: 600;
-        }
-
-        .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
-        .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
-
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            color: var(--text-muted);
-            font-size: 0.9em;
-        }
+        /* Cards and Lists */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 16px; position: relative; }
+        .delivery-card { border-left: 4px solid var(--primary); }
+        .delivery-card.picked-up { border-left-color: var(--warning); }
+        .delivery-card.out { border-left-color: var(--primary); }
         
-        /* Card Layout */
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 15px;
-            box-shadow: 0 8px 20px var(--shadow-light);
-            padding: 25px;
-            margin-bottom: 25px;
-            border: 1px solid var(--border-color);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
+        .tracking-id { font-weight: 700; color: var(--primary); font-size: 1rem; }
+        .customer-name { font-size: 0.95rem; font-weight: 600; margin-top: 8px; }
+        .address { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+        .payment-label { font-size: 0.8rem; font-weight: 700; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 25px var(--shadow-hover);
-        }
-        
-        /* Scanner Section */
-        #reader {
-            width: 100%;
-            max-width: 350px;
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-            margin: 0 auto;
-            display: block;
-        }
-        
-        /* Delivery List Section */
-        #delivery-list-container {
-            padding: 0;
-        }
+        .btn { padding: 10px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: opacity 0.2s; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
 
-        .delivery-item {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-left: 5px solid var(--primary-color);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px var(--shadow-light);
-            transition: all 0.3s ease;
-        }
+        .action-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
 
-        .delivery-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px var(--shadow-hover);
-        }
+        /* Status Badge */
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .status-picked { background: #fef3c7; color: #92400e; }
+        .status-out { background: #dbeafe; color: #1e40af; }
+        .status-delivered { background: #dcfce7; color: #166534; }
 
-        .delivery-item.picked-up { border-left-color: #ffc107; }
-        .delivery-item.out-for-delivery { border-left-color: #17a2b8; }
+        .search-container { position: sticky; top: 0; background: var(--bg); padding: 5px 0 15px 0; z-index: 90; }
+        .search-bar { background: white; border: 1px solid var(--border); border-radius: 50px; padding: 10px 20px; display: flex; align-items: center; gap: 10px; }
+        .search-bar input { border: none; outline: none; flex: 1; font-size: 0.9rem; }
 
-        .delivery-item .item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
+        /* Modal / Overlay */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: flex-end; }
+        .bottom-sheet { background: white; width: 100%; border-radius: 20px 20px 0 0; padding: 24px; animation: slideUp 0.3s ease; max-height: 90vh; overflow-y: auto; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        .delivery-item .item-header .tracking-id {
-            font-weight: bold;
-            font-size: 1.2em;
-            color: var(--primary-color);
-        }
+        #scanner-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 1500; display: none; flex-direction: column; }
+        #reader { flex: 1; width: 100%; }
 
-        .delivery-item .item-header .serial-no {
-                    font-size: 1em;
-            font-weight: bold;
-            color: var(--text-muted);
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
-        .delivery-item .item-body {
-            font-size: 1em;
-            color: var(--text-dark);
-            line-height: 1.6;
-            margin-bottom: 15px;
-        }
+        .message { padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-top: 10px; font-weight: 500; }
+        .msg-success { background: #dcfce7; color: #166534; }
+        .msg-error { background: #fee2e2; color: #991b1b; }
 
-        .delivery-item .item-body strong {
-            color: var(--text-dark);
-            font-weight: 600;
-        }
-
-        .delivery-item .item-footer .status {
-            font-weight: bold;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.9em;
-        }
-
-        .delivery-item .item-footer .status.picked-up { background-color: #fff3cd; color: #856404; }
-        .delivery-item .item-footer .status.out-for-delivery { background-color: #d1ecf1; color: #0c5460; }
-
-        .delivery-item .item-footer .status {
-            font-weight: bold;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.9em;
-        }
-
-        .delivery-item .item-footer .status.picked-up { background-color: #fff3cd; color: #856404; }
-        .delivery-item .item-footer .status.out-for-delivery { background-color: #d1ecf1; color: #0c5460; }
-
-        .pagination-controls {
-            text-align: center;
-            margin-top: 25px;
-        }
-
-        #pagination-info {
-            color: var(--text-muted);
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-
-        #show-more-btn {
-            background-color: var(--primary-color);
-            color: var(--text-dark);
-            border: 2px solid var(--primary-color);
-            font-weight: 700;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 1em;
-            transition: all 0.3s ease;
-        }
-
-        #show-more-btn:hover {
-            background-color: var(--text-dark);
-            color: var(--primary-color);
-        }
-
-        #show-more-btn:disabled {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Payment QR Modal */
-        #qr-modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.7);
-            justify-content: center;
-            align-items: center;
-        }
-
-        #qr-modal-content {
-            background-color: var(--card-bg);
-            padding: 25px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
-        }
-
-        #qr-modal-content .close-button {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-
-        #qr-modal-content .close-button:hover {
-            color: var(--text-dark);
-        }
-
-        #payment-qrcode {
-            width: 250px;
-            height: 250px;
-            margin: 20px auto;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .delivery-item .item-footer .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .delivery-item .item-footer .action-buttons button {
-            flex: 1;
-            min-width: 120px;
-        }
-
-        /* payment badges */
-        .paid-badge {
-            display: inline-block;
-            background-color: var(--accent-color);
-            color: white;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            margin-left: 5px;
-            user-select: none;
-            cursor: default;
-        }
-
-        /* Tab content for completed deliveries */
-        .tab-content {
-            display: none;
-        }
-
-        #tab-completed {
-            display: none;
-        }
+        input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 1rem; margin-bottom: 12px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Delivery Panel (Welcome, <span id="delivery-name"></span>)</h1>
-        <button id="logout-btn" class="btn-danger">Logout</button>
-        <button id="enable-notifications">
-  Enable Notifications 🔔
-</button>
-    </div>
-    <button onclick="openTab(event,'tab-completed')">Completed Deliveries</button>
-    <div id="tab-completed" class="tab-content">
- <div class="card" style="text-align:center;padding:30px;">
-     <button onclick="openCompletedPage()" class="btn-primary" style="font-size:18px;">
-        📦 View Completed Deliveries
-     </button>
-     <p style="color:#666;margin-top:10px;">All completed orders are available on full report page only.</p>
- </div>
-</div>
- </div>
-</div>
-
-    <div class="card">
-        <h2>Update Status (Scan QR)</h2>
-        <p>Scan QR code on label to update status (Picked Up / Out for Delivery / Complete).</p>
-        <div id="reader"></div>
-        <div id="scan-result" class="message" style="display:none;"></div>
-        <button id="manual-entry-toggle-btn" class="btn-secondary" style="margin-top: 10px;">QR Not Working? Enter Manually</button>
-    </div>
-
-    <div class="card" id="manual-entry-card" style="display:none;">
-        <h2>Manual Update / Complete</h2>
-        <label for="manual-tracking-id">Tracking ID:</label>
-        <input type="text" id="manual-tracking-id" onblur="checkIfCod(this.value)">
-        
-        <button id="manual-update-btn" class="btn-primary">Update Status (Picked/Out)</button>
-        <div id="manual-result" class="message" style="display:none;"></div>
-
-        <hr style="margin: 20px 0;">
-        
-        <label for="complete-otp-code">Customer OTP:</label>
-        <input type="password" id="complete-otp-code" placeholder="Enter OTP to complete">
-        
-        <div id="cod-payment-options" style="display:none; margin-top:10px; background: #fffbe6; padding: 10px; border-radius: 5px;">
-            <strong>COD Payment:</strong><br>
-            <input type="radio" id="pay-cash" name="codPaymentOption" value="cash">
-            <label for="pay-cash">Cash Received</label><br>
-            <input type="radio" id="pay-online" name="codPaymentOption" value="online">
-            <label for="pay-online">Already Paid Online</label><br>
-            <small>Select how payment was received before completing delivery.</small>
-        </div>
-
-        <button id="complete-btn" class="btn-success" style="margin-top: 10px;">Mark as Delivered (with OTP)</button>
-        <div id="complete-result" class="message" style="display:none;"></div>
-    </div>
-
-    <input type="text" id="searchPending" placeholder="Search Tracking ID..." 
-       style="width:100%;padding:12px;margin-top:10px;margin-bottom:15px;border:2px solid var(--border-color);border-radius:8px;font-size:16px;"
-       onkeyup="searchPendingList()">
-    <div class="card">
-        <h2>My Assigned Deliveries</h2>
-        <button id="refresh-btn" class="btn-secondary">Refresh List</button>
-        <ul id="pending-list">
-            </ul>
-        <div class="pagination-controls">
-            <div id="pagination-info">Loading...</div>
-            <button id="show-more-btn" class="btn-primary" style="display:none;">Show More (5)</button>
+    <div class="top-nav">
+        <h1>Sahyog Delivery</h1>
+        <div class="user-info">
+            <i class="fas fa-circle-user" style="color:var(--primary);"></i>
+            <span id="delivery-name-top">Delivery</span>
         </div>
     </div>
 
-    <div id="qr-modal">
-        <div id="qr-modal-content">
-            <span class="close-button" id="close-qr-modal">&times;</span>
-            <h3>Scan to Pay (Amount: ₹<span id="qr-amount">0.00</span>)</h3>
-            <div id="payment-qrcode"></div>
-            <div id="payment-status-text" class="message" style="display:block;">Ask customer to scan and pay via any UPI app.</div>
-        </div>
-    </div>
-
-    <!-- Cancellation Modal -->
-    <div id="cancel-modal" style="display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center;">
-        <div style="background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center;">
-            <h3>Cancel Order</h3>
-            <p id="cancel-tracking-display" style="font-weight: bold; color: var(--primary-color);"></p>
+    <div class="main-container">
+        
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="search-container">
+                <div class="search-bar">
+                    <i class="fas fa-search" style="color:var(--text-muted);"></i>
+                    <input type="text" id="delivery-search" placeholder="Search tracking ID or name..." onkeyup="filterDeliveries()">
+                </div>
+            </div>
             
-            <label for="cancel-reason" style="display: block; margin-bottom: 5px; text-align: left;">Reason for Cancellation:</label>
-            <select id="cancel-reason" style="width: 100%; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                <option value="">Select a reason...</option>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span id="delivery-count" style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Loading deliveries...</span>
+                <button class="btn btn-outline btn-sm" onclick="loadDeliveries(true)"><i class="fas fa-rotate"></i> Refresh</button>
+            </div>
+
+            <div id="delivery-list">
+                <!-- Cards injected here -->
+            </div>
+
+            <div id="load-more-container" style="text-align:center; padding:10px; display:none;">
+                <button class="btn btn-outline" onclick="loadDeliveries(false)" id="load-more-btn">Load More</button>
+            </div>
+        </div>
+
+        <div id="tab-profile" class="tab-content">
+            <div class="card" style="text-align:center;">
+                <i class="fas fa-user-circle" style="font-size:4rem; color:var(--primary); margin-bottom:16px;"></i>
+                <h2 id="full-name" style="margin:0;">Delivery Boy</h2>
+                <p id="phone-display" style="color:var(--text-muted); margin:4px 0 20px 0;">--</p>
+                <div style="border-top: 1px solid var(--border); padding-top:20px; display:grid; gap:12px;">
+                    <button class="btn btn-outline" onclick="askForNotificationPermission()"><i class="fas fa-bell"></i> Enable Notifications</button>
+                    <button class="btn btn-outline" onclick="window.history.pushState(null,'','/completed-delivery-view.html'); window.location.reload();"><i class="fas fa-check-double"></i> Completed Deliveries</button>
+                    <button class="btn btn-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Contact Support</h3>
+                <p style="font-size:0.85rem; color:var(--text-muted);">In case of any issues, contact management:</p>
+                <div style="display:flex; gap:10px; flex-direction:column;">
+                    <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+917415543744'"><i class="fas fa-phone"></i> Order Support</button>
+                    <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+919243714402'"><i class="fas fa-headset"></i> Technical Support</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('tab-dashboard', this)"><i class="fas fa-truck-fast"></i> Deliveries</div>
+        <div class="nav-item" onclick="openScanner()"><i class="fas fa-qrcode"></i> Scan</div>
+        <div class="nav-item" onclick="switchTab('tab-profile', this)"><i class="fas fa-user-tie"></i> Profile</div>
+    </div>
+
+    <!-- Scanner Overly -->
+    <div id="scanner-view">
+        <div style="padding:16px; background:rgba(0,0,0,0.8); display:flex; justify-content:space-between; align-items:center; color:white;">
+            <span style="font-weight:700;">QR Scanner</span>
+            <i class="fas fa-times" style="font-size:1.5rem;" onclick="closeScanner()"></i>
+        </div>
+        <div id="reader"></div>
+        <div style="padding:20px; color:white; text-align:center; font-size:0.9rem;">
+            Align the label QR code inside the box to scan.
+        </div>
+    </div>
+
+    <!-- Completion / Manual Update Bottom Sheet -->
+    <div class="overlay" id="completion-overlay" onclick="handleOverlayClick(event)">
+        <div class="bottom-sheet" id="completion-sheet">
+            <h2 id="sheet-title">Update Status</h2>
+            <p id="sheet-tracking" style="font-weight:700; color:var(--primary); margin-top:-10px;"></p>
+            
+            <div id="sheet-status-update">
+                <p style="font-size:0.9rem; color:var(--text-muted);">Confirm the current status of this parcel.</p>
+                <div style="display:grid; gap:12px;">
+                    <button class="btn btn-primary" onclick="processStatusUpdate('Picked Up')">Update to Picked Up</button>
+                    <button class="btn btn-primary" onclick="processStatusUpdate('Out for Delivery')">Update to Out for Delivery</button>
+                </div>
+            </div>
+
+            <div id="sheet-complete-flow" style="display:none;">
+                <label>Enter Customer OTP</label>
+                <input type="password" id="otp-input" placeholder="Enter 4-digit OTP" maxlength="4" inputmode="numeric">
+                
+                <div id="cod-section" style="display:none; margin-bottom:15px; background: #fffbe6; padding: 15px; border-radius: 12px; border: 1px solid #ffe58f;">
+                    <strong style="display:block; margin-bottom:10px;">COD Payment Method:</strong>
+                    <div style="display:grid; gap:12px;">
+                        <label style="display:flex; align-items:center; gap:10px; font-weight:500; margin:0;">
+                            <input type="radio" name="paymentType" value="cash" checked style="width:20px; height:20px; margin:0;"> Cash Received
+                        </label>
+                        <label style="display:flex; align-items:center; gap:10px; font-weight:500; margin:0;">
+                            <input type="radio" name="paymentType" value="online" style="width:20px; height:20px; margin:0;"> Already Paid Online
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn btn-success" style="width:100%; border-radius:50px; padding:15px;" id="btn-complete-submit" onclick="submitCompletion()">Complete Delivery</button>
+            </div>
+
+            <div id="sheet-msg" class="message" style="display:none;"></div>
+            
+            <button class="btn btn-outline" style="width:100%; margin-top:16px;" onclick="closeBottomSheet()">Close</button>
+        </div>
+    </div>
+
+    <!-- Cancellation Box -->
+    <div class="overlay" id="cancel-overlay" onclick="handleOverlayClick(event)">
+        <div class="bottom-sheet">
+            <h2>Cancel Order</h2>
+            <p id="cancel-tracking" style="font-weight:700; color:var(--danger); margin-top:-10px;"></p>
+            
+            <label>Select Reason</label>
+            <select id="cancel-reason" style="width:100%; padding:12px; border:1px solid var(--border); border-radius:12px; margin-bottom:15px;">
+                <option value="">Choose reason...</option>
                 <option value="customer no response">Customer no response</option>
                 <option value="Request for reschedule">Request for reschedule</option>
                 <option value="order rejected by customer">Order rejected by customer</option>
             </select>
 
-            <div id="cancel-otp-section" style="display: none; margin-top: 10px;">
-                <label for="cancel-otp-input" style="display: block; margin-bottom: 5px; text-align: left;">Enter Customer OTP:</label>
-                <input type="password" id="cancel-otp-input" placeholder="4-digit code" style="width: 100%; margin-bottom: 10px;">
-                <p style="font-size: 12px; color: #666;">Customer tracking page par ye OTP dekh sakte hain.</p>
+            <div id="cancel-otp-field" style="display:none;">
+                <label>Verification OTP (from Admin)</label>
+                <input type="password" id="cancel-otp-input" placeholder="Enter OTP" maxlength="4">
             </div>
 
-            <div id="cancel-message" class="message" style="display: none; margin-bottom: 15px;"></div>
+            <div id="cancel-msg" class="message" style="display:none;"></div>
 
-            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
-                <button id="request-cancel-otp-btn" class="btn-primary" style="flex: 1; min-width: 120px;" onclick="handleRequestCancelOtp()">Request OTP</button>
-                <button id="confirm-cancel-btn" class="btn-danger" style="flex: 1; min-width: 120px; display: none;" onclick="handleConfirmCancel()">Confirm Cancel</button>
-                <button class="btn-secondary" style="flex: 1; min-width: 120px;" onclick="closeCancelModal()">Close</button>
+            <div style="display:grid; gap:10px;">
+                <button class="btn btn-primary" id="btn-request-cancel" onclick="requestCancelOtp()">Request Cancellation</button>
+                <button class="btn btn-danger" id="btn-confirm-cancel" style="display:none;" onclick="confirmCancel()">Confirm Cancellation</button>
+                <button class="btn btn-outline" onclick="closeCancelSheet()">Back</button>
             </div>
         </div>
     </div>
 
-    <div class="footer">
-        Copyright © <span id="copyright-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved.<br>
-        contact us :<br> Order Support: +91 7415543744<br>Technical Support: +91 9243714402
-    </div>
-
-   <script>
-        // --- 1. Global Variables ---
-        const token = localStorage.getItem('authToken');
+    <script>
         const API_BASE = 'https://sahyogdeliverybackend.onrender.com';
+        const token = localStorage.getItem('authToken');
         const role = localStorage.getItem('userRole');
         const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-        const html5QrCode = new Html5Qrcode("reader");
+
+        if (!token || role !== 'delivery') window.location.href = 'login.html';
+
+        let allDeliveries = [];
         let currentPage = 1;
-        let totalDeliveries = 0;
-        let isLoading = false; // "Show More" ko double-click se rokne ke liye
-        let publicSettingsCache = null;
-        
-        // List cache for search/filter operations
-        let currentDeliveries = [];
+        let scanner = null;
+        let activeTrackingId = null;
 
-        // prevent duplicate payment/session requests
-        let paymentInProgress = false;
-
-        // generic wrapper to catch 401 & network errors
-        async function apiRequest(url, options = {}) {
-            try {
-                const res = await fetch(url, { headers, ...options });
-                if (res.status === 401) {
-                    // expired or invalid token
-                    localStorage.clear();
-                    window.location.href = 'login.html';
-                    throw new Error('Unauthorized');
-                }
-                return res;
-            } catch (err) {
-                // propagate so callers can handle network failure
-                throw err;
-            }
+        // --- Navigation ---
+        function switchTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            el.classList.add('active');
         }
 
-        // --- DOM Elements ---
-        const pendingList = document.getElementById('pending-list');
-        const paginationInfo = document.getElementById('pagination-info');
-        const showMoreBtn = document.getElementById('show-more-btn');
-        const scanResultDiv = document.getElementById('scan-result');
-        const manualResultDiv = document.getElementById('manual-result');
-        const completeResultDiv = document.getElementById('complete-result');
-
-
-        let completedData=[];
-
-async function loadCompleted(){
-   try {
-       const r = await apiRequest(`${API_BASE}/delivery/completed`);
-       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-       completedData = await r.json();
-       renderCompleted(completedData);
-   } catch (err) {
-       console.error('Failed to load completed deliveries', err);
-       alert('Unable to load completed deliveries. Please try again later.');
-   }
-}
-
-function renderCompleted(list){
-    const tbody=document.getElementById('completed-delivery-body');
-    tbody.innerHTML="";
-    list.forEach(d=>{
-        tbody.innerHTML+=`
-        <tr>
-         <td>${d.trackingId}</td>
-         <td>${d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "-"}</td>
-         <td>${d.completedAt ? new Date(d.completedAt).toLocaleDateString() : "-"}</td>
-         <td>${d.paymentMethod}</td>
-        </tr>`;
-    })
-}
-
-function searchCompleted(){
-   let q=document.getElementById('searchTrack').value.toLowerCase();
-   renderCompleted(completedData.filter(x=>x.trackingId.toLowerCase().includes(q)));
-}
-
-function searchPendingList(){
-   let q=document.getElementById("searchPending").value.toLowerCase();
-   let list = currentDeliveries.filter(x=>x.trackingId.toLowerCase().includes(q));
-   pendingList.innerHTML="";
-   list.forEach(d=>{
-       pendingList.innerHTML+=`
-        <li class="delivery-item">
-            <div class="item-header"><span>${d.trackingId}</span></div>
-            <div>${d.customerName}</div>
-        </li>`;
-   })
-}
-
-function filterByDate(){
-   let date=document.getElementById('filterDate').value;
-   if(!date) return renderCompleted(completedData);
-
-   let filtered = completedData.filter(d=>{
-      let delivered = d.completedAt ? new Date(d.completedAt).toLocaleDateString('en-CA') : "";
-      return delivered === date;
-   });
-   renderCompleted(filtered);
-}
-
-function openCompletedPage(){
-    localStorage.setItem("completedDeliveries",JSON.stringify(completedData));
-window.location.href = "completed-delivery-view.html";
-window.open("completed-delivery-view.html","_blank");
-}
-
-function openTab(event, tabName){
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display='none');
-
-    // Show clicked tab
-    document.getElementById(tabName).style.display='block';
-
-    // When completed tab opens -> load completed deliveries
-    if(tabName === 'tab-completed') loadCompleted();
-}
-
-async function loadCompletedDeliveries(){
-    try {
-        const res = await apiRequest(`${API_BASE}/manager/completed-deliveries`);
-        if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
-        const data = await res.json();
-        document.getElementById('completed-body').innerHTML =
-        data.map(d=>`
-            <tr>
-            <td>${d.trackingId}</td>
-            <td>${new Date(d.createdAt).toLocaleDateString()}</td>
-            <td>${new Date(d.updatedAt).toLocaleDateString()}</td>
-            <td>${d.assignedTo?.name||'--'}</td>
-            <td>${d.paymentMethod}</td>
-            </tr>
-        `).join('');
-    } catch (err) {
-        console.error('Error loading manager completed deliveries', err);
-    }
-}
-
-        // --- 2. Initial Load & Security ---
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!token || role !== 'delivery') {
-                localStorage.clear(); window.location.href = 'login.html'; return;
-            }
-            document.getElementById('delivery-name').textContent = localStorage.getItem('userName');
-            document.getElementById('copyright-year').textContent = new Date().getFullYear();
-            document.getElementById('tab-completed').style.display="none"; // hidden default
-            
-            setupEventListeners();
-            loadInitialData();
-            startScanner();
-        });
-
-        function setupEventListeners() {
-            document.getElementById('logout-btn').onclick = logoutHandler;
-           // document.getElementById('enable-notifications').onclick = enableNotificationsHandler;
-            document.getElementById('refresh-btn').onclick = () => loadAssignedDeliveries(true); // Refresh
-            document.getElementById('show-more-btn').onclick = () => loadAssignedDeliveries(false); // Show More
-            document.getElementById('manual-entry-toggle-btn').onclick = toggleManualEntry;
-            document.getElementById('manual-update-btn').onclick = handleManualUpdate;
-            document.getElementById('complete-btn').onclick = handleCompleteDelivery;
-            document.getElementById('close-qr-modal').onclick = closePaymentModal;
-            const qrModal = document.getElementById('qr-modal');
-            qrModal.onclick = (e) => {
-                if (e.target && e.target.id === 'qr-modal') closePaymentModal();
-            };
-            const enableBtn = document.getElementById('enable-notifications');
-if (enableBtn) {
-  enableBtn.onclick = askForNotificationPermission;
-}
+        function filterDeliveries() {
+            const q = document.getElementById('delivery-search').value.toLowerCase();
+            const filtered = allDeliveries.filter(d => 
+                d.trackingId.toLowerCase().includes(q) || 
+                d.customerName.toLowerCase().includes(q)
+            );
+            renderList(filtered);
         }
 
-        async function loadInitialData() {
-            await loadAssignedDeliveries(true);
-        }
-        // --- 3. Load Deliveries (Pagination ke saath) ---
-        async function loadAssignedDeliveries(isRefresh = false) {
-            if (isLoading) return; // Double-click rokein
-            isLoading = true;
-            
-            if (isRefresh) {
-                currentPage = 1;
-                totalDeliveries = 0;
-                if (pendingList) pendingList.innerHTML = '<li>Loading...</li>';
-            }
-            
-            // disable refresh to prevent rapid clicks
-            const refreshBtn = document.getElementById('refresh-btn');
-            if (refreshBtn) refreshBtn.disabled = true;
-
-            if(showMoreBtn) {
-                showMoreBtn.disabled = true;
-                showMoreBtn.textContent = 'Loading...';
-            }
+        // --- Data Loading ---
+        async function loadDeliveries(isRefresh) {
+            if (isRefresh) { currentPage = 1; allDeliveries = []; }
+            const countEl = document.getElementById('delivery-count');
+            countEl.textContent = 'Updating...';
 
             try {
-                const response = await apiRequest(`${API_BASE}/delivery/my-deliveries?page=${currentPage}`);
-                if (!response.ok) throw new Error(`Server error: ${response.status}`);
-                const resData = await response.json();
-                const deliveriesArray = resData.deliveries;
-                totalDeliveries = resData.totalDeliveries;
-
-                if (isRefresh && pendingList) pendingList.innerHTML = ''; // Loading hatayein
-
-                if (deliveriesArray.length === 0 && isRefresh) {
-                    if (pendingList) pendingList.innerHTML = '<li>No pending deliveries assigned to you.</li>';
-                }
-
-                deliveriesArray.forEach((d, index) => {
-                    const li = document.createElement('li');
-                    li.className = 'delivery-item';
-                    
-                    if(d.currentStatus === 'Picked Up') li.classList.add('picked-up');
-                    if(d.currentStatus === 'Out for Delivery') li.classList.add('out-for-delivery');
-
-                    const serialNumber = (currentPage - 1) * 5 + index + 1;
-                    let paymentInfo = `<strong>Payment:</strong> ${d.paymentMethod}`;
-                    let paymentButton = '';
-                    if (d.paymentMethod === 'COD') {
-                        const paymentStatusLabel = d.codPaymentStatus || d.paymentStatus || 'Pending';
-                        const paidOnline = isPaidOnlineStatus(paymentStatusLabel);
-                        const paidCash = isPaidCashStatus(paymentStatusLabel);
-                        paymentInfo += ` (<strong>₹${d.billAmount}</strong>)`;
-
-                        if (paidOnline) {
-                            paymentInfo += ` <span class="paid-badge">Paid Online</span>`;
-                        } else if (paidCash) {
-                            paymentInfo += ` <span class="paid-badge">Paid Cash</span>`;
-                        } else {
-                            // show button only when payment status pending and delivery not completed/delivered
-                            const statusLower = (d.currentStatus || '').toLowerCase();
-                            const notDelivered = !['delivered','completed'].includes(statusLower);
-                            const isPendingState = paymentStatusLabel.toLowerCase().includes('pending');
-                            if (isPendingState && notDelivered) {
-                                paymentButton = `<button onclick="showPaymentQr(this, '${d.trackingId}', '${d.billAmount}')" class="btn-primary">Online Payment</button>`;
-                            }
-                        }
-                    }
-
-                    li.innerHTML = `
-                        <div class="item-header">
-                            <span class="tracking-id">${d.trackingId}</span>
-                            <span class="serial-no">#${serialNumber}</span>
-                        </div>
-                        <div class="item-body">
-                            <strong>Customer:</strong> ${d.customerName}<br>
-                            <strong>Address:</strong> ${d.customerAddress}<br>
-                            <strong>Phone:</strong> ${d.customerPhone || 'N/A'}<br>
-                            ${paymentInfo}
-                        </div>
-                        <div class="item-footer">
-                            <span class="status ${d.currentStatus.toLowerCase().replace(' ', '-')}">${d.currentStatus}</span>
-                            <div class="action-buttons">
-                                ${d.currentStatus === 'Out for Delivery' ? `<button onclick="callCustomer('${d.customerPhone}')" class="btn-primary" style="background-color: #28a745;"><i class="fas fa-phone"></i> Call Customer</button>` : ''}
-                                ${paymentButton}
-                                <button onclick="openCancelModal('${d.trackingId}')" class="btn-danger" style="background-color: #ff4444;"><i class="fas fa-times"></i> Cancel Order</button>
-                            </div>
-                        </div>
-                    `;
-                    if (pendingList) pendingList.appendChild(li);
-                });
-
-                // (Ab yeh line kaam karegi)
-                currentDeliveries = (isRefresh) ? deliveriesArray : [...currentDeliveries, ...deliveriesArray];
-
-                const loadedCount = currentDeliveries.length;
-                if (paginationInfo) paginationInfo.textContent = `Showing ${loadedCount} of ${totalDeliveries} deliveries.`;
-
-                if (loadedCount < totalDeliveries && resData.currentPage < resData.totalPages) {
-                    if (showMoreBtn) {
-                        showMoreBtn.style.display = 'block';
-                        showMoreBtn.disabled = false;
-                        showMoreBtn.textContent = 'Show More (5)';
-                    }
-                    currentPage++;
-                } else {
-                    if (showMoreBtn) showMoreBtn.style.display = 'none';
-                }
-
-            } catch (err) {
-                console.error("Error loading deliveries:", err);
-                if (pendingList) pendingList.innerHTML = `<li>Error loading deliveries: ${err.message}</li>`;
-            } finally {
-                isLoading = false;
-                const refreshBtn = document.getElementById('refresh-btn');
-                if (refreshBtn) refreshBtn.disabled = false;
-            }
-        }
-
-        // --- 4. QR Scanner Logic ---
-        function startScanner() {
-             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-             html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-                .catch(err => console.log("Scanner start error:", err));
-        }
-       
-        const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
-            try {
-                await html5QrCode.stop();
-            } catch (err) {
-                console.warn("Scanner stop failed.", err);
-            }
-            
-            if (scanResultDiv) {
-                scanResultDiv.style.display = 'block';
-                scanResultDiv.className = 'message';
-                scanResultDiv.innerHTML = `Scanned: ${decodedText}. Processing...`;
-            }
-
-            // (Ab yeh line kaam karegi)
-            const delivery = currentDeliveries.find(d => d.trackingId === decodedText);
-
-            if (delivery && delivery.currentStatus === 'Out for Delivery') {
-                if (scanResultDiv) {
-                    scanResultDiv.innerHTML = `Scanned ${decodedText}. Please enter Customer OTP below to complete.`;
-                    scanResultDiv.className = 'message success';
-                }
-                document.getElementById('manual-entry-card').style.display = 'block';
-                document.getElementById('manual-tracking-id').value = decodedText;
-                checkIfCod(decodedText);
-                document.getElementById('complete-otp-code').focus();
-            } else {
-                 updateDeliveryStatus(decodedText, scanResultDiv);
-            }
-             setTimeout(startScanner, 4000);
-        };
-        
-        async function updateDeliveryStatus(trackingId, resultDivElement) {
-            resultDivElement.innerHTML = `Updating status for ${trackingId}...`;
-            resultDivElement.className = 'message';
-             try {
-                const response = await apiRequest(`${API_BASE}/delivery/update-status`, {
-                    method: 'POST', body: JSON.stringify({ trackingId: trackingId })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    resultDivElement.className = 'message success';
-                    resultDivElement.innerHTML = `Success! ${data.trackingId} is now ${data.status}.`;
-                    loadAssignedDeliveries(true); // Refresh list
-                } else {
-                    resultDivElement.className = 'message error';
-                    resultDivElement.innerHTML = `Error: ${data.message || `Server error ${response.status}`}`;
-                }
-            } catch (err) {
-                resultDivElement.className = 'message error';
-                resultDivElement.innerHTML = `Network error. Please check your connection and try again.`;
-            }
-        }
-
-        // --- 5. Manual Entry & Completion Logic ---
-        function toggleManualEntry() {
-            const manualDiv = document.getElementById('manual-entry-card');
-            manualDiv.style.display = (manualDiv.style.display === 'none' || manualDiv.style.display === '') ? 'block' : 'none';
-        }
-        
-        function handleManualUpdate() {
-    const btn = document.getElementById('manual-update-btn');
-    btn.disabled = true;
-    const trackingId = document.getElementById('manual-tracking-id').value;
-    if (!trackingId) {
-        manualResultDiv.textContent = 'Please enter Tracking ID.';
-        manualResultDiv.className = 'message error';
-        manualResultDiv.style.display = 'block';
-        btn.disabled = false;
-        return;
-    }
-    manualResultDiv.style.display = 'block';
-    updateDeliveryStatus(trackingId, manualResultDiv).finally(() => { btn.disabled = false; });
-}
-        
-        async function handleCompleteDelivery() {
-    const completeBtn = document.getElementById('complete-btn');
-    completeBtn.disabled = true;
-
-    const trackingId = document.getElementById('manual-tracking-id').value;
-    const otp = document.getElementById('complete-otp-code').value;
-
-    const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
-
-    completeResultDiv.style.display = 'block';
-    completeResultDiv.className = 'message';
-    completeResultDiv.innerHTML = 'Verifying OTP...';
-
-    if (!delivery) {
-        completeResultDiv.className = 'message error';
-        completeResultDiv.innerHTML = 'Delivery not found in your assigned list.';
-        completeBtn.disabled = false;
-        return;
-    }
-
-    if (delivery.currentStatus !== 'Out for Delivery') {
-        completeResultDiv.className = 'message error';
-        completeResultDiv.innerHTML = 'Please update status to "Out for Delivery" before completing.';
-        completeBtn.disabled = false;
-        return;
-    }
-
-    let paymentType = null;
-    const codOptionsDiv = document.getElementById('cod-payment-options');
-    if (codOptionsDiv.style.display === 'block') {
-        if (document.getElementById('pay-cash').checked) paymentType = 'cash';
-        else if (document.getElementById('pay-online') && document.getElementById('pay-online').checked) paymentType = 'online';
-        else {
-            completeResultDiv.className = 'message error';
-            completeResultDiv.innerHTML = 'Please select payment method (Cash or Already Paid Online).';
-            completeBtn.disabled = false;
-            return;
-        }
-
-        // Online option is accepted directly at completion time.
-    }
-
-    if (!trackingId || !otp) {
-        completeResultDiv.className = 'message error';
-        completeResultDiv.innerHTML = 'Please enter Tracking ID and OTP.';
-        completeBtn.disabled = false;
-        return;
-    }
-
-    try {
-        const response = await apiRequest(`${API_BASE}/delivery/complete`, {
-            method: 'POST',
-            body: JSON.stringify({ trackingId, otp, paymentType })
-        });
-        const data = await response.json();
-        if (response.ok) {
-            completeResultDiv.className = 'message success';
-            completeResultDiv.innerHTML = `Success! ${data.trackingId} is ${data.status}.`;
-            loadAssignedDeliveries(true); // Refresh list
-            document.getElementById('manual-tracking-id').value = '';
-            document.getElementById('complete-otp-code').value = '';
-            codOptionsDiv.style.display = 'none';
-            if (document.getElementById('pay-cash')) document.getElementById('pay-cash').checked = false;
-            if (document.getElementById('pay-online')) document.getElementById('pay-online').checked = false;
-        } else {
-            completeResultDiv.className = 'message error';
-            completeResultDiv.innerHTML = `Error: ${data.message || `Server error ${response.status}`}`;
-        }
-    } catch (err) {
-        completeResultDiv.className = 'message error';
-        completeResultDiv.innerHTML = 'Network error. Please try again.';
-    } finally {
-        completeBtn.disabled = false;
-    }
-}
-        
-        async function checkIfCod(trackingId) {
-            const codOptions = document.getElementById('cod-payment-options');
-            if (!codOptions) return;
-            codOptions.style.display = 'none';
-            if (!trackingId) return;
-            
-            // (Ab yeh line kaam karegi)
-            const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
-            if (delivery) {
-                if (delivery.paymentMethod === 'COD') {
-                     codOptions.style.display = 'block';
-                }
-            } else {
-                try {
-                    const response = await apiRequest(`https://sahyogdeliverybackend.onrender.com/track/${trackingId}`);
-                    const data = await response.json();
-                    if (data.paymentMethod === 'COD') {
-                         codOptions.style.display = 'block';
-                    }
-                } catch (err) { console.error("Error checking COD status via fallback:", err); }
-            }
-        }
-
-        // --- 6. UPI Dynamic Payment QR ---
-        async function getPublicSettings() {
-            if (publicSettingsCache) return publicSettingsCache;
-            const response = await apiRequest(`${API_BASE}/public/settings`);
-            if (!response.ok) {
-                throw new Error(`Could not load UPI settings (HTTP ${response.status})`);
-            }
-            publicSettingsCache = await response.json();
-            return publicSettingsCache;
-        }
-
-async function showPaymentQr(button, trackingId, amount) {
-  if (paymentInProgress) {
-      console.warn('Payment already in progress.');
-      return;
-  }
-  paymentInProgress = true;
-  if (button) button.disabled = true;
-
-  try {
-        // Prevent duplicate payments: check current delivery status first
-        const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
-        const currentCodStatus = delivery ? (delivery.codPaymentStatus || delivery.paymentStatus || 'Pending') : null;
-        if (currentCodStatus && currentCodStatus.toString().toLowerCase() !== 'pending') {
-            alert('Payment already completed');
-            return;
-        }
-
-        const res = await apiRequest(`${API_BASE}/api/create-payment-order`, {
-            method: "POST",
-            body: JSON.stringify({ trackingId, amount })
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          alert("Payment error: " + JSON.stringify(data));
-          return;
-        }
-
-        // 🚀 OPEN CASHFREE PAYMENT GATEWAY
-        const cashfree = Cashfree({ mode: "production" });
-
-        cashfree.checkout({
-          paymentSessionId: data.payment_session_id,
-          redirectTarget: "_self"
-        });
-
-  } catch (err) {
-    console.error(err);
-    alert("Payment failed: " + (err.message || 'network error'));
-  } finally {
-    paymentInProgress = false;
-    if (button) button.disabled = false;
-  }
-}
-
-const params = new URLSearchParams(window.location.search);
-const paidTrackingId = params.get("trackingId");
-
-if (paidTrackingId) {
-    waitForOnlinePaymentAndRefresh(paidTrackingId);
-}
-
-//close
-function closePaymentModal() {
-  if (window.paymentListener) {
-    clearInterval(window.paymentListener);
-    window.paymentListener = null;
-  }
-  if (window.paymentExpiryTimerInterval) {
-    clearInterval(window.paymentExpiryTimerInterval);
-    window.paymentExpiryTimerInterval = null;
-  }
-
-  const qrModal = document.getElementById('qr-modal');
-  const qrCodeEl = document.getElementById('payment-qrcode');
-  const statusEl = document.getElementById('payment-status-text');
-  qrModal.style.display = 'none';
-  qrCodeEl.style.display = 'block';
-  qrCodeEl.innerHTML = '';
-  statusEl.className = 'message';
-  statusEl.textContent = 'Ask customer to scan and pay via any UPI app.';
-}
-
-function isPaidOnlineStatus(status) {
-  if (!status) return false;
-
-  const s = status.toLowerCase();
-
-  return (
-    s.includes("paid - online") ||
-    s.includes("paid online") ||
-    s.includes("online paid") ||
-    s === "paid"
-  );
-}
-
-function isPaidCashStatus(status) {
-    if (!status) return false;
-    const s = status.toString().toLowerCase();
-    return (
-        s.includes('paid - cash') ||
-        s.includes('paid cash') ||
-        s.includes('cash paid') ||
-        s === 'cash'
-    );
-}
-
-async function verifyOnlinePaymentStatus(trackingId) {
-    try {
-        const response = await apiRequest(`${API_BASE}/api/payment-status/${encodeURIComponent(trackingId)}`);
-        if (!response.ok) return false;
-        const data = await response.json();
-        const isPaidOnline = !!data.paid;
-        if (isPaidOnline) {
-            const delivery = currentDeliveries.find(d => d.trackingId === trackingId);
-            if (delivery) {
-                delivery.codPaymentStatus = 'Paid - Online';
-                delivery.paymentStatus = 'Paid - Online';
-            }
-        }
-        return isPaidOnline;
-    } catch (err) {
-        console.error('Payment status check failed:', err);
-        return false;
-    }
-}
-
-async function waitForOnlinePaymentAndRefresh(trackingId) {
-    const maxAttempts = 6;
-    const delayMs = 2000;
-
-    for (let i = 0; i < maxAttempts; i++) {
-        const paid = await verifyOnlinePaymentStatus(trackingId);
-        if (paid) break;
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-
-    await loadAssignedDeliveries(true);
-    // remove query param for clean URL
-    history.replaceState(null, '', window.location.pathname);
-}
-
-        // --- 7. Push Notification ---
-        async function enableNotificationsHandler() {
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
-                try {
-                    const reg = await navigator.serviceWorker.register('/service-worker.js');
-                    const sub = await reg.pushManager.getSubscription();
-                    if (sub) {
-                        alert('Notifications are already enabled.');
-                    } else {
-                        const publicKeyRes = await fetch(`${API_BASE}/vapid-public-key`);
-                        if (!publicKeyRes.ok) throw new Error("Could not fetch VAPID key");
-                        const publicKey = await publicKeyRes.text();
-                        
-                        const newSub = await reg.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: publicKey
-                        });
-                        
-                        const subscribeResponse = await fetch('/subscribe', { method: 'POST', headers: headers, body: JSON.stringify(newSub) });
-                         if (!subscribeResponse.ok) throw new Error("Failed to save subscription on server");
-                        alert('Notifications enabled successfully!');
-                    }
-                } catch (err) {
-                     console.error("Notification enabling error:", err);
-                     alert('Failed to enable notifications. See console for details.');
-                }
-            } else {
-                alert('Push notifications are not supported on this browser.');
-            }
-        };
-
-        // --- 10. Call Customer Function ---
-        function callCustomer(phoneNumber) {
-            if (!phoneNumber || phoneNumber === 'N/A') {
-                alert('Customer phone number not available.');
-                return;
-            }
-            // For mobile devices, use tel: protocol
-            window.location.href = `tel:${phoneNumber}`;
-        }
-
-        // --- Cancellation Logic ---
-        let currentCancelTrackingId = null;
-
-        function openCancelModal(trackingId) {
-            currentCancelTrackingId = trackingId;
-            document.getElementById('cancel-tracking-display').textContent = `Tracking ID: ${trackingId}`;
-            document.getElementById('cancel-modal').style.display = 'flex';
-            document.getElementById('cancel-otp-section').style.display = 'none';
-            document.getElementById('confirm-cancel-btn').style.display = 'none';
-            document.getElementById('request-cancel-otp-btn').style.display = 'inline-block';
-            document.getElementById('cancel-message').style.display = 'none';
-            document.getElementById('cancel-reason').value = '';
-        }
-
-        function closeCancelModal() {
-            document.getElementById('cancel-modal').style.display = 'none';
-            currentCancelTrackingId = null;
-        }
-
-        async function handleRequestCancelOtp() {
-            const reason = document.getElementById('cancel-reason').value;
-            const messageDiv = document.getElementById('cancel-message');
-            const btn = document.getElementById('request-cancel-otp-btn');
-
-            if (!reason) {
-                messageDiv.textContent = 'Please select a reason first.';
-                messageDiv.className = 'message error';
-                messageDiv.style.display = 'block';
-                return;
-            }
-
-            btn.disabled = true;
-            btn.textContent = 'Requesting...';
-
-            try {
-                const response = await apiRequest(`${API_BASE}/delivery/request-cancel-otp`, {
-                    method: 'POST',
-                    body: JSON.stringify({ trackingId: currentCancelTrackingId })
-                });
-                const data = await response.json();
+                const r = await fetch(`${API_BASE}/delivery/my-deliveries?page=${currentPage}`, { headers });
+                const data = await r.json();
                 
-                if (response.ok) {
-                    messageDiv.textContent = 'OTP has been generated and sent to Admin. Please call Admin/Office to get the code.';
-                    messageDiv.className = 'message success';
-                    messageDiv.style.display = 'block';
-                    document.getElementById('cancel-otp-section').style.display = 'block';
-                    document.getElementById('confirm-cancel-btn').style.display = 'inline-block';
-                    btn.style.display = 'none';
-                } else {
-                    messageDiv.textContent = data.message || 'Error requesting OTP.';
-                    messageDiv.className = 'message error';
-                    messageDiv.style.display = 'block';
-                    btn.style.display = 'inline-block';
-                    btn.disabled = false;
-                    btn.textContent = 'Request OTP';
-                }
-            } catch (err) {
-                messageDiv.textContent = 'Network error. Please try again.';
-                messageDiv.className = 'message error';
-                messageDiv.style.display = 'block';
-                btn.disabled = false;
-                btn.textContent = 'Request OTP';
+                if (isRefresh) allDeliveries = data.deliveries;
+                else allDeliveries = [...allDeliveries, ...data.deliveries];
+                
+                renderList(allDeliveries);
+                countEl.textContent = `Showing ${allDeliveries.length} of ${data.totalDeliveries} assigned`;
+                
+                document.getElementById('load-more-container').style.display = 
+                    (allDeliveries.length < data.totalDeliveries) ? 'block' : 'none';
+                
+                currentPage++;
+            } catch (e) {
+                countEl.textContent = 'Error loading deliveries.';
             }
         }
 
-        async function handleConfirmCancel() {
+        function renderList(list) {
+            const container = document.getElementById('delivery-list');
+            container.innerHTML = list.map(d => `
+                <div class="card delivery-card ${d.currentStatus==='Out for Delivery'?'out':d.currentStatus==='Picked Up'?'picked-up':''}">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <span class="tracking-id">${d.trackingId}</span>
+                        <span class="badge ${d.currentStatus==='Out for Delivery'?'status-out':d.currentStatus==='Picked Up'?'status-picked':'status-delivered'}">${d.currentStatus}</span>
+                    </div>
+                    <div class="customer-name">${d.customerName}</div>
+                    <div class="address"><i class="fas fa-location-dot"></i> ${d.customerAddress}</div>
+                    <div class="payment-label">
+                        <i class="fas fa-indian-rupee-sign"></i> 
+                        ${d.paymentMethod} (₹${d.billAmount})
+                        ${(d.codPaymentStatus||'').includes('Paid') ? '<span class="badge badge-success" style="font-size:0.6rem;">PAID</span>' : ''}
+                    </div>
+                    <div class="action-row">
+                        <button class="btn btn-outline" onclick="openManualUpdate('${d.trackingId}', '${d.currentStatus}')"><i class="fas fa-pen-to-square"></i> Status</button>
+                        ${d.currentStatus === 'Out for Delivery' ? 
+                            `<button class="btn btn-primary" onclick="openCompleteSheet('${d.trackingId}')"><i class="fas fa-check-circle"></i> Complete</button>` :
+                            `<button class="btn btn-outline" onclick="updateDeliveryStatus('${d.trackingId}')"><i class="fas fa-arrow-up"></i> Update</button>`}
+                        <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:${d.customerPhone}'" style="grid-column: span 1;"><i class="fas fa-phone"></i> Call</button>
+                        <button class="btn btn-outline btn-sm" onclick="openCancelSheet('${d.trackingId}')" style="color:var(--danger);border-color:var(--danger);"><i class="fas fa-ban"></i> Cancel</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- Scanner Functions ---
+        function openScanner() {
+            document.getElementById('scanner-view').style.display = 'flex';
+            scanner = new Html5Qrcode("reader");
+            scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (id) => {
+                id = id.trim().toUpperCase();
+                const d = allDeliveries.find(x => x.trackingId === id);
+                if (d) {
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    closeScanner();
+                    if (d.currentStatus === 'Out for Delivery') openCompleteSheet(id);
+                    else openManualUpdate(id, d.currentStatus);
+                }
+            }).catch(e => { alert("Camera Permission Required"); closeScanner(); });
+        }
+
+        function closeScanner() {
+            if (scanner) scanner.stop();
+            document.getElementById('scanner-view').style.display = 'none';
+        }
+
+        // --- Sheet Functions ---
+        function openManualUpdate(tid, status) {
+            activeTrackingId = tid;
+            document.getElementById('sheet-title').textContent = "Update Package Status";
+            document.getElementById('sheet-tracking').textContent = tid;
+            document.getElementById('sheet-status-update').style.display = 'block';
+            document.getElementById('sheet-complete-flow').style.display = 'none';
+            document.getElementById('completion-overlay').style.display = 'flex';
+        }
+
+        function openCompleteSheet(tid) {
+            activeTrackingId = tid;
+            const d = allDeliveries.find(x => x.trackingId === tid);
+            document.getElementById('sheet-title').textContent = "Complete Delivery";
+            document.getElementById('sheet-tracking').textContent = tid;
+            document.getElementById('sheet-status-update').style.display = 'none';
+            document.getElementById('sheet-complete-flow').style.display = 'block';
+            document.getElementById('cod-section').style.display = (d.paymentMethod === 'COD') ? 'block' : 'none';
+            document.getElementById('completion-overlay').style.display = 'flex';
+        }
+
+        function closeBottomSheet() {
+            document.getElementById('completion-overlay').style.display = 'none';
+            document.getElementById('sheet-msg').style.display = 'none';
+            document.getElementById('otp-input').value = '';
+        }
+
+        async function processStatusUpdate(status) {
+            const msgEl = document.getElementById('sheet-msg');
+            msgEl.style.display = 'block';
+            msgEl.textContent = 'Updating...';
+            
+            try {
+                const r = await fetch(`${API_BASE}/delivery/update-status`, { 
+                    method: 'POST', 
+                    headers, 
+                    body: JSON.stringify({ trackingId: activeTrackingId, status }) 
+                });
+                if (r.ok) {
+                    msgEl.className = "message msg-success";
+                    msgEl.textContent = "Status Updated Successfully!";
+                    setTimeout(() => { closeBottomSheet(); loadDeliveries(true); }, 1000);
+                } else { throw new Error(); }
+            } catch (e) {
+                msgEl.className = "message msg-error";
+                msgEl.textContent = "Error updating status.";
+            }
+        }
+
+        async function submitCompletion() {
+            const otp = document.getElementById('otp-input').value;
+            const paymentType = document.querySelector('input[name="paymentType"]:checked')?.value || null;
+            const msgEl = document.getElementById('sheet-msg');
+
+            if (!otp || otp.length < 4) return alert("Enter valid 4-digit OTP");
+            
+            msgEl.style.display = 'block';
+            msgEl.textContent = 'Verifying...';
+            
+            try {
+                const r = await fetch(`${API_BASE}/delivery/complete`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ trackingId: activeTrackingId, otp, paymentType })
+                });
+                const data = await r.json();
+                if (r.ok) {
+                    msgEl.className = "message msg-success";
+                    msgEl.textContent = "Delivery Completed!";
+                    setTimeout(() => { closeBottomSheet(); loadDeliveries(true); }, 1000);
+                } else {
+                    msgEl.className = "message msg-error";
+                    msgEl.textContent = data.message || "Invalid OTP or error.";
+                }
+            } catch (e) {
+                msgEl.className = "message msg-error";
+                msgEl.textContent = "Network Error.";
+            }
+        }
+
+        // --- Cancellation ---
+        function openCancelSheet(tid) {
+            activeTrackingId = tid;
+            document.getElementById('cancel-tracking').textContent = tid;
+            document.getElementById('cancel-overlay').style.display = 'flex';
+            document.getElementById('cancel-otp-field').style.display = 'none';
+            document.getElementById('btn-confirm-cancel').style.display = 'none';
+            document.getElementById('btn-request-cancel').style.display = 'block';
+            document.getElementById('cancel-msg').style.display = 'none';
+        }
+
+        function closeCancelSheet() { document.getElementById('cancel-overlay').style.display = 'none'; }
+
+        async function requestCancelOtp() {
+            const reason = document.getElementById('cancel-reason').value;
+            if (!reason) return alert("Select reason");
+            const msgEl = document.getElementById('cancel-msg');
+            msgEl.style.display = 'block'; msgEl.textContent = "Requesting OTP...";
+            
+            try {
+                const r = await fetch(`${API_BASE}/delivery/request-cancel-otp`, { method:'POST', headers, body: JSON.stringify({ trackingId: activeTrackingId }) });
+                if (r.ok) {
+                    msgEl.className = "message msg-success";
+                    msgEl.textContent = "OTP Sent to Admin. Get it from Office.";
+                    document.getElementById('cancel-otp-field').style.display = 'block';
+                    document.getElementById('btn-confirm-cancel').style.display = 'block';
+                    document.getElementById('btn-request-cancel').style.display = 'none';
+                }
+            } catch(e) {}
+        }
+
+        async function confirmCancel() {
             const otp = document.getElementById('cancel-otp-input').value;
             const reason = document.getElementById('cancel-reason').value;
-            const messageDiv = document.getElementById('cancel-message');
-            const btn = document.getElementById('confirm-cancel-btn');
-
-            if (!otp) {
-                messageDiv.textContent = 'Please enter the OTP.';
-                messageDiv.className = 'message error';
-                messageDiv.style.display = 'block';
-                return;
-            }
-
-            btn.disabled = true;
-            btn.textContent = 'Cancelling...';
+            const msgEl = document.getElementById('cancel-msg');
+            if (!otp) return alert("Enter OTP");
 
             try {
-                const response = await apiRequest(`${API_BASE}/delivery/confirm-cancel`, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        trackingId: currentCancelTrackingId,
-                        otp: otp,
-                        reason: reason
-                    })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    messageDiv.textContent = 'Order cancelled successfully!';
-                    messageDiv.className = 'message success';
-                    messageDiv.style.display = 'block';
-                    setTimeout(() => {
-                        closeCancelModal();
-                        loadAssignedDeliveries(true);
-                    }, 2000);
-                } else {
-                    messageDiv.textContent = data.message || 'Error confirming cancellation.';
-                    messageDiv.className = 'message error';
-                    messageDiv.style.display = 'block';
-                    btn.disabled = false;
-                    btn.textContent = 'Confirm Cancel';
-                }
-            } catch (err) {
-                messageDiv.textContent = 'Network error. Please try again.';
-                messageDiv.className = 'message error';
-                messageDiv.style.display = 'block';
-                btn.disabled = false;
-                btn.textContent = 'Confirm Cancel';
-            }
+                const r = await fetch(`${API_BASE}/delivery/confirm-cancel`, { method:'POST', headers, body: JSON.stringify({ trackingId: activeTrackingId, otp, reason }) });
+                if (r.ok) {
+                    msgEl.className = "message msg-success";
+                    msgEl.textContent = "Cancelled Successfully";
+                    setTimeout(() => { closeCancelSheet(); loadDeliveries(true); }, 1000);
+                } else { alert("Wrong OTP"); }
+            } catch(e) {}
         }
 
-        // --- 11. Logout ---
-        function logoutHandler() {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        };
+        // --- Helpers ---
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function handleOverlayClick(e) { if(e.target.classList.contains('overlay')) { closeBottomSheet(); closeCancelSheet(); } }
 
-messaging.onMessage((payload) => {
-  if (payload.notification.title === "Payment Done") {
-    alert("Payment received ✔");
-    loadAssignedDeliveries(true);
-  }
-});
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('delivery-name-top').textContent = localStorage.getItem('userName') || 'Delivery';
+            document.getElementById('full-name').textContent = localStorage.getItem('userName') || 'Delivery Boy';
+            loadDeliveries(true);
+        });
+
+        messaging.onMessage((payload) => {
+            if (payload.notification.title.includes("Payment")) {
+                alert("Payment Received! 💰"); loadDeliveries(true);
+            }
+        });
     </script>
 </body>
 </html>
