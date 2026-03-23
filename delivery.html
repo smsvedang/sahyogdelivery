@@ -592,7 +592,7 @@ function saveTokenToServer(token) {
         });
 
         // --- Cashfree Payment ---
-        const cashfree = Cashfree({ mode: "sandbox" }); 
+        const cashfree = Cashfree({ mode: "production" }); 
         async function initiateCashfreePayment(e) {
             e.preventDefault();
             const d = allDeliveries.find(x => x.trackingId === activeTrackingId);

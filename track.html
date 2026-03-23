@@ -169,10 +169,10 @@
             } catch (error) { resultDiv.innerHTML = `<strong>सर्वर से कनेक्ट नहीं हो पा रहा है।</strong>`; }
         });
 
-        /* ===== AUTO FILL TRACKING ID FROM URL ===== */
+/* ===== AUTO FILL TRACKING ID FROM URL ===== */
 document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
-    const tid = params.get("tid"); // ?tid=SAHYOG-xxxx
+    const tid = params.get("id") || params.get("tid"); // Supports both ?id= and ?tid=
 
     if (tid) {
         const input = document.getElementById("tracking-id");
