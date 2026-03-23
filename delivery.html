@@ -256,10 +256,8 @@ function saveTokenToServer(token) {
             <p id="sheet-tracking" style="font-weight:700; color:var(--primary); margin-top:-10px;"></p>
             
             <div id="sheet-status-update">
-                <p style="font-size:0.9rem; color:var(--text-muted);">Confirm the current status of this parcel.</p>
-                <div style="display:grid; gap:12px;">
-                    <button class="btn btn-primary" onclick="processStatusUpdate('Picked Up')">Update to Picked Up</button>
-                    <button class="btn btn-primary" onclick="processStatusUpdate('Out for Delivery')">Update to Out for Delivery</button>
+                <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:15px;">Confirm the next status of this parcel.</p>
+                <div id="dynamic-status-buttons" style="display:grid; gap:12px;">
                 </div>
             </div>
 
@@ -277,7 +275,7 @@ function saveTokenToServer(token) {
                             <input type="radio" name="paymentType" value="online" style="width:20px; height:20px; margin:0;"> Already Paid Online
                         </label>
                     </div>
-                    <button class="btn btn-outline" style="width:100%; margin-top:15px; border-color:var(--primary); color:var(--primary);" onclick="initiateCashfreePayment(event)">💳 Pay Online via Cashfree</button>
+                    <button id="cashfree-pay-btn" class="btn btn-outline" style="width:100%; margin-top:15px; border-color:var(--primary); color:var(--primary);" onclick="initiateCashfreePayment(event)">💳 Pay Online via Cashfree</button>
                 </div>
 
                 <button class="btn btn-success" style="width:100%; border-radius:50px; padding:15px;" id="btn-complete-submit" onclick="submitCompletion()">Complete Delivery</button>
@@ -389,10 +387,9 @@ function saveTokenToServer(token) {
                         ${(d.codPaymentStatus||'').includes('Paid') ? '<span class="badge badge-success" style="font-size:0.6rem;">PAID</span>' : ''}
                     </div>
                     <div class="action-row">
-                        <button class="btn btn-outline" onclick="openManualUpdate('${d.trackingId}', '${d.currentStatus}')"><i class="fas fa-pen-to-square"></i> Status</button>
-                        ${d.currentStatus === 'Out for Delivery' ? 
-                            `<button class="btn btn-primary" onclick="openCompleteSheet('${d.trackingId}')"><i class="fas fa-check-circle"></i> Complete</button>` :
-                            `<button class="btn btn-outline" onclick="updateDeliveryStatus('${d.trackingId}')"><i class="fas fa-arrow-up"></i> Update</button>`}
+                        ${d.currentStatus !== 'Out for Delivery' ? 
+                            `<button class="btn btn-outline" onclick="openManualUpdate('${d.trackingId}', '${d.currentStatus}')"><i class="fas fa-pen-to-square"></i> Status</button>` 
+                            : `<button class="btn btn-primary" onclick="openCompleteSheet('${d.trackingId}')"><i class="fas fa-check-circle"></i> Complete</button>`}
                         <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:${d.customerPhone}'" style="grid-column: span 1;"><i class="fas fa-phone"></i> Call</button>
                         <button class="btn btn-outline btn-sm" onclick="openCancelSheet('${d.trackingId}')" style="color:var(--danger);border-color:var(--danger);"><i class="fas fa-ban"></i> Cancel</button>
                     </div>
@@ -428,12 +425,22 @@ function saveTokenToServer(token) {
         }
 
         // --- Sheet Functions ---
-        function openManualUpdate(tid, status) {
+        function openManualUpdate(tid, currentStatus) {
             activeTrackingId = tid;
-            document.getElementById('sheet-title').textContent = "Update Package Status";
+            document.getElementById('sheet-title').textContent = "Update Status";
             document.getElementById('sheet-tracking').textContent = tid;
-            document.getElementById('sheet-status-update').style.display = 'block';
             document.getElementById('sheet-complete-flow').style.display = 'none';
+            document.getElementById('sheet-status-update').style.display = 'block';
+            
+            const btnContainer = document.getElementById('dynamic-status-buttons');
+            if (currentStatus === 'Out for Delivery') {
+                btnContainer.innerHTML = '<p>Parcel is Out for Delivery. Use the "Complete" button directly.</p>';
+            } else if (currentStatus === 'Picked Up') {
+                btnContainer.innerHTML = '<button class="btn btn-primary" style="width:100%; border-radius:50px; padding:15px; font-weight:700;" onclick="processStatusUpdate(\'Out for Delivery\')">Mark as Out for Delivery</button>';
+            } else {
+                btnContainer.innerHTML = '<button class="btn btn-primary" style="width:100%; border-radius:50px; padding:15px; font-weight:700;" onclick="processStatusUpdate(\'Picked Up\')">Mark as Picked Up</button>';
+            }
+            
             document.getElementById('completion-overlay').style.display = 'flex';
         }
 
@@ -444,7 +451,28 @@ function saveTokenToServer(token) {
             document.getElementById('sheet-tracking').textContent = tid;
             document.getElementById('sheet-status-update').style.display = 'none';
             document.getElementById('sheet-complete-flow').style.display = 'block';
-            document.getElementById('cod-section').style.display = (d.paymentMethod === 'COD') ? 'block' : 'none';
+            
+            const codSection = document.getElementById('cod-section');
+            const radioCash = document.querySelector('input[name="paymentType"][value="cash"]');
+            const radioOnline = document.querySelector('input[name="paymentType"][value="online"]');
+            const cashfreeBtn = document.getElementById('cashfree-pay-btn');
+
+            if (d.paymentMethod === 'COD') {
+                codSection.style.display = 'block';
+                if (d.codPaymentStatus === 'Paid - Online') {
+                    radioOnline.checked = true;
+                    radioCash.disabled = true;
+                    if (cashfreeBtn) cashfreeBtn.style.display = 'none';
+                } else {
+                    radioCash.checked = true;
+                    radioCash.disabled = false;
+                    radioOnline.disabled = false;
+                    if (cashfreeBtn) cashfreeBtn.style.display = 'block';
+                }
+            } else {
+                codSection.style.display = 'none';
+            }
+            
             document.getElementById('completion-overlay').style.display = 'flex';
         }
 
@@ -590,9 +618,13 @@ function saveTokenToServer(token) {
             document.getElementById('full-name').textContent = localStorage.getItem('userName') || 'Delivery Boy';
             
             const params = new URLSearchParams(window.location.search);
-            if(params.get('trackingId')) {
-                alert("✨ Online Payment Processed! Parcel marked as Delivered automatically.");
+            const pTid = params.get('trackingId');
+            if(pTid) {
                 window.history.replaceState({}, document.title, "/delivery.html");
+                setTimeout(() => {
+                    alert("✨ Payment Confirmed! Please input OTP to complete.");
+                    openCompleteSheet(pTid);
+                }, 800);
             }
 
             loadDeliveries(true);
