@@ -55,14 +55,20 @@ async function getPushToken() {
 }
 
 function saveTokenToServer(token) {
-  fetch(`https://sahyogdeliverybackend.onrender.com/api/save-fcm-token`, {
+  fetch(`${API_BASE}/api/save-fcm-token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${localStorage.getItem("authToken")}`
     },
     body: JSON.stringify({ token })
-  }).catch(e => {});
+  })
+  .then(async res => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'Token save failed');
+    return data;
+  })
+  .catch(e => console.error('Token save failed', e));
 }
 </script>
 
@@ -385,6 +391,7 @@ function saveTokenToServer(token) {
                                     <th>Email</th>
                                     <th>Phone</th>
                                     <th>Status</th>
+                                    <th>Push Token</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -533,6 +540,7 @@ function saveTokenToServer(token) {
                     <td>${u.email}</td>
                     <td>${u.phone || '-'}</td>
                     <td><span class="badge ${u.isActive?'badge-success':'badge-danger'}">${u.isActive?'Active':'Inactive'}</span></td>
+                    <td><span class="badge ${u.fcmTokens?.length ? 'badge-success' : 'badge-warning'}">${u.fcmTokens?.length ? `Registered (${u.fcmTokens.length})` : 'Not Registered'}</span></td>
                     <td><button class="btn btn-secondary btn-sm" onclick="openEditBoy('${u._id}','${u.name}','${u.email}','${u.phone}',${u.isActive})">Edit</button></td>
                 </tr>`).join('');
                 
@@ -776,6 +784,7 @@ function saveTokenToServer(token) {
         // --- Init ---
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('manager-name-top').textContent = localStorage.getItem('userName') || 'Manager';
+            if (Notification.permission === 'granted') getPushToken();
             
             document.getElementById('create-boy-form').onsubmit = async (e) => {
                 e.preventDefault();

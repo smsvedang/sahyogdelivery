@@ -68,10 +68,25 @@ const sendNotification = async (token, title, body, userId = null, options = {})
   try {
     await admin.messaging().send(message);
   } catch (err) {
+    console.error('Push notification failed:', {
+      code: err.code,
+      message: err.message,
+      userId,
+      title
+    });
     if (userId && (err.code === 'messaging/invalid-registration-token' || err.code === 'messaging/registration-token-not-registered')) {
       await User.findByIdAndUpdate(userId, { $pull: { fcmTokens: token } });
     }
   }
+};
+
+const sendNotificationToUser = async (user, title, body, options = {}) => {
+  if (!user?.fcmTokens?.length) return;
+  await Promise.allSettled(user.fcmTokens.map(token => sendNotification(token, title, body, user._id, options)));
+};
+
+const sendNotificationToUsers = async (users, title, body, options = {}) => {
+  await Promise.allSettled((users || []).map(user => sendNotificationToUser(user, title, body, options)));
 };
 
 function getISTTime() {
@@ -176,8 +191,9 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/save-fcm-token', auth(), async (req, res) => {
-  await User.findByIdAndUpdate(req.user.userId, { $addToSet: { fcmTokens: req.body.token } });
-  res.sendStatus(200);
+  if (!req.body.token) return res.status(400).json({ message: 'Token required' });
+  const user = await User.findByIdAndUpdate(req.user.userId, { $addToSet: { fcmTokens: req.body.token } }, { new: true });
+  res.json({ success: true, tokenCount: user?.fcmTokens?.length || 0 });
 });
 
 app.post('/api/change-password', auth(), async (req, res) => {
@@ -459,6 +475,21 @@ app.post('/delivery/complete', auth(['delivery', 'admin', 'manager']), async (re
   d.statusUpdates.push({ status: 'Delivered' }); d.completedAt = new Date();
   if (d.paymentMethod === 'COD') d.codPaymentStatus = paymentType === 'online' ? 'Paid - Online' : 'Paid - Cash';
   await d.save(); syncSingleDeliveryToSheet(d._id, 'update').catch(console.error);
+  const [manager, admins, deliveryBoy] = await Promise.all([
+    d.assignedByManager ? User.findById(d.assignedByManager) : null,
+    User.find({ role: 'admin', isActive: true }),
+    d.assignedTo ? User.findById(d.assignedTo) : null
+  ]);
+  const paymentText = d.paymentMethod === 'COD'
+    ? `${d.codPaymentStatus === 'Paid - Online' ? 'COD paid online' : `Cash collected ₹${d.billAmount || 0}`}`
+    : 'Prepaid delivery completed';
+  const notifierName = deliveryBoy?.name || req.user.name || 'Delivery Boy';
+  const title = 'Delivery Completed';
+  const body = `${d.trackingId} delivered by ${notifierName}. ${paymentText}.`;
+  await Promise.allSettled([
+    sendNotificationToUser(manager, title, body, { tag: `delivery-complete-${d._id}`, link: 'https://sahyogdelivery.vercel.app/manager.html' }),
+    sendNotificationToUsers(admins, title, body, { tag: `delivery-complete-${d._id}`, link: 'https://sahyogdelivery.vercel.app/admin.html' })
+  ]);
   res.json({ success: true });
 });
 

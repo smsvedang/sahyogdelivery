@@ -82,8 +82,12 @@
             },
             body: JSON.stringify({ token })
         })
-            .then(res => res.json())
-            .then(data => console.log("✅ Token saved:", data))
+            .then(async res => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || 'Token save failed');
+                console.log("✅ Token saved:", data);
+                return data;
+            })
             .catch(err => console.error("❌ Token save failed:", err));
     }
 </script>
@@ -1118,12 +1122,14 @@
             const managerInfo = user.role === 'delivery'
                 ? `<br><small style="color:#475569;"><i class="fas fa-sitemap"></i> Manager: ${getManagerNameForUser(user)}</small>`
                 : '';
+            const tokenInfo = `<br><small style="color:${user.fcmTokens?.length ? '#166534' : '#b45309'};"><i class="fas ${user.fcmTokens?.length ? 'fa-bell' : 'fa-bell-slash'}"></i> Push Token: ${user.fcmTokens?.length ? `Registered (${user.fcmTokens.length})` : 'Not Registered'}</small>`;
 
             return `<div style="display:flex; justify-content:space-between; gap:12px; padding:10px; border-bottom:1px solid #eee; align-items:flex-start;">
                 <div>
                     <strong>${user.name}</strong><br><small>${user.email}</small>
                     ${user.phone ? `<br><small>${user.phone}</small>` : ''}
                     ${managerInfo}
+                    ${tokenInfo}
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                     <button class="btn btn-secondary btn-sm" onclick="editUser('${user._id}')">Edit</button>
@@ -1551,6 +1557,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const name = localStorage.getItem('userName') || 'Admin';
             document.getElementById('admin-name').textContent = name;
+            if (Notification.permission === 'granted') getPushToken();
 
             // Share buttons events
             document.getElementById('print-btn').onclick = () => {

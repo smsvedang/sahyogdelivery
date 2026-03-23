@@ -58,14 +58,20 @@
     }
 
     function saveTokenToServer(token) {
-        fetch(`https://sahyogdeliverybackend.onrender.com/api/save-fcm-token`, {
+        fetch(`${API_BASE}/api/save-fcm-token`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`
             },
             body: JSON.stringify({ token })
-        }).catch(e => { });
+        })
+            .then(async res => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || 'Token save failed');
+                return data;
+            })
+            .catch(e => console.error('Token save failed', e));
     }
 </script>
 
@@ -945,6 +951,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('delivery-name-top').textContent = localStorage.getItem('userName') || 'Delivery';
             document.getElementById('full-name').textContent = localStorage.getItem('userName') || 'Delivery Boy';
+            if (Notification.permission === 'granted') getPushToken();
 
             const params = new URLSearchParams(window.location.search);
             const pTid = params.get('trackingId');
