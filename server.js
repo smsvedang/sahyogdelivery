@@ -269,6 +269,13 @@ app.post('/admin/receive-bulk', auth(['admin']), async (req, res) => {
   res.sendStatus(200);
 });
 
+// Admin: view parcels that have returned to branch, waiting to be scanned at HO
+app.get('/admin/rto-pending-returns', auth(['admin']), async (req, res) => {
+  const list = await Delivery.find({ 'statusUpdates.status': 'Return Received at Branch' })
+      .populate('assignedByManager', 'name').sort({ updatedAt: -1 });
+  res.json(list.filter(d => d.currentStatus === 'Return Received at Branch'));
+});
+
 app.get('/admin/pending-cash-orders', auth(['admin']), async (req, res) => {
   res.json(await Delivery.find({ paymentMethod: 'COD', codPaymentStatus: 'Paid - Cash', cashReceivedByAdmin: false, statusUpdates: { $elemMatch: { status: 'Delivered' } } }).populate('assignedTo', 'name'));
 });
@@ -335,7 +342,15 @@ app.get('/manager/expected-receive', auth(['manager']), async (req, res) => {
         assignedByManager: req.user.userId, 
         assignedTo: null 
     }).sort({ createdAt: -1 });
-    res.json(list.filter(d => !['Received at Branch', 'Delivered', 'Cancelled'].includes(d.currentStatus)));
+    // Only show parcels in normal forward flow (not cancelled/returned)
+    const excluded = ['Received at Branch', 'Delivered', 'Cancelled', 'Return Received at Branch', 'Return Received at Head Office', 'Booked'];
+    res.json(list.filter(d => !excluded.includes(d.currentStatus)));
+});
+
+// RTO parcels at manager level — Cancelled parcels that need to be scanned back at branch
+app.get('/manager/rto-parcels', auth(['manager']), async (req, res) => {
+    const list = await Delivery.find({ assignedByManager: req.user.userId }).sort({ updatedAt: -1 });
+    res.json(list.filter(d => d.currentStatus === 'Cancelled'));
 });
 
 app.get('/manager/all-pending-deliveries', auth(['manager']), async (req, res) => {

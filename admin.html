@@ -436,26 +436,51 @@ function saveTokenToServer(token) {
     </div>
 
     <div id="tab-admin-receive" class="tab-content">
-        <div class="card" style="max-width: 600px; margin: 0 auto; background: #e8f5e9; border-left: 5px solid #2e7d32; padding: 25px;">
-            <h2 style="margin-top: 0; color: #1b5e20;">📥 Admin Received Scan (Returns)</h2>
-            <p>Scan Tracking IDs here to mark them as "Received by Admin".</p>
-            <div style="display: flex; gap: 10px; margin-bottom:15px;">
-                <input type="text" id="admin-receive-scan-input" placeholder="Scan Barcode..." style="flex: 1; padding: 12px; font-size: 1.1em; border: 2px solid #2e7d32; border-radius: 8px;">
-                <button id="admin-receive-scan-btn" class="btn btn-success">Add</button>
+        <div style="display:flex; flex-wrap:wrap; gap:24px;">
+            <!-- Scan Column -->
+            <div class="card" style="flex:1; min-width:300px; background: #e8f5e9; border-left: 5px solid #2e7d32; padding: 25px;">
+                <h2 style="margin-top: 0; color: #1b5e20;">📥 Admin Receive Scan</h2>
+                <p>Scan IDs to mark as "Received by Admin" or "Return Received at HO" (RTO).</p>
+                <div style="display: flex; gap: 10px; margin-bottom:15px;">
+                    <input type="text" id="admin-receive-scan-input" placeholder="Scan Barcode..." style="flex: 1; padding: 12px; font-size: 1.1em; border: 2px solid #2e7d32; border-radius: 8px;">
+                    <button id="admin-receive-scan-btn" class="btn btn-success">Add</button>
+                </div>
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <button id="start-camera-admin-receive" class="btn btn-secondary" onclick="toggleAdminReceiveCamera()">📷 Open Camera Scanner</button>
+                    <div id="admin-receive-reader" style="width: 100%; max-width: 100%; margin: 15px auto; display: none; border-radius: 10px; overflow: hidden; border: 2px solid #2e7d32;"></div>
+                </div>
+                <div id="admin-receive-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px; background: white; margin-bottom: 20px;">
+                    <ul id="admin-receive-list" style="list-style: none; padding: 0; margin: 0;">
+                        <li style="color: #999; text-align: center; padding: 20px;">No parcels scanned yet.</li>
+                    </ul>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 15px;">
+                    <strong style="font-size: 1.1em;">Total Scanned: <span id="admin-receive-count">0</span></strong>
+                    <button id="confirm-admin-receive-btn" class="btn btn-success" onclick="confirmAdminReceive()">Confirm & Received 📦</button>
+                </div>
             </div>
-            
-            <div style="margin-bottom: 20px; text-align: center;">
-                <button id="start-camera-admin-receive" class="btn btn-secondary" onclick="toggleAdminReceiveCamera()">📷 Open Camera Scanner</button>
-                <div id="admin-receive-reader" style="width: 100%; max-width: 100%; margin: 15px auto; display: none; border-radius: 10px; overflow: hidden; border: 2px solid #2e7d32;"></div>
-            </div>
-            <div id="admin-receive-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px; background: white; margin-bottom: 20px;">
-                <ul id="admin-receive-list" style="list-style: none; padding: 0; margin: 0;">
-                    <li id="admin-receive-placeholder" style="color: #999; text-align: center; padding: 20px;">No parcels scanned yet.</li>
-                </ul>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 15px;">
-                <strong style="font-size: 1.1em;">Total Scanned: <span id="admin-receive-count">0</span></strong>
-                <button id="confirm-admin-receive-btn" class="btn btn-success" onclick="confirmAdminReceive()">Confirm & Received 📦</button>
+
+            <!-- RTO Pending Returns List -->
+            <div class="card" style="flex:1; min-width:300px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 style="color:#c62828;"><i class="fas fa-undo-alt"></i> RTO Pending at HO</h2>
+                    <button class="btn btn-secondary btn-sm" onclick="loadRtoPendingReturns()"><i class="fas fa-sync"></i></button>
+                </div>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-10px;">Parcels returned to branch, awaiting HO scan to complete RTO.</p>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tracking ID</th>
+                                <th>Branch Manager</th>
+                                <th>Add</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rto-pending-body">
+                            <tr><td colspan="3" style="text-align:center;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -640,6 +665,7 @@ function saveTokenToServer(token) {
             if (tabId === 'tab-drafts') loadDrafts();
             if (tabId === 'tab-settings') loadBusinessSettings();
             if (tabId === 'tab-ho-dispatch') loadPendingDispatch();
+            if (tabId === 'tab-admin-receive') loadRtoPendingReturns();
 
             if (window.innerWidth <= 992) toggleSidebar();
         }
@@ -1060,7 +1086,28 @@ function saveTokenToServer(token) {
         async function confirmAdminReceive() {
             if(!receiveIds.length) return;
             const r = await fetch(`${API_BASE}/admin/receive-bulk`, { method: 'POST', headers, body: JSON.stringify({ trackingIds: receiveIds }) });
-            if(r.ok) { alert('Received'); receiveIds=[]; updateScanList('admin-receive-list', receiveIds, 'admin-receive-count'); loadAllDeliveries(); }
+            if(r.ok) { alert('Received!'); receiveIds=[]; updateScanList('admin-receive-list', receiveIds, 'admin-receive-count'); loadAllDeliveries(); loadRtoPendingReturns(); }
+        }
+
+        async function loadRtoPendingReturns() {
+            const tbody = document.getElementById('rto-pending-body');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Loading...</td></tr>';
+            try {
+                const r = await fetch(`${API_BASE}/admin/rto-pending-returns`, { headers });
+                const list = await r.json();
+                tbody.innerHTML = list.length ? list.map(d => `<tr style="background:#fff3f3;">
+                    <td><strong>${d.trackingId}</strong><br><small style="color:#e53935;font-weight:700;">RTO</small></td>
+                    <td>${d.assignedByManager?.name || '-'}</td>
+                    <td><button class="btn btn-outline btn-sm" style="border-color:#e53935;color:#e53935;" onclick="addAdminReceiveId('${d.trackingId}')"><i class="fas fa-plus"></i></button></td>
+                </tr>`).join('') : '<tr><td colspan="3" style="text-align:center; color:#888;">No RTO parcels pending</td></tr>';
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Error loading</td></tr>';
+            }
+        }
+
+        function addAdminReceiveId(id) {
+            if (id && !receiveIds.includes(id)) { receiveIds.push(id); updateScanList('admin-receive-list', receiveIds, 'admin-receive-count'); }
         }
         
         async function editUser(id) {

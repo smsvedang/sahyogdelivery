@@ -273,11 +273,12 @@ function saveTokenToServer(token) {
                                 <thead>
                                     <tr>
                                         <th>Tracking ID</th>
+                                        <th>Tag</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody id="expected-receive-body">
-                                    <tr><td colspan="2" style="text-align:center;">Loading...</td></tr>
+                                    <tr><td colspan="3" style="text-align:center;">Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -553,15 +554,32 @@ function saveTokenToServer(token) {
         // --- Branch Receive ---
         async function loadExpectedReceives() {
             const tbody = document.getElementById('expected-receive-body');
-            tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Loading...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Loading...</td></tr>';
             try {
-                const r = await fetch(`${API_BASE}/manager/expected-receive`, { headers });
-                const deliveries = await r.json();
-                tbody.innerHTML = deliveries.length ? deliveries.map(d => `<tr>
-                    <td><strong>${d.trackingId}</strong></td>
-                    <td><span class="badge badge-warning">${d.currentStatus}</span></td>
-                </tr>`).join('') : '<tr><td colspan="2" style="text-align:center;">No expected parcels</td></tr>';
-            } catch(e) {}
+                const [r1, r2] = await Promise.all([
+                    fetch(`${API_BASE}/manager/expected-receive`, { headers }),
+                    fetch(`${API_BASE}/manager/rto-parcels`, { headers })
+                ]);
+                const forward = await r1.json();
+                const rto = await r2.json();
+
+                const rows = [
+                    ...forward.map(d => `<tr>
+                        <td><strong>${d.trackingId}</strong></td>
+                        <td><span style="background:#2196f3;color:#fff;padding:2px 8px;border-radius:20px;font-size:0.75rem;">FORWARD</span></td>
+                        <td><span class="badge badge-warning">${d.currentStatus}</span></td>
+                    </tr>`),
+                    ...rto.map(d => `<tr style="background:#fff3f3;">
+                        <td><strong>${d.trackingId}</strong></td>
+                        <td><span style="background:#e53935;color:#fff;padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:700;">RTO</span></td>
+                        <td><span class="badge" style="background:#e53935;color:#fff;">Cancelled – Return</span></td>
+                    </tr>`)
+                ];
+
+                tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3" style="text-align:center;">No expected parcels</td></tr>';
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Error loading</td></tr>';
+            }
         }
 
         function updateReceiveList() {
