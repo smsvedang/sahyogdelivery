@@ -34,8 +34,15 @@ if ('serviceWorker' in navigator && 'PushManager' in window) {
 }
 
 async function askForNotificationPermission() {
-  const permission = await Notification.requestPermission();
-  if (permission === "granted") getPushToken();
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      await getPushToken();
+      alert("Notifications Enabled Successfully!");
+    } else {
+      alert("Permission denied. Enable notifications in site settings.");
+    }
+  } catch(e) { alert("Error: " + e.message); }
 }
 
 async function getPushToken() {
@@ -47,7 +54,7 @@ async function getPushToken() {
       serviceWorkerRegistration
     });
     if (token) saveTokenToServer(token);
-  } catch (err) {}
+  } catch (err) { alert("Push error: " + err.message); }
 }
 
 function saveTokenToServer(token) {

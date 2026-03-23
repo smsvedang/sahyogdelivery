@@ -301,7 +301,6 @@ function saveTokenToServer(token) {
                                     <th>Customer</th>
                                     <th>Status</th>
                                     <th>Assigned Boy</th>
-                                    <th>Cancel OTP</th>
                                     <th>Payment</th>
                                     <th>Actions</th>
                                 </tr>
@@ -594,10 +593,9 @@ function saveTokenToServer(token) {
                     <td>${d.customerName}</td>
                     <td><strong>${d.currentStatus}</strong></td>
                     <td>${d.assignedTo?.name || '-'}</td>
-                    <td><strong style="color:var(--danger);">${d.cancellationOtp || '-'}</strong></td>
                     <td>${d.paymentMethod}</td>
                     <td><button class="btn btn-primary btn-sm" onclick="openReassignModal('${d._id}', '${d.assignedTo?.name || 'N/A'}')">Reassign</button></td>
-                </tr>`).join('') : '<tr><td colspan="7">No active deliveries</td></tr>';
+                </tr>`).join('') : '<tr><td colspan="6">No active deliveries</td></tr>';
             } catch(e) {}
         }
 

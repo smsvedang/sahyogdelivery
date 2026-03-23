@@ -78,8 +78,27 @@
     </div>
 
     <script>
-        const deliveries = JSON.parse(localStorage.getItem("completedDeliveries")) || [];
-        let filtered = deliveries;
+        const API_BASE = 'https://sahyogdeliverybackend.onrender.com';
+        const token = localStorage.getItem('authToken');
+        let deliveries = [];
+        let filtered = [];
+
+        async function loadData() {
+            try {
+                const r = await fetch(`${API_BASE}/delivery/completed`, {
+                   headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (r.ok) {
+                    deliveries = await r.json();
+                    filtered = deliveries;
+                    render(filtered);
+                } else {
+                    document.getElementById("tableBody").innerHTML = '<tr><td colspan="4" style="text-align:center;">Failed to load data</td></tr>';
+                }
+            } catch(e) {
+                document.getElementById("tableBody").innerHTML = '<tr><td colspan="4" style="text-align:center;">Error loading data</td></tr>';
+            }
+        }
 
         function formatDate(d) {
             if (!d) return '-';
@@ -130,7 +149,7 @@
             a.href = url; a.download = "Completed_Deliveries.csv"; a.click();
         }
 
-        render(deliveries);
+        loadData();
     </script>
 </body>
 </html>
