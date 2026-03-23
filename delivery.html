@@ -588,6 +588,13 @@ function saveTokenToServer(token) {
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('delivery-name-top').textContent = localStorage.getItem('userName') || 'Delivery';
             document.getElementById('full-name').textContent = localStorage.getItem('userName') || 'Delivery Boy';
+            
+            const params = new URLSearchParams(window.location.search);
+            if(params.get('trackingId')) {
+                alert("✨ Online Payment Processed! Parcel marked as Delivered automatically.");
+                window.history.replaceState({}, document.title, "/delivery.html");
+            }
+
             loadDeliveries(true);
         });
 
