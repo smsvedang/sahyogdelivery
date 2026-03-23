@@ -277,6 +277,7 @@ function saveTokenToServer(token) {
                             <input type="radio" name="paymentType" value="online" style="width:20px; height:20px; margin:0;"> Already Paid Online
                         </label>
                     </div>
+                    <button class="btn btn-outline" style="width:100%; margin-top:15px; border-color:var(--primary); color:var(--primary);" onclick="initiateCashfreePayment(event)">💳 Pay Online via Cashfree</button>
                 </div>
 
                 <button class="btn btn-success" style="width:100%; border-radius:50px; padding:15px;" id="btn-complete-submit" onclick="submitCompletion()">Complete Delivery</button>
@@ -409,8 +410,14 @@ function saveTokenToServer(token) {
                 if (d) {
                     if (navigator.vibrate) navigator.vibrate(100);
                     closeScanner();
-                    if (d.currentStatus === 'Out for Delivery') openCompleteSheet(id);
-                    else openManualUpdate(id, d.currentStatus);
+                    
+                    if (d.currentStatus === 'Out for Delivery') {
+                        openCompleteSheet(id);
+                    } else if (d.currentStatus === 'Picked Up') {
+                        processStatusUpdateDirect(id, 'Out for Delivery');
+                    } else {
+                        processStatusUpdateDirect(id, 'Picked Up');
+                    }
                 }
             }).catch(e => { alert("Camera Permission Required"); closeScanner(); });
         }
@@ -445,6 +452,17 @@ function saveTokenToServer(token) {
             document.getElementById('completion-overlay').style.display = 'none';
             document.getElementById('sheet-msg').style.display = 'none';
             document.getElementById('otp-input').value = '';
+        }
+
+        async function processStatusUpdateDirect(tid, status) {
+            activeTrackingId = tid;
+            document.getElementById('sheet-title').textContent = "Auto Updating...";
+            document.getElementById('sheet-tracking').textContent = `${tid} -> ${status}`;
+            document.getElementById('sheet-status-update').style.display = 'none';
+            document.getElementById('sheet-complete-flow').style.display = 'none';
+            document.getElementById('completion-overlay').style.display = 'flex';
+            
+            await processStatusUpdate(status);
         }
 
         async function processStatusUpdate(status) {
@@ -572,6 +590,25 @@ function saveTokenToServer(token) {
             document.getElementById('full-name').textContent = localStorage.getItem('userName') || 'Delivery Boy';
             loadDeliveries(true);
         });
+
+        // --- Cashfree Payment ---
+        const cashfree = Cashfree({ mode: "sandbox" }); 
+        async function initiateCashfreePayment(e) {
+            e.preventDefault();
+            const d = allDeliveries.find(x => x.trackingId === activeTrackingId);
+            if(!d) return;
+            try {
+                const r = await fetch(`${API_BASE}/api/create-payment-order`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ trackingId: d.trackingId, amount: d.billAmount })
+                });
+                const res = await r.json();
+                if(res.payment_session_id) {
+                    cashfree.checkout({ paymentSessionId: res.payment_session_id });
+                } else alert('Failed to create payment session');
+            } catch(err) { alert('Payment error: ' + err.message); }
+        }
 
         messaging.onMessage((payload) => {
             if (payload.notification.title.includes("Payment")) {

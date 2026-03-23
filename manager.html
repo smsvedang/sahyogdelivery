@@ -237,25 +237,50 @@ function saveTokenToServer(token) {
             </div>
 
             <div id="tab-branch-receive" class="tab-content">
-                <div class="card" style="max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: var(--success);"><i class="fas fa-file-import"></i> Branch Receive Scan</h2>
-                    <p style="color:var(--text-muted); font-size:0.9rem;">Scan Tracking IDs here to receive parcels from Head Office.</p>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="text" id="receive-scan-input" placeholder="Scan Barcode..." style="margin:0;">
-                        <button id="receive-scan-btn" class="btn btn-success">Add</button>
+                <div style="display:flex; flex-wrap:wrap; gap:24px;">
+                    <!-- Scan Component -->
+                    <div class="card" style="flex:1; min-width:300px;">
+                        <h2 style="color: var(--success);"><i class="fas fa-file-import"></i> Branch Receive Scan</h2>
+                        <p style="color:var(--text-muted); font-size:0.9rem;">Scan Tracking IDs here to receive parcels from Head Office.</p>
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <input type="text" id="receive-scan-input" placeholder="Scan Barcode..." style="margin:0;">
+                            <button id="receive-scan-btn" class="btn btn-success">Add</button>
+                        </div>
+                        <div style="text-align:center; margin-bottom:15px;">
+                            <button id="start-camera-receive" class="btn btn-secondary" onclick="toggleReceiveCamera()"><i class="fas fa-camera"></i> Open Camera</button>
+                            <div id="receive-reader" style="width: 100%; margin-top:15px; display:none; border-radius:10px; overflow:hidden; border:2px solid var(--success);"></div>
+                        </div>
+                        <div id="scan-list-box" style="max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:#f8fafc; padding:10px;">
+                            <ul id="receive-list" style="list-style:none; padding:0; margin:0;">
+                                <li style="text-align:center; color:#94a3b8; padding:20px;">No items scanned</li>
+                            </ul>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+                            <strong>Total: <span id="receive-count">0</span></strong>
+                            <button id="confirm-receive-btn" class="btn btn-primary" onclick="confirmReceive()">Confirm Received</button>
+                        </div>
                     </div>
-                    <div style="text-align:center; margin-bottom:15px;">
-                        <button id="start-camera-receive" class="btn btn-secondary" onclick="toggleReceiveCamera()"><i class="fas fa-camera"></i> Open Camera</button>
-                        <div id="receive-reader" style="width: 100%; margin-top:15px; display:none; border-radius:10px; overflow:hidden; border:2px solid var(--success);"></div>
-                    </div>
-                    <div id="scan-list-box" style="max-height: 250px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:#f8fafc; padding:10px;">
-                        <ul id="receive-list" style="list-style:none; padding:0; margin:0;">
-                            <li style="text-align:center; color:#94a3b8; padding:20px;">No items scanned</li>
-                        </ul>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-                        <strong>Total: <span id="receive-count">0</span></strong>
-                        <button id="confirm-receive-btn" class="btn btn-primary" onclick="confirmReceive()">Confirm Received</button>
+                    
+                    <!-- Expected Component -->
+                    <div class="card" style="flex:1; min-width:300px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h2 style="color: var(--primary);"><i class="fas fa-box-open"></i> Expected at Branch</h2>
+                            <button class="btn btn-secondary btn-sm" onclick="loadExpectedReceives()"><i class="fas fa-sync"></i></button>
+                        </div>
+                        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:-10px;">Parcels dispatched from HO and expected here.</p>
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tracking ID</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expected-receive-body">
+                                    <tr><td colspan="2" style="text-align:center;">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -452,6 +477,7 @@ function saveTokenToServer(token) {
             if(window.innerWidth <= 992) toggleSidebar();
             
             if(id === 'tab-pickups') loadPendingPickups();
+            if(id === 'tab-branch-receive') loadExpectedReceives();
             if(id === 'tab-bulk-assign') loadBulkPickups();
             if(id === 'tab-pending') loadAllPendingDeliveries();
             if(id === 'tab-completed') loadCompletedDeliveries();
@@ -525,6 +551,19 @@ function saveTokenToServer(token) {
         }
 
         // --- Branch Receive ---
+        async function loadExpectedReceives() {
+            const tbody = document.getElementById('expected-receive-body');
+            tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Loading...</td></tr>';
+            try {
+                const r = await fetch(`${API_BASE}/manager/expected-receive`, { headers });
+                const deliveries = await r.json();
+                tbody.innerHTML = deliveries.length ? deliveries.map(d => `<tr>
+                    <td><strong>${d.trackingId}</strong></td>
+                    <td><span class="badge badge-warning">${d.currentStatus}</span></td>
+                </tr>`).join('') : '<tr><td colspan="2" style="text-align:center;">No expected parcels</td></tr>';
+            } catch(e) {}
+        }
+
         function updateReceiveList() {
             const list = document.getElementById('receive-list');
             list.innerHTML = receiveScannedIds.length ? receiveScannedIds.map(id => `<li style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
@@ -537,7 +576,7 @@ function saveTokenToServer(token) {
         async function confirmReceive() {
             if(!receiveScannedIds.length) return;
             const r = await fetch(`${API_BASE}/manager/receive-bulk`, { method: 'POST', headers, body: JSON.stringify({ trackingIds: receiveScannedIds }) });
-            if(r.ok) { alert('Received'); receiveScannedIds=[]; updateReceiveList(); loadManagerSummary(); }
+            if(r.ok) { alert('Received'); receiveScannedIds=[]; updateReceiveList(); loadManagerSummary(); loadExpectedReceives(); }
         }
 
         let receiveScanner = null;
