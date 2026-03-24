@@ -243,6 +243,15 @@
             padding: 24px;
         }
 
+        .dashboard-footer {
+            text-align: center;
+            padding: 14px 24px 22px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            border-top: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.72);
+        }
+
         /* Generic UI Elements */
         .card {
             background: var(--card-bg);
@@ -899,6 +908,9 @@
             </div>
 
         </div> <!-- Close content-area -->
+        <footer class="dashboard-footer">
+            Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
+        </footer>
     </div> <!-- Close main-content -->
 
     <!-- Modals -->
@@ -1650,9 +1662,6 @@
 
         setInterval(loadDrafts, 60000);
     </script>
-    <footer style="text-align:center; padding:10px 20px 24px; color:var(--text-muted); font-size:0.82rem;">
-        Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
-    </footer>
 </body>
 
 </html>

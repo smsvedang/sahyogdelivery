@@ -118,6 +118,7 @@ function saveTokenToServer(token) {
         #hamburger { display: none; font-size: 20px; cursor: pointer; }
 
         .content-area { padding: 24px; overflow-y: auto; }
+        .dashboard-footer { text-align:center; padding:14px 24px 22px; color:var(--text-muted); font-size:0.82rem; border-top:1px solid var(--border); background:rgba(255,255,255,0.72); }
 
         /* Generic UI */
         .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 24px; }
@@ -180,6 +181,9 @@ function saveTokenToServer(token) {
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-boys')"><i class="fas fa-user-friends"></i> Delivery Boys</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-settings')"><i class="fas fa-cog"></i> Settings</div>
         </div>
+        <footer class="dashboard-footer">
+            Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
+        </footer>
     </div>
 
     <div class="main-content">
@@ -829,8 +833,5 @@ function saveTokenToServer(token) {
             loadManagerSummary(); loadMyBoys().then(() => loadPendingPickups());
         });
     </script>
-    <footer style="text-align:center; padding:10px 20px 24px; color:var(--text-muted); font-size:0.82rem;">
-        Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
-    </footer>
 </body>
 </html>
