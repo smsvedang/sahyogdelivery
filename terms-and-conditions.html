@@ -8,84 +8,93 @@
     <link rel="apple-touch-icon" href="/favicon.png">
     <meta name="theme-color" content="#f1c27d">
     <link rel="manifest" href="/manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #f1c27d;
-            --background-light: #f8f9fa;
-            --text-dark: #343a40;
-            --text-muted: #6c757d;
-            --card-bg: #ffffff;
-            --border-color: #dee2e6;
-            --shadow-light: rgba(0, 0, 0, 0.08);
+            --bg: #f6efe3;
+            --surface: rgba(255, 255, 255, 0.78);
+            --ink: #2b2016;
+            --muted: #77614a;
+            --brand: #bc6c00;
+            --border: rgba(92, 58, 24, 0.14);
+            --shadow: 0 24px 60px rgba(73, 44, 13, 0.12);
         }
 
         body {
             margin: 0;
-            font-family: 'Open Sans', sans-serif;
-            background: var(--background-light);
-            color: var(--text-dark);
+            font-family: 'Manrope', sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(255, 207, 135, 0.36), transparent 28%),
+                linear-gradient(180deg, #fff8ee 0%, #f3eadb 100%);
+            color: var(--ink);
         }
 
         .header {
-            background: linear-gradient(135deg, #f1c27d, #edb867);
-            color: #fff;
+            color: #fffdf8;
             text-align: center;
-            padding: 36px 16px 28px;
+            padding: 58px 16px 36px;
+            background: linear-gradient(135deg, #d18816, #8d4d00);
         }
 
         .header h1 {
             margin: 0;
-            font-family: 'Poppins', sans-serif;
-            font-size: 2rem;
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2.3rem, 5vw, 3.5rem);
+            letter-spacing: -0.04em;
         }
 
         .container {
             max-width: 860px;
-            margin: 24px auto;
+            margin: 32px auto;
             padding: 0 16px;
         }
 
         .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 8px 20px var(--shadow-light);
-            padding: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+            backdrop-filter: blur(14px);
         }
 
         .card h2 {
-            margin: 0 0 12px;
-            font-family: 'Poppins', sans-serif;
+            margin: 0 0 14px;
+            font-family: 'Fraunces', serif;
+            font-size: 1.8rem;
         }
 
         .card h3 {
-            margin: 18px 0 8px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.05rem;
+            margin: 24px 0 10px;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--brand);
         }
 
         p {
-            line-height: 1.7;
-            margin: 0 0 10px 0;
+            line-height: 1.8;
+            margin: 0 0 12px 0;
+            color: var(--muted);
         }
 
         .muted {
-            color: var(--text-muted);
+            color: var(--muted);
         }
 
         .footer {
-            margin-top: 24px;
+            margin-top: 32px;
             text-align: center;
-            padding: 20px 16px 30px;
-            color: var(--text-muted);
+            padding: 22px 16px 30px;
+            color: var(--muted);
             font-size: 0.92rem;
         }
 
         .links a {
-            color: #0d6efd;
+            color: var(--brand);
             text-decoration: none;
             margin: 0 6px;
+            font-weight: 700;
         }
 
         .links a:hover {

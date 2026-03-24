@@ -93,13 +93,13 @@
             --success: #059669;
             --warning: #f59e0b;
             --danger: #dc2626;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
+            --bg: #f6efe3;
+            --card-bg: rgba(255,255,255,0.84);
             --border: #e2e8f0;
             --text-main: #1e293b;
             --text-muted: #64748b;
-            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            --radius: 16px;
+            --shadow: 0 18px 40px rgba(72,45,13,0.12);
+            --radius: 18px;
         }
 
         * {
@@ -109,7 +109,9 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
+            background:
+                radial-gradient(circle at top left, rgba(255, 207, 135, 0.24), transparent 22%),
+                linear-gradient(180deg, #faf5ec 0%, #efe6d8 100%);
             color: var(--text-main);
             margin: 0;
             padding: 0;
@@ -120,7 +122,7 @@
 
         /* Mobile Header */
         .top-nav {
-            background: white;
+            background: rgba(255,255,255,0.72);
             padding: 16px 20px;
             display: flex;
             align-items: center;
@@ -129,6 +131,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            backdrop-filter: blur(14px);
         }
 
         .top-nav h1 {
@@ -158,13 +161,14 @@
             position: fixed;
             bottom: 0;
             width: 100%;
-            background: white;
+            background: rgba(255,255,255,0.82);
             display: flex;
             justify-content: space-around;
             padding: 12px 10px;
             border-top: 1px solid var(--border);
             box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
             z-index: 1000;
+            backdrop-filter: blur(14px);
         }
 
         .nav-item {
@@ -198,6 +202,7 @@
             border: 1px solid var(--border);
             margin-bottom: 16px;
             position: relative;
+            backdrop-filter: blur(14px);
         }
 
         .delivery-card {

@@ -8,38 +8,40 @@
     <link rel="apple-touch-icon" href="/favicon.png">
     <meta name="theme-color" content="#2563eb">
     <link rel="manifest" href="/manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --primary-light: #dbeafe;
-            --bg: #f8fafc;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
+            --primary: #c97900;
+            --primary-dark: #995700;
+            --primary-light: #fff0d7;
+            --bg: #f7f0e5;
+            --text-main: #2c2014;
+            --text-muted: #77604a;
             --white: #ffffff;
-            --radius: 16px;
-            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            --radius: 22px;
+            --shadow: 0 24px 60px rgba(73, 44, 13, 0.16);
         }
 
         * { box-sizing: border-box; }
         body { 
-            font-family: 'Inter', sans-serif; 
+            font-family: 'Manrope', sans-serif; 
             margin: 0; 
             display: flex; 
             flex-direction: column;
             justify-content: center; 
             align-items: center; 
             min-height: 100vh; 
-            background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+            background:
+                radial-gradient(circle at top left, rgba(255, 207, 135, 0.36), transparent 28%),
+                linear-gradient(180deg, #fff8ee 0%, #f0e6d7 100%);
             color: var(--text-main);
         }
 
         .login-container {
             width: 100%;
-            max-width: 400px;
+            max-width: 430px;
             padding: 20px;
         }
 
@@ -49,8 +51,8 @@
             border-radius: var(--radius); 
             box-shadow: var(--shadow); 
             width: 100%; 
-            border: 1px solid rgba(255,255,255,0.7);
-            backdrop-filter: blur(10px);
+            border: 1px solid rgba(108, 70, 26, 0.12);
+            backdrop-filter: blur(16px);
         }
 
         .logo-area {
@@ -63,13 +65,13 @@
             height: 60px;
             border-radius: 16px;
             margin-bottom: 12px;
-            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 8px 20px rgba(201, 121, 0, 0.2);
         }
 
         .logo-area h2 {
             margin: 0;
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.5rem;
+            font-family: 'Fraunces', serif;
+            font-size: 1.8rem;
             color: var(--primary);
         }
 
@@ -154,14 +156,14 @@
             font-size: 1rem; 
             font-weight: 700;
             transition: all 0.2s;
-            font-family: 'Poppins', sans-serif;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+            font-family: 'Manrope', sans-serif;
+            box-shadow: 0 12px 24px rgba(201, 121, 0, 0.22);
         }
 
         button:hover {
             background-color: var(--primary-dark);
             transform: translateY(-1px);
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 16px 26px rgba(201, 121, 0, 0.28);
         }
 
         button:active {

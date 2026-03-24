@@ -89,20 +89,20 @@ function saveTokenToServer(token) {
             --success: #059669;
             --warning: #f59e0b;
             --danger: #dc2626;
-            --bg: #f1f5f9;
-            --card-bg: #ffffff;
+            --bg: #f4efe6;
+            --card-bg: rgba(255,255,255,0.82);
             --border: #e2e8f0;
             --text-main: #1e293b;
             --text-muted: #64748b;
-            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            --radius: 12px;
+            --shadow: 0 22px 50px rgba(72,45,13,0.12);
+            --radius: 20px;
         }
 
         * { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; display: flex; min-height: 100vh; overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top left, rgba(255, 207, 135, 0.26), transparent 22%), linear-gradient(180deg, #f8f4ec 0%, #efe6d8 100%); color: var(--text-main); margin: 0; display: flex; min-height: 100vh; overflow-x: hidden; }
 
         /* Sidebar */
-        .sidebar { width: var(--sidebar-width); background: #1e293b; color: white; display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; z-index: 1000; }
+        .sidebar { width: var(--sidebar-width); background: linear-gradient(180deg, #1f2937 0%, #101828 100%); color: white; display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; z-index: 1000; }
         .sidebar-header { padding: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar-header img { width: 32px; border-radius: 6px; }
         .sidebar-header h2 { font-size: 1.1rem; margin: 0; font-family: 'Poppins', sans-serif; }
@@ -114,14 +114,14 @@ function saveTokenToServer(token) {
 
         /* Main Content */
         .main-content { flex: 1; display: flex; flex-direction: column; min-height: 100vh; position: relative; width: calc(100% - var(--sidebar-width)); }
-        .top-bar { height: 64px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 999; }
+        .top-bar { height: 64px; background: rgba(255,255,255,0.74); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 999; backdrop-filter: blur(14px); }
         #hamburger { display: none; font-size: 20px; cursor: pointer; }
 
         .content-area { padding: 24px; overflow-y: auto; }
         .dashboard-footer { text-align:center; padding:14px 24px 22px; color:var(--text-muted); font-size:0.82rem; border-top:1px solid var(--border); background:rgba(255,255,255,0.72); }
 
         /* Generic UI */
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 24px; }
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 24px; backdrop-filter: blur(14px); }
         .card h2 { margin: 0 0 20px 0; font-size: 1.25rem; font-family: 'Poppins', sans-serif; display: flex; align-items: center; gap: 10px; }
         
         .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 8px; }
@@ -139,7 +139,7 @@ function saveTokenToServer(token) {
         tr:hover td { background: #f8fafc; }
 
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px; }
-        .stat-card { background: white; padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .stat-card { background: rgba(255,255,255,0.8); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); backdrop-filter: blur(14px); }
         .stat-card p { margin: 0; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; }
         .stat-card h3 { margin: 8px 0 0 0; font-size: 1.5rem; font-family: 'Poppins', sans-serif; }
 
@@ -181,9 +181,6 @@ function saveTokenToServer(token) {
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-boys')"><i class="fas fa-user-friends"></i> Delivery Boys</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-settings')"><i class="fas fa-cog"></i> Settings</div>
         </div>
-        <footer class="dashboard-footer">
-            Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
-        </footer>
     </div>
 
     <div class="main-content">
@@ -420,6 +417,9 @@ function saveTokenToServer(token) {
             </div>
 
         </div>
+        <footer class="dashboard-footer">
+            Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
+        </footer>
     </div>
 
     <!-- Modals -->
