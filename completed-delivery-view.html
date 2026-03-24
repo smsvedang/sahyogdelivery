@@ -50,7 +50,7 @@
         </div>
         <div style="display:flex; gap:8px;">
             <button class="btn btn-outline" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export</button>
-            <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+            <button class="btn btn-primary" onclick="printCompleted()"><i class="fas fa-print"></i> Print</button>
         </div>
     </div>
 
@@ -95,10 +95,10 @@
                     filtered = deliveries;
                     render(filtered);
                 } else {
-                    document.getElementById("tableBody").innerHTML = '<tr><td colspan="4" style="text-align:center;">Failed to load data</td></tr>';
+                    document.getElementById("tableBody").innerHTML = '<tr><td colspan="5" style="text-align:center;">Failed to load data</td></tr>';
                 }
             } catch(e) {
-                document.getElementById("tableBody").innerHTML = '<tr><td colspan="4" style="text-align:center;">Error loading data</td></tr>';
+                document.getElementById("tableBody").innerHTML = '<tr><td colspan="5" style="text-align:center;">Error loading data</td></tr>';
             }
         }
 
@@ -114,6 +114,18 @@
             return date.toISOString().split('T')[0];
         }
 
+        function getPaymentDisplay(d) {
+            if (d.paymentMethod !== 'COD') return 'Prepaid';
+            if (d.codPaymentStatus === 'Paid - Cash') return `COD | Cash | Rs. ${d.billAmount || 0}`;
+            if (d.codPaymentStatus === 'Paid - Online') return 'COD | Online';
+            return `COD | ${d.codPaymentStatus || 'Pending'}${d.billAmount ? ` | Rs. ${d.billAmount}` : ''}`;
+        }
+
+        function getCompletionDate(d) {
+            const cancelled = d.statusUpdates?.some(s => s.status === 'Cancelled');
+            return cancelled ? d.updatedAt : d.completedAt;
+        }
+
         function render(list) {
             const tbody = document.getElementById("tableBody");
             tbody.innerHTML = list.length ? list.map(d => {
@@ -124,8 +136,8 @@
                 return `<tr style="${cancelled ? 'background:#fff3f3;' : ''}">
                     <td style="font-weight:600; color:var(--primary);">${d.trackingId}</td>
                     <td>${formatDate(d.createdAt)}</td>
-                    <td>${formatDate(cancelled ? d.updatedAt : d.completedAt)}</td>
-                    <td><span style="font-weight:500;">${d.paymentMethod}</span></td>
+                    <td>${formatDate(getCompletionDate(d))}</td>
+                    <td><span style="font-weight:500;">${getPaymentDisplay(d)}</span></td>
                     <td>${tag}</td>
                 </tr>`;
             }).join('') : '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">No records found</td></tr>';
@@ -138,7 +150,7 @@
 
             filtered = deliveries.filter(d => {
                 const mTrack = d.trackingId.toLowerCase().includes(track);
-                const mDate = !date || formatISODate(d.completedAt) === date;
+                const mDate = !date || formatISODate(getCompletionDate(d)) === date;
                 const mPay = !pay || d.paymentMethod === pay;
                 return mTrack && mDate && mPay;
             });
@@ -148,12 +160,62 @@
         function exportCSV() {
             let csv = "Tracking ID,Booking Date,Delivery Date,Payment\n";
             filtered.forEach(d => {
-                csv += `${d.trackingId},${formatDate(d.createdAt)},${formatDate(d.completedAt)},${d.paymentMethod}\n`;
+                csv += `"${d.trackingId}","${formatDate(d.createdAt)}","${formatDate(getCompletionDate(d))}","${getPaymentDisplay(d)}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url; a.download = "Completed_Deliveries.csv"; a.click();
+        }
+
+        function printCompleted() {
+            const rows = filtered.map(d => {
+                const cancelled = d.statusUpdates?.some(s => s.status === 'Cancelled');
+                return `<tr>
+                    <td>${d.trackingId}</td>
+                    <td>${formatDate(d.createdAt)}</td>
+                    <td>${formatDate(getCompletionDate(d))}</td>
+                    <td>${getPaymentDisplay(d)}</td>
+                    <td>${cancelled ? 'RTO' : 'Delivered'}</td>
+                </tr>`;
+            }).join('');
+
+            const win = window.open('', '_blank', 'width=1100,height=800');
+            if (!win) return alert('Allow popups to print completed deliveries.');
+
+            win.document.write(`
+                <html>
+                <head>
+                    <title>Completed Deliveries</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 24px; color: #1f2937; }
+                        h2 { margin: 0 0 6px; }
+                        p { margin: 0 0 18px; color: #6b7280; font-size: 13px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 1px solid #d1d5db; padding: 10px 12px; text-align: left; font-size: 13px; }
+                        th { background: #f3f4f6; }
+                    </style>
+                </head>
+                <body>
+                    <h2>Sahyog Completed Deliveries</h2>
+                    <p>Printed on ${new Date().toLocaleString('en-IN')}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tracking ID</th>
+                                <th>Booked</th>
+                                <th>Completed</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows || '<tr><td colspan="5">No records found</td></tr>'}</tbody>
+                    </table>
+                    <script>window.onload = () => { window.print(); };<\/script>
+                </body>
+                </html>
+            `);
+            win.document.close();
         }
     </script>
 
