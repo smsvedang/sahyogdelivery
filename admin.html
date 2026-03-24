@@ -650,6 +650,7 @@
                             <button id="print-btn" class="btn btn-secondary">🖨️ Print Label</button>
                             <button id="share-btn" class="btn btn-secondary">✉️ Share with Customer</button>
                             <button id="whatsapp-btn" class="btn btn-success">📲 Send on WhatsApp</button>
+                            <button id="sms-btn" class="btn btn-secondary">💬 Send SMS</button>
                             <button id="copy-btn" class="btn btn-warning">📋 Copy Details</button>
                         </div>
                         <div id="label"></div>
@@ -1630,6 +1631,13 @@
                 const text = prepareShareMessage(currentBookingData);
                 const url = `https://wa.me/91${currentBookingData.phone}?text=${encodeURIComponent(text)}`;
                 window.open(url, '_blank');
+            };
+            document.getElementById('sms-btn').onclick = () => {
+                if (!currentBookingData) return;
+                const text = prepareShareMessage(currentBookingData);
+                const phone = String(currentBookingData.phone || '').replace(/\D/g, '');
+                const separator = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? '&' : '?';
+                window.location.href = `sms:+91${phone}${separator}body=${encodeURIComponent(text)}`;
             };
             document.getElementById('copy-btn').onclick = async () => {
                 if (!currentBookingData) return;

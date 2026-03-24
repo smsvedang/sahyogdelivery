@@ -220,12 +220,8 @@ function saveTokenToServer(token) {
                         <h3 id="sum-delivered">0</h3>
                     </div>
                     <div class="stat-card" style="border-left: 4px solid #fbc02d; background: #fffde7;">
-                        <p>Cash In Hand</p>
+                        <p>Today's COD Cash</p>
                         <h3 id="sum-cash-collection">₹0</h3>
-                    </div>
-                    <div class="stat-card" style="border-left: 4px solid #0f766e; background: #ecfeff;">
-                        <p>Cash Received Today</p>
-                        <h3 id="sum-cash-received">₹0</h3>
                     </div>
                 </div>
             </div>
@@ -534,7 +530,6 @@ function saveTokenToServer(token) {
                 document.getElementById('sum-out-for-delivery').textContent = d.outForDelivery || 0;
                 document.getElementById('sum-delivered').textContent = d.deliveredToday || 0;
                 document.getElementById('sum-cash-collection').textContent = `₹${d.cashInHand || 0}`;
-                document.getElementById('sum-cash-received').textContent = `₹${d.todayCashReceived || 0}`;
             } catch(e) {}
         }
 
