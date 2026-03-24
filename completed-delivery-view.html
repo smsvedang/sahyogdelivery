@@ -154,8 +154,15 @@
             const a = document.createElement("a");
             a.href = url; a.download = "Completed_Deliveries.csv"; a.click();
         }
+    </script>
 
+    <footer style="text-align:center; padding:18px 14px 24px; color:#64748b; font-size:0.82rem;">
+        Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
+    </footer>
+    <script>
         loadData();
+        const footerYearEl = document.getElementById('footer-year');
+        if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
     </script>
 </body>
 </html>

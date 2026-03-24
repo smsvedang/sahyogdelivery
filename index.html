@@ -1,260 +1,646 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-5KWFTTBCKT"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-5KWFTTBCKT');
-</script>
-    <meta name="google-site-verification" content="sUd2hKr4JhoLKMQku6aNRgVeSmyvtjQcuT6ZB4aagRQ" />
-    <meta name="google-site-verification" content="QPuHTg9cV2Wzy0octtDjvg4578ofbZXghQnwDJLXb70" />
-    <meta title ="Sahyog Medical - Home Delivery Service">
-    <meta name="description" content="Sahyog Medical Home Delivery Service Portal">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5KWFTTBCKT"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-5KWFTTBCKT');
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="sUd2hKr4JhoLKMQku6aNRgVeSmyvtjQcuT6ZB4aagRQ">
+    <meta name="google-site-verification" content="QPuHTg9cV2Wzy0octtDjvg4578ofbZXghQnwDJLXb70">
+    <meta name="description" content="Sahyog Medical home delivery portal for shipment tracking, login, and support help.">
     <title>Sahyog Medical - Home Delivery Service</title>
-     <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="icon" href="/favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="/favicon.png">
-
-    <meta name="theme-color" content="#f1c27d">
+    <meta name="theme-color" content="#f4b860">
     <link rel="manifest" href="/manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #f1c27d; /* Sahyog Blue */
-            --secondary-color: #6c757d; /* Muted Gray */
-            --accent-color: #28a745; /* Green for success/highlight */
-            --background-light: #f8f9fa; /* Very light background */
-            --background-dark: #e9ecef; /* Slightly darker background */
-            --text-dark: #343a40; /* Dark text */
-            --text-muted: #6c757d; /* Muted text */
-            --card-bg: #ffffff;
-            --border-color: #dee2e6;
-            --shadow-light: rgba(0,0,0,0.08);
-            --shadow-hover: rgba(0,0,0,0.15);
+            --bg: #f7f1e7;
+            --bg-accent: #fff9f1;
+            --surface: rgba(255, 255, 255, 0.78);
+            --surface-strong: #fffdf9;
+            --ink: #2c1f14;
+            --muted: #745f4a;
+            --brand: #cc7a00;
+            --brand-deep: #8f4e00;
+            --line: rgba(86, 53, 20, 0.14);
+            --shadow: 0 20px 60px rgba(74, 45, 14, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Open Sans', sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: var(--background-light);
-            color: var(--text-dark);
+            min-height: 100vh;
+            font-family: 'Manrope', sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(255, 207, 135, 0.48), transparent 28%),
+                radial-gradient(circle at right center, rgba(219, 147, 32, 0.16), transparent 22%),
+                linear-gradient(180deg, #fff8ee 0%, #f5eee2 46%, #efe5d5 100%);
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
         }
 
-        .header {
-            text-align: center;
-            padding: 60px 20px 40px; /* More vertical padding */
-            background: linear-gradient(135deg, #f1c27d, #f1c27d); /* Blue gradient */
-            color: white;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        a {
+            color: inherit;
+            text-decoration: none;
         }
 
-        .header h1 {
-            font-family: 'Poppins', sans-serif;
-            margin: 0 0 10px 0;
-            font-size: 3.5em; /* Larger title */
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        .page-shell {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
         }
 
-        .header p {
-            font-size: 1.3em;
-            margin: 0;
-            font-weight: 400;
-            opacity: 0.9;
+        .hero {
+            padding: 30px 0 18px;
         }
 
-        .main-content {
-            flex-grow: 1;
+        .hero-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 32px;
+            background:
+                linear-gradient(140deg, rgba(255, 255, 255, 0.94), rgba(255, 248, 235, 0.9)),
+                var(--surface);
+            box-shadow: var(--shadow);
+            padding: 34px 34px 28px;
+        }
+
+        .hero-card::before,
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            background: rgba(204, 122, 0, 0.08);
+            z-index: 0;
+        }
+
+        .hero-card::before {
+            width: 240px;
+            height: 240px;
+            top: -80px;
+            right: -70px;
+        }
+
+        .hero-card::after {
+            width: 180px;
+            height: 180px;
+            bottom: -80px;
+            left: -50px;
+        }
+
+        .hero-content,
+        .stats,
+        .main-grid,
+        .footer {
+            position: relative;
+            z-index: 1;
+        }
+
+        .top-strip {
             display: flex;
-            justify-content: center;
-            align-items: center; /* Vertically center cards */
-            gap: 40px; /* More space between cards */
-            padding: 50px 20px;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        .brand-mark {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(204, 122, 0, 0.16);
+        }
+
+        .brand-mark img {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+        }
+
+        .brand-mark span {
+            display: block;
+            line-height: 1.15;
+        }
+
+        .brand-mark small {
+            color: var(--muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
+
+        .support-pills {
+            display: flex;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 15px; /* Softer rounded corners */
-            box-shadow: 0 8px 20px var(--shadow-light); /* More pronounced shadow */
-            padding: 40px; /* More padding inside cards */
-            text-align: center;
-            width: 300px; /* Slightly wider cards */
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 220px; /* Taller cards */
-            border: 1px solid var(--border-color); /* Subtle border */
-            cursor: pointer; /* Add pointer cursor to indicate clickability */
+        .support-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            border-radius: 999px;
+            background: var(--surface-strong);
+            border: 1px solid var(--line);
+            box-shadow: 0 10px 24px rgba(110, 71, 23, 0.08);
         }
 
-        .card:hover {
-            transform: translateY(-8px) scale(1.02); /* More noticeable hover effect */
-            box-shadow: 0 12px 25px var(--shadow-hover);
+        .support-pill i {
+            color: var(--brand);
         }
 
-        .card i { /* Icon styling */
-            font-size: 3em;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            pointer-events: none; /* Ignore pointer events on icon */
-        }
-
-        .card a {
-            font-family: 'Poppins', sans-serif;
-            text-decoration: none;
-            color: var(--primary-color);
-            font-size: 1.8em; /* Larger link text */
-            font-weight: 700;
-            margin-bottom: 10px;
+        .support-pill strong {
             display: block;
-            transition: color 0.2s ease;
-            pointer-events: none; /* Ignore pointer events on link text */
+            font-size: 0.86rem;
         }
 
-        .card a:hover {
-            color: #f1c27d;
+        .support-pill span {
+            color: var(--muted);
+            font-size: 0.83rem;
         }
 
-        .card p {
-            color: var(--text-muted);
-            font-size: 1.1em; /* Slightly larger description */
-            line-height: 1.6;
-            flex-grow: 1;
+        .hero-content {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+            gap: 28px;
+            align-items: center;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(204, 122, 0, 0.1);
+            color: var(--brand-deep);
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        h1 {
+            margin: 18px 0 14px;
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2.6rem, 6vw, 5rem);
+            line-height: 0.95;
+            letter-spacing: -0.04em;
+        }
+
+        .hero-copy p {
+            margin: 0;
+            max-width: 680px;
+            font-size: 1.05rem;
+            line-height: 1.75;
+            color: var(--muted);
+        }
+
+        .cta-row {
             display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+
+        .btn {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-top: 15px; /* Space between link and description */
-            pointer-events: none; /* Ignore pointer events on paragraph */
+            gap: 10px;
+            padding: 15px 22px;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #cc7a00, #9b5800);
+            color: #fff;
+            box-shadow: 0 14px 28px rgba(159, 94, 0, 0.25);
+        }
+
+        .btn-secondary {
+            border: 1px solid rgba(126, 83, 29, 0.2);
+            background: rgba(255, 255, 255, 0.86);
+            color: var(--ink);
+        }
+
+        .hero-panel {
+            background: linear-gradient(180deg, #fffdf8, #fff4e0);
+            border: 1px solid rgba(204, 122, 0, 0.16);
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        }
+
+        .hero-panel h3 {
+            margin: 0 0 14px;
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .status-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px dashed rgba(140, 87, 19, 0.18);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .status-line:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .status-line strong {
+            color: var(--ink);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+
+        .stat-card {
+            padding: 18px 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid var(--line);
+        }
+
+        .stat-card p {
+            margin: 0 0 8px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .stat-card strong {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--brand-deep);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 22px;
+            padding: 22px 0 34px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: 0 18px 40px rgba(75, 47, 15, 0.08);
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-family: 'Fraunces', serif;
+            font-size: 2rem;
+        }
+
+        .section-head p {
+            margin: 6px 0 0;
+            color: var(--muted);
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .action-card {
+            display: block;
+            border-radius: 22px;
+            padding: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 247, 234, 0.92));
+            border: 1px solid rgba(131, 86, 33, 0.14);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            box-shadow: 0 14px 28px rgba(95, 60, 16, 0.08);
+        }
+
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 34px rgba(95, 60, 16, 0.12);
+            border-color: rgba(204, 122, 0, 0.3);
+        }
+
+        .action-card i {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(204, 122, 0, 0.1);
+            color: var(--brand);
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+        }
+
+        .action-card h3 {
+            margin: 0 0 8px;
+            font-size: 1.15rem;
+        }
+
+        .action-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 0.94rem;
+        }
+
+        .info-stack {
+            display: grid;
+            gap: 14px;
+        }
+
+        .info-card {
+            padding: 18px 18px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid var(--line);
+        }
+
+        .info-card h3 {
+            margin: 0 0 8px;
+            font-size: 1rem;
+        }
+
+        .info-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 0.92rem;
         }
 
         .footer {
-            text-align: center;
-            padding: 25px;
-            background-color: var(--card-bg);
-            color: var(--text-muted);
-            font-size: 0.95em;
-            border-top: 1px solid var(--border-color);
             margin-top: auto;
-            box-shadow: 0 -2px 4px rgba(0,0,0,0.03); /* Subtle shadow on footer top */
+            padding: 0 0 26px;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 992px) {
-            .main-content {
-                gap: 30px;
-                padding: 40px 15px;
-            }
-            .card {
-                width: 280px;
-                padding: 35px;
-            }
-            .header h1 {
-                font-size: 3em;
-            }
-            .header p {
-                font-size: 1.1em;
-            }
+        .footer-card {
+            border-radius: 24px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.82);
+            padding: 18px 22px;
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+            align-items: center;
+            color: var(--muted);
+            font-size: 0.92rem;
         }
 
-        @media (max-width: 768px) {
-            .main-content {
-                flex-direction: column;
-                align-items: center;
+        .footer-links {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a:hover {
+            color: var(--brand-deep);
+        }
+
+        @media (max-width: 960px) {
+            .hero-content,
+            .main-grid {
+                grid-template-columns: 1fr;
             }
-            .card {
-                width: 90%;
-                max-width: 320px;
-                min-height: 200px;
-            }
-            .header h1 {
-                font-size: 2.5em;
-            }
-            .header p {
-                font-size: 1em;
-            }
-            .header {
-                padding: 40px 20px 30px;
+
+            .stats,
+            .action-grid {
+                grid-template-columns: 1fr;
             }
         }
 
-        @media (max-width: 480px) {
-            .card {
-                padding: 30px 20px;
+        @media (max-width: 640px) {
+            .page-shell {
+                width: min(100% - 20px, 1180px);
+            }
+
+            .hero-card,
+            .panel {
+                border-radius: 24px;
+                padding: 20px;
+            }
+
+            .top-strip {
+                margin-bottom: 16px;
+            }
+
+            .support-pills {
                 width: 100%;
-                max-width: 280px;
             }
-            .header h1 {
-                font-size: 2em;
+
+            .support-pill {
+                width: 100%;
             }
-            .header p {
-                font-size: 0.9em;
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .footer-card {
+                padding: 16px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Sahyog Medical</h1>
-        <p>होम डिलीवरी सर्विस पोर्टल</p>
-    </div>
+    <main class="page-shell hero">
+        <section class="hero-card">
+            <div class="top-strip">
+                <div class="brand-mark">
+                    <img src="/favicon.png" alt="Sahyog Medical">
+                    <span>
+                        <small>Sahyog Medical</small>
+                        <strong>Home Delivery Portal</strong>
+                    </span>
+                </div>
+                <div class="support-pills">
+                    <a class="support-pill" href="tel:+917415543744">
+                        <i class="fas fa-building"></i>
+                        <div>
+                            <strong>Head Office</strong>
+                            <span>+91 7415543744</span>
+                        </div>
+                    </a>
+                    <a class="support-pill" href="tel:+919243714402">
+                        <i class="fas fa-headset"></i>
+                        <div>
+                            <strong>Technical Support</strong>
+                            <span>+91 9243714402</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
 
-    <div class="main-content">
-        <div class="card" data-href="track.html">
-            <i class="fas fa-truck-fast"></i>
-            <a>Track Shipment</a> <p>अपना ट्रैकिंग ID डालें और अपने ऑर्डर का वर्तमान स्टेटस पता करें।</p>
-        </div>
-        <div class="card" data-href="login.html">
-            <i class="fas fa-sign-in-alt"></i>
-            <a>Login</a> <p>For Admin , Manager or Delivery Boy</p>
-        </div>
-    </div>
+            <div class="hero-content">
+                <div class="hero-copy">
+                    <span class="eyebrow"><i class="fas fa-box-open"></i> Fast Local Shipment Support</span>
+                    <h1>Track. Support. Deliver. All in one place.</h1>
+                    <p>
+                        Sahyog Medical ka delivery portal ab tracking, login, customer support, aur shipment query ko ek
+                        cleaner experience me laata hai. Customer ko status jaldi mile, team ko handoff easy rahe, aur support numbers
+                        hamesha saamne dikhein.
+                    </p>
+                    <div class="cta-row">
+                        <a class="btn btn-primary" href="/track.html"><i class="fas fa-location-crosshairs"></i> Track Shipment</a>
+                        <a class="btn btn-secondary" href="/login.html"><i class="fas fa-right-to-bracket"></i> Staff Login</a>
+                    </div>
+                </div>
 
-    <footer class="footer">
-        Copyright © <span id="copyright-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved.
-        <div style="margin-top: 8px;">
-            <a href="/contact-us.html">Contact Us</a> |
-            <a href="/terms-and-conditions.html">Terms &amp; Conditions</a> |
-            <a href="/ship-and-delivery-policy.html">Ship &amp; Delivery Policy</a> |
-            <a href="/refunds-and-cancellations.html">Refunds &amp; Cancellations</a>
+                <aside class="hero-panel">
+                    <h3>What you can do here</h3>
+                    <div class="status-line">
+                        <span>Check shipment status</span>
+                        <strong>Live tracking</strong>
+                    </div>
+                    <div class="status-line">
+                        <span>Talk to support instantly</span>
+                        <strong>Direct calling</strong>
+                    </div>
+                    <div class="status-line">
+                        <span>Admin, Manager, Delivery access</span>
+                        <strong>Single login flow</strong>
+                    </div>
+                    <div class="status-line">
+                        <span>Policy and contact details</span>
+                        <strong>Always available</strong>
+                    </div>
+                </aside>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <p>Head Office</p>
+                    <strong>7415543744</strong>
+                </div>
+                <div class="stat-card">
+                    <p>Technical Support</p>
+                    <strong>9243714402</strong>
+                </div>
+                <div class="stat-card">
+                    <p>Portal Access</p>
+                    <strong>24x7</strong>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section class="page-shell main-grid">
+        <div class="panel">
+            <div class="section-head">
+                <div>
+                    <h2>Quick Access</h2>
+                    <p>Most-used actions ko seedha yahan rakha gaya hai.</p>
+                </div>
+            </div>
+            <div class="action-grid">
+                <a class="action-card" href="/track.html">
+                    <i class="fas fa-truck-fast"></i>
+                    <h3>Track Shipment</h3>
+                    <p>Tracking ID daal kar parcel ka latest status dekhiye aur delivery progress confirm kariye.</p>
+                </a>
+                <a class="action-card" href="/login.html">
+                    <i class="fas fa-user-shield"></i>
+                    <h3>Portal Login</h3>
+                    <p>Admin, manager, aur delivery staff ke liye secure dashboard access yahin se milega.</p>
+                </a>
+                <a class="action-card" href="/contact-us.html">
+                    <i class="fas fa-phone-volume"></i>
+                    <h3>Support Numbers</h3>
+                    <p>Head office aur technical support dono direct contact options ke saath available hain.</p>
+                </a>
+                <a class="action-card" href="/ship-and-delivery-policy.html">
+                    <i class="fas fa-file-lines"></i>
+                    <h3>Policies & Terms</h3>
+                    <p>Shipping, refunds, aur service rules ko ek jagah se quickly review kariye.</p>
+                </a>
+            </div>
+        </div>
+
+        <aside class="panel">
+            <div class="section-head">
+                <div>
+                    <h2>Support Desk</h2>
+                    <p>Right number tak jaldi pahunchne ke liye.</p>
+                </div>
+            </div>
+            <div class="info-stack">
+                <div class="info-card">
+                    <h3>Head Office</h3>
+                    <p>Shipment aur dispatch related follow-up ke liye <strong>+91 7415543744</strong> par call karein.</p>
+                </div>
+                <div class="info-card">
+                    <h3>Technical Support</h3>
+                    <p>Portal ya technical issue ke liye <strong>+91 9243714402</strong> use karein.</p>
+                </div>
+                <div class="info-card">
+                    <h3>Built for Daily Use</h3>
+                    <p>Clean access, fewer clicks, aur visible support details taaki portal staff aur customers dono ke liye practical rahe.</p>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <footer class="page-shell footer">
+        <div class="footer-card">
+            <div>Copyright © <span id="copyright-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.</div>
+            <div class="footer-links">
+                <a href="/contact-us.html">Contact Us</a>
+                <a href="/terms-and-conditions.html">Terms &amp; Conditions</a>
+                <a href="/ship-and-delivery-policy.html">Ship &amp; Delivery Policy</a>
+                <a href="/refunds-and-cancellations.html">Refunds &amp; Cancellations</a>
+            </div>
         </div>
     </footer>
 
     <script>
-        // Dynamically set the current year for the copyright notice
         document.getElementById('copyright-year').textContent = new Date().getFullYear();
-
-        // Add click event listener to each card
-        document.querySelectorAll('.card').forEach(card => {
-            card.addEventListener('click', () => {
-                const href = card.getAttribute('data-href');
-                if (href) {
-                    window.location.href = href;
-                }
-            });
-        });
-
-        // Optional: Prevent default link behavior within the card to avoid double-triggers
-        // This is good practice if you have <a> tags inside a clickable parent.
-        document.querySelectorAll('.card a').forEach(link => {
-            link.addEventListener('click', (event) => {
-                event.preventDefault(); // Prevent the <a> tag's default navigation
-                // The parent card's click listener will handle navigation
-            });
-        });
-
     </script>
 </body>
 </html>

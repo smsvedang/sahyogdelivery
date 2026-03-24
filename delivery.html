@@ -505,12 +505,16 @@
                 <p style="font-size:0.85rem; color:var(--text-muted);">In case of any issues, contact management:</p>
                 <div style="display:flex; gap:10px; flex-direction:column;">
                     <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+917415543744'"><i
-                            class="fas fa-phone"></i> Order Support</button>
+                            class="fas fa-building"></i> Head Office</button>
                     <button class="btn btn-outline btn-sm" onclick="window.location.href='tel:+919243714402'"><i
                             class="fas fa-headset"></i> Technical Support</button>
                 </div>
             </div>
         </div>
+
+        <footer style="text-align:center; padding:18px 14px 28px; color:var(--text-muted); font-size:0.82rem;">
+            Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
+        </footer>
 
     </div>
 
@@ -951,6 +955,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('delivery-name-top').textContent = localStorage.getItem('userName') || 'Delivery';
             document.getElementById('full-name').textContent = localStorage.getItem('userName') || 'Delivery Boy';
+            const footerYearEl = document.getElementById('footer-year');
+            if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
             if (Notification.permission === 'granted') getPushToken();
 
             const params = new URLSearchParams(window.location.search);

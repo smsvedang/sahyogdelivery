@@ -784,6 +784,8 @@ function saveTokenToServer(token) {
         // --- Init ---
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('manager-name-top').textContent = localStorage.getItem('userName') || 'Manager';
+            const footerYearEl = document.getElementById('footer-year');
+            if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
             if (Notification.permission === 'granted') getPushToken();
             
             document.getElementById('create-boy-form').onsubmit = async (e) => {
@@ -827,5 +829,8 @@ function saveTokenToServer(token) {
             loadManagerSummary(); loadMyBoys().then(() => loadPendingPickups());
         });
     </script>
+    <footer style="text-align:center; padding:10px 20px 24px; color:var(--text-muted); font-size:0.82rem;">
+        Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
+    </footer>
 </body>
 </html>
