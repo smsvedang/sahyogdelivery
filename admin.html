@@ -650,7 +650,7 @@
                             <button id="print-btn" class="btn btn-secondary">🖨️ Print Label</button>
                             <button id="share-btn" class="btn btn-secondary">✉️ Share with Customer</button>
                             <button id="whatsapp-btn" class="btn btn-success">📲 Send on WhatsApp</button>
-                            <button id="sms-btn" class="btn btn-secondary">💬 Google Messages</button>
+                            <button id="sms-btn" class="btn btn-secondary">💬 Google Messages / SMS</button>
                             <button id="copy-btn" class="btn btn-warning">📋 Copy Details</button>
                         </div>
                         <div id="label"></div>
@@ -1635,14 +1635,24 @@
             document.getElementById('sms-btn').onclick = () => {
                 if (!currentBookingData) return;
                 const text = prepareShareMessage(currentBookingData);
-                navigator.clipboard.writeText(text)
+                const phone = String(currentBookingData.phone || '').replace(/\D/g, '');
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+                if (isMobile && phone) {
+                    const separator = isIOS ? '&' : '?';
+                    window.location.href = `sms:+91${phone}${separator}body=${encodeURIComponent(text)}`;
+                    return;
+                }
+
+                navigator.clipboard.writeText(`To: +91${phone}\n\n${text}`)
                     .then(() => {
                         window.open('https://messages.google.com/web', '_blank');
-                        alert('Booking details copied. Google Messages opened, paste and send.');
+                        alert('Number and booking details copied. Google Messages Web opened, paste and send.');
                     })
                     .catch(() => {
                         window.open('https://messages.google.com/web', '_blank');
-                        alert('Google Messages opened. Clipboard copy failed, use Copy Details once if needed.');
+                        alert('Google Messages Web opened. Use Copy Details if clipboard was blocked.');
                     });
             };
             document.getElementById('copy-btn').onclick = async () => {
