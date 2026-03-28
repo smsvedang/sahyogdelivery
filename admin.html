@@ -1407,7 +1407,7 @@
                 </tr>`).join('')
                 : '<tr><td colspan="5" style="text-align:center; color:#64748b;">No cash closures on this date.</td></tr>';
 
-            container.innerHTML = `
+            return `
                 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px;">
                     <div class="card" style="margin:0; padding:16px;"><small style="color:var(--text-muted);">Booked Today</small><div style="font-size:1.8rem; font-weight:800;">${m.bookedToday || 0}</div></div>
                     <div class="card" style="margin:0; padding:16px;"><small style="color:var(--text-muted);">Completed Today</small><div style="font-size:1.8rem; font-weight:800;">${m.completedToday || 0}</div><div style="font-size:0.82rem; color:var(--text-muted);">Delivered ${m.deliveredToday || 0} • Cancelled ${m.cancelledToday || 0}</div></div>
