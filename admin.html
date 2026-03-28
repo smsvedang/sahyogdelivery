@@ -688,6 +688,7 @@
                         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                             <input type="date" id="daily-summary-date" style="width:auto; margin:0;">
                             <button id="refresh-daily-summary-btn" class="btn btn-secondary">Refresh Summary</button>
+                            <button id="download-daily-summary-btn" class="btn btn-primary">Download Summary</button>
                         </div>
                     </div>
                     <div id="daily-summary-content">
@@ -1432,6 +1433,134 @@
             `;
         }
 
+        function buildDailySummaryDownloadHtml(summary) {
+            const m = summary.metrics || {};
+            const statusItems = (summary.statusSnapshot || []).map(item => `<li><strong>${escapeHtml(item.status)}:</strong> ${item.count}</li>`).join('') || '<li>No status data</li>';
+            const managerRows = (summary.managerBreakdown || []).map(item => `<tr>
+                <td>${escapeHtml(item.managerName)}</td>
+                <td>${item.booked}</td>
+                <td>${item.delivered}</td>
+                <td>${item.cancelled}</td>
+                <td>${formatCurrency(item.codBookedAmount)}</td>
+                <td>${formatCurrency(item.cashReceivedAmount)}</td>
+            </tr>`).join('') || '<tr><td colspan="6">No manager activity for this day.</td></tr>';
+            const bookingRows = (summary.recentBookings || []).map(item => `<tr>
+                <td>${escapeHtml(item.trackingId)}</td>
+                <td>${escapeHtml(item.customerName)}</td>
+                <td>${escapeHtml(item.managerName)}</td>
+                <td>${escapeHtml(item.currentStatus)}</td>
+                <td>${item.paymentMethod === 'COD' ? `COD ${formatCurrency(item.billAmount)}` : 'Prepaid'}</td>
+                <td>${formatDateTimeToIST(item.createdAt)}</td>
+            </tr>`).join('') || '<tr><td colspan="6">No bookings created on this date.</td></tr>';
+            const cashRows = (summary.recentCashClosures || []).map(item => `<tr>
+                <td>${escapeHtml(item.trackingId)}</td>
+                <td>${escapeHtml(item.customerName)}</td>
+                <td>${escapeHtml(item.managerName)}</td>
+                <td>${formatCurrency(item.billAmount)}</td>
+                <td>${formatDateTimeToIST(item.cashReceivedAt)}</td>
+            </tr>`).join('') || '<tr><td colspan="5">No cash closures on this date.</td></tr>';
+
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Summary ${escapeHtml(summary.date)}</title>
+    <style>
+        body { font-family: Inter, Arial, sans-serif; padding: 28px; color: #0f172a; background: #f8fafc; }
+        h1, h2, h3 { margin: 0 0 12px; }
+        .meta { color: #475569; margin-bottom: 24px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; }
+        .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+        .value { font-size: 28px; font-weight: 800; margin-top: 8px; }
+        table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0; margin-bottom: 24px; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; }
+        th { background: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #475569; }
+        ul { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 24px; }
+        li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Sahyog Daily Summary</h1>
+    <div class="meta">Date: ${escapeHtml(summary.date)} | Margmart Pincode: ${escapeHtml(summary.targetPincode || '-')}</div>
+
+    <div class="grid">
+        <div class="card"><div class="label">Booked Today</div><div class="value">${m.bookedToday || 0}</div></div>
+        <div class="card"><div class="label">Completed Today</div><div class="value">${m.completedToday || 0}</div><div>Delivered ${m.deliveredToday || 0} | Cancelled ${m.cancelledToday || 0}</div></div>
+        <div class="card"><div class="label">Margmart Drafts</div><div class="value">${m.draftsImportedToday || 0}</div></div>
+        <div class="card"><div class="label">COD Booked Amount</div><div class="value">${formatCurrency(m.codBookedAmount)}</div></div>
+        <div class="card"><div class="label">Cash Received</div><div class="value">${formatCurrency(m.cashCollectedToday)}</div></div>
+        <div class="card"><div class="label">Pending Cash</div><div class="value">${m.pendingCashCount || 0}</div><div>${formatCurrency(m.pendingCashAmount)} pending</div></div>
+    </div>
+
+    <h2>Status Snapshot</h2>
+    <ul>${statusItems}</ul>
+
+    <h2>Manager-wise Breakdown</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Manager</th>
+                <th>Booked</th>
+                <th>Delivered</th>
+                <th>Cancelled</th>
+                <th>COD Booked</th>
+                <th>Cash Received</th>
+            </tr>
+        </thead>
+        <tbody>${managerRows}</tbody>
+    </table>
+
+    <h2>Recent Bookings</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Tracking ID</th>
+                <th>Customer</th>
+                <th>Manager</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Booked At</th>
+            </tr>
+        </thead>
+        <tbody>${bookingRows}</tbody>
+    </table>
+
+    <h2>Cash Closures</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Tracking ID</th>
+                <th>Customer</th>
+                <th>Manager</th>
+                <th>Amount</th>
+                <th>Received At</th>
+            </tr>
+        </thead>
+        <tbody>${cashRows}</tbody>
+    </table>
+</body>
+</html>`;
+        }
+
+        function downloadDailySummary() {
+            if (!dailySummaryData) {
+                alert('Load the daily summary first.');
+                return;
+            }
+            const html = buildDailySummaryDownloadHtml(dailySummaryData);
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sahyog-daily-summary-${dailySummaryData.date || 'report'}.html`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
         async function loadDailySummary() {
             const dateInput = document.getElementById('daily-summary-date');
             const container = document.getElementById('daily-summary-content');
@@ -1883,6 +2012,7 @@
                 'refresh-cash-orders-btn': loadCashOrders,
                 'refresh-completed-deliveries-btn': loadCompletedDeliveries,
                 'refresh-daily-summary-btn': loadDailySummary,
+                'download-daily-summary-btn': downloadDailySummary,
                 'dispatch-scan-btn': () => {
                     const v = document.getElementById('dispatch-scan-input').value.trim().toUpperCase();
                     if (v && !dispatchIds.includes(v)) { dispatchIds.push(v); updateScanList('dispatch-list', dispatchIds, 'dispatch-count'); }
