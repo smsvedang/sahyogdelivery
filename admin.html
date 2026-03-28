@@ -580,6 +580,8 @@
                 Draft Orders</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-deliveries')"><i class="fas fa-list"></i> All
                 Bookings</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-summary')"><i class="fas fa-chart-line"></i>
+                Daily Summary</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-ho-dispatch')"><i
                     class="fas fa-truck-loading"></i> HO Dispatch</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-admin-receive')"><i
@@ -685,20 +687,17 @@
                 <div class="card" style="min-width: 95%;">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <button id="toggle-daily-summary-btn" class="btn btn-secondary" style="padding:8px 12px; min-width:44px;" aria-expanded="false" title="Expand daily summary">▸</button>
                             <h2 style="margin:0;">Daily Summary</h2>
                         </div>
                         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                             <input type="date" id="daily-summary-date" style="width:auto; margin:0;">
                             <button id="refresh-daily-summary-btn" class="btn btn-secondary">Refresh Summary</button>
                             <button id="print-daily-summary-btn" class="btn btn-primary">Print Summary</button>
+                            <button id="open-full-summary-btn" class="btn btn-secondary">Open Full Summary</button>
                         </div>
                     </div>
                     <div id="daily-summary-mini" style="color:var(--text-muted); font-size:0.92rem; margin-bottom:0;">
-                        Summary hidden. Choose a date and use the arrow to expand, or print directly.
-                    </div>
-                    <div id="daily-summary-content">
-                        <p style="color:var(--text-muted); margin:0;">Choose a date to view the full-day summary.</p>
+                        Choose a date to view the compact summary or print the report.
                     </div>
                 </div>
                 <div class="card" style="min-width: 95%; overflow-x: auto;">
@@ -875,6 +874,22 @@
                 </div>
             </div>
 
+            <div id="tab-summary" class="tab-content">
+                <div class="card" style="min-width: 95%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
+                        <h2 style="margin:0;">Detailed Daily Summary</h2>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <input type="date" id="daily-summary-date-full" style="width:auto; margin:0;">
+                            <button id="refresh-daily-summary-full-btn" class="btn btn-secondary">Refresh Summary</button>
+                            <button id="print-daily-summary-full-btn" class="btn btn-primary">Print Summary</button>
+                        </div>
+                    </div>
+                    <div id="daily-summary-content">
+                        <p style="color:var(--text-muted); margin:0;">Choose a date to view the full-day summary.</p>
+                    </div>
+                </div>
+            </div>
+
             <div id="tab-cash-orders" class="tab-content">
                 <div class="card" style="min-width: 95%; overflow-x: auto;">
                     <h2>COD Cash Orders</h2>
@@ -1045,7 +1060,6 @@
         let draftsData = [];
         let businessSettings = {};
         let dailySummaryData = null;
-        let isDailySummaryExpanded = false;
 
         // --- Auth Check ---
         if (!token || role !== 'admin') { window.location.href = 'login.html'; }
@@ -1059,6 +1073,7 @@
             if (event) event.currentTarget.classList.add('active');
 
             if (tabId === 'tab-deliveries') { loadAllDeliveries(); loadDailySummary(); }
+            if (tabId === 'tab-summary') loadDailySummary();
             if (tabId === 'tab-cash-orders') loadCashOrders();
             if (tabId === 'tab-completed-deliveries') loadCompletedDeliveries();
             if (tabId === 'tab-users') loadAllUsers();
@@ -1327,19 +1342,12 @@
             } catch (e) { }
         }
 
-        function updateDailySummaryVisibility() {
-            const content = document.getElementById('daily-summary-content');
-            const toggleBtn = document.getElementById('toggle-daily-summary-btn');
-            if (!content || !toggleBtn) return;
-            content.style.display = isDailySummaryExpanded ? 'block' : 'none';
-            toggleBtn.textContent = isDailySummaryExpanded ? '▾' : '▸';
-            toggleBtn.setAttribute('aria-expanded', String(isDailySummaryExpanded));
-            toggleBtn.title = isDailySummaryExpanded ? 'Collapse daily summary' : 'Expand daily summary';
-        }
-
-        function toggleDailySummary() {
-            isDailySummaryExpanded = !isDailySummaryExpanded;
-            updateDailySummaryVisibility();
+        function syncDailySummaryDates(sourceId) {
+            const source = document.getElementById(sourceId);
+            if (!source) return;
+            const otherId = sourceId === 'daily-summary-date' ? 'daily-summary-date-full' : 'daily-summary-date';
+            const other = document.getElementById(otherId);
+            if (other && source.value && other.value !== source.value) other.value = source.value;
         }
 
         function renderDailySummaryMini(summary) {
@@ -1361,17 +1369,8 @@
             `;
         }
 
-        function renderDailySummary(summary) {
-            const container = document.getElementById('daily-summary-content');
-            if (!container) return;
-            if (!summary) {
-                container.innerHTML = '<p style="color:var(--text-muted); margin:0;">Summary unavailable.</p>';
-                renderDailySummaryMini(null);
-                return;
-            }
-
+        function buildDailySummaryDetailedHtml(summary) {
             const m = summary.metrics || {};
-            renderDailySummaryMini(summary);
             const managerRows = (summary.managerBreakdown || []).length
                 ? summary.managerBreakdown.map(item => `<tr>
                     <td>${escapeHtml(item.managerName)}</td>
@@ -1474,6 +1473,19 @@
                     </div>
                 </div>
             `;
+        }
+
+        function renderDailySummary(summary) {
+            const container = document.getElementById('daily-summary-content');
+            if (!container) return;
+            if (!summary) {
+                container.innerHTML = '<p style="color:var(--text-muted); margin:0;">Summary unavailable.</p>';
+                renderDailySummaryMini(null);
+                return;
+            }
+
+            renderDailySummaryMini(summary);
+            container.innerHTML = buildDailySummaryDetailedHtml(summary);
         }
 
         function buildDailySummaryPrintHtml(summary) {
@@ -1604,16 +1616,31 @@
             setTimeout(() => win.print(), 500);
         }
 
+        function openFullSummaryTab() {
+            syncDailySummaryDates('daily-summary-date');
+            const summaryNav = Array.from(document.querySelectorAll('.nav-item')).find(item => item.getAttribute('onclick')?.includes('tab-summary'));
+            openTab(summaryNav ? { currentTarget: summaryNav } : null, 'tab-summary');
+        }
+
         async function loadDailySummary() {
-            const dateInput = document.getElementById('daily-summary-date');
+            const compactInput = document.getElementById('daily-summary-date');
+            const fullInput = document.getElementById('daily-summary-date-full');
             const container = document.getElementById('daily-summary-content');
-            if (!dateInput || !container) return;
-            if (!dateInput.value) dateInput.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+            if (!container) return;
+
+            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+            if (compactInput && !compactInput.value) compactInput.value = today;
+            if (fullInput && !fullInput.value) fullInput.value = compactInput?.value || today;
+
+            const activeFullTab = document.getElementById('tab-summary')?.classList.contains('active');
+            const activeInput = activeFullTab && fullInput ? fullInput : compactInput || fullInput;
+            if (!activeInput) return;
+            syncDailySummaryDates(activeInput.id);
 
             renderDailySummaryMini(null);
             container.innerHTML = '<p style="color:var(--text-muted); margin:0;">Loading daily summary...</p>';
             try {
-                const r = await fetch(`${API_BASE}/admin/daily-summary?date=${encodeURIComponent(dateInput.value)}`, { headers });
+                const r = await fetch(`${API_BASE}/admin/daily-summary?date=${encodeURIComponent(activeInput.value)}`, { headers });
                 if (!r.ok) throw new Error('Failed to load daily summary');
                 dailySummaryData = await r.json();
                 renderDailySummary(dailySummaryData);
@@ -2057,8 +2084,10 @@
                 'refresh-cash-orders-btn': loadCashOrders,
                 'refresh-completed-deliveries-btn': loadCompletedDeliveries,
                 'refresh-daily-summary-btn': loadDailySummary,
+                'refresh-daily-summary-full-btn': loadDailySummary,
                 'print-daily-summary-btn': printDailySummary,
-                'toggle-daily-summary-btn': toggleDailySummary,
+                'print-daily-summary-full-btn': printDailySummary,
+                'open-full-summary-btn': openFullSummaryTab,
                 'dispatch-scan-btn': () => {
                     const v = document.getElementById('dispatch-scan-input').value.trim().toUpperCase();
                     if (v && !dispatchIds.includes(v)) { dispatchIds.push(v); updateScanList('dispatch-list', dispatchIds, 'dispatch-count'); }
@@ -2073,7 +2102,8 @@
 
             const summaryDateInput = document.getElementById('daily-summary-date');
             if (summaryDateInput) summaryDateInput.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-            updateDailySummaryVisibility();
+            const summaryDateInputFull = document.getElementById('daily-summary-date-full');
+            if (summaryDateInputFull) summaryDateInputFull.value = summaryDateInput?.value || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
             loadManagersForDropdown(); loadAllDeliveries(); loadDrafts(); loadBusinessSettings(); loadDailySummary();
         });
