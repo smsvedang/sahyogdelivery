@@ -682,6 +682,18 @@
             </div>
 
             <div id="tab-deliveries" class="tab-content">
+                <div class="card" style="min-width: 95%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
+                        <h2 style="margin:0;">Daily Summary</h2>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <input type="date" id="daily-summary-date" style="width:auto; margin:0;">
+                            <button id="refresh-daily-summary-btn" class="btn btn-secondary">Refresh Summary</button>
+                        </div>
+                    </div>
+                    <div id="daily-summary-content">
+                        <p style="color:var(--text-muted); margin:0;">Choose a date to view the full-day summary.</p>
+                    </div>
+                </div>
                 <div class="card" style="min-width: 95%; overflow-x: auto;">
                     <h2>All Bookings</h2>
                     <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
@@ -947,18 +959,6 @@
                         <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Save Settings</button>
                     </form>
                 </div>
-                <div class="card" style="min-width: 95%;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
-                        <h2 style="margin:0;">Daily Summary</h2>
-                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                            <input type="date" id="daily-summary-date" style="width:auto; margin:0;">
-                            <button id="refresh-daily-summary-btn" class="btn btn-secondary">Refresh Summary</button>
-                        </div>
-                    </div>
-                    <div id="daily-summary-content">
-                        <p style="color:var(--text-muted); margin:0;">Choose a date to view the full-day summary.</p>
-                    </div>
-                </div>
             </div>
 
         </div> <!-- Close content-area -->
@@ -1050,12 +1050,12 @@
             document.getElementById(tabId).classList.add('active');
             if (event) event.currentTarget.classList.add('active');
 
-            if (tabId === 'tab-deliveries') loadAllDeliveries();
+            if (tabId === 'tab-deliveries') { loadAllDeliveries(); loadDailySummary(); }
             if (tabId === 'tab-cash-orders') loadCashOrders();
             if (tabId === 'tab-completed-deliveries') loadCompletedDeliveries();
             if (tabId === 'tab-users') loadAllUsers();
             if (tabId === 'tab-drafts') loadDrafts();
-            if (tabId === 'tab-settings') { loadBusinessSettings(); loadDailySummary(); }
+            if (tabId === 'tab-settings') loadBusinessSettings();
             if (tabId === 'tab-ho-dispatch') loadPendingDispatch();
             if (tabId === 'tab-admin-receive') loadRtoPendingReturns();
 
