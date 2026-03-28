@@ -947,6 +947,18 @@
                         <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Save Settings</button>
                     </form>
                 </div>
+                <div class="card" style="min-width: 95%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
+                        <h2 style="margin:0;">Daily Summary</h2>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <input type="date" id="daily-summary-date" style="width:auto; margin:0;">
+                            <button id="refresh-daily-summary-btn" class="btn btn-secondary">Refresh Summary</button>
+                        </div>
+                    </div>
+                    <div id="daily-summary-content">
+                        <p style="color:var(--text-muted); margin:0;">Choose a date to view the full-day summary.</p>
+                    </div>
+                </div>
             </div>
 
         </div> <!-- Close content-area -->
@@ -1025,6 +1037,7 @@
         let cashOrdersData = [];
         let draftsData = [];
         let businessSettings = {};
+        let dailySummaryData = null;
 
         // --- Auth Check ---
         if (!token || role !== 'admin') { window.location.href = 'login.html'; }
@@ -1042,7 +1055,7 @@
             if (tabId === 'tab-completed-deliveries') loadCompletedDeliveries();
             if (tabId === 'tab-users') loadAllUsers();
             if (tabId === 'tab-drafts') loadDrafts();
-            if (tabId === 'tab-settings') loadBusinessSettings();
+            if (tabId === 'tab-settings') { loadBusinessSettings(); loadDailySummary(); }
             if (tabId === 'tab-ho-dispatch') loadPendingDispatch();
             if (tabId === 'tab-admin-receive') loadRtoPendingReturns();
 
@@ -1059,6 +1072,13 @@
         function toggleManagerSelect(role, divId) { document.getElementById(divId).style.display = (role === 'delivery') ? 'block' : 'none'; }
 
         function formatDateToYYYYMMDD(d) { return d ? new Date(d).toLocaleDateString('en-IN') : '-'; }
+        function formatDateTimeToIST(d) {
+            return d ? new Date(d).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) : '-';
+        }
+        function formatCurrency(v) { return `₹${Number(v || 0).toLocaleString('en-IN')}`; }
+        function escapeHtml(v) {
+            return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
         function getPaymentDisplay(d) { return (d.paymentMethod === 'COD') ? `COD (₹${d.billAmount || 0})` : 'Prepaid'; }
         function getBarcodeScannerConfig(fps = 15) {
             return {
@@ -1297,6 +1317,137 @@
                 document.getElementById('upi-id').value = businessSettings.upiId || '';
                 document.getElementById('upi-name').value = businessSettings.upiName || '';
             } catch (e) { }
+        }
+
+        function renderDailySummary(summary) {
+            const container = document.getElementById('daily-summary-content');
+            if (!container) return;
+            if (!summary) {
+                container.innerHTML = '<p style="color:var(--text-muted); margin:0;">Summary unavailable.</p>';
+                return;
+            }
+
+            const m = summary.metrics || {};
+            const managerRows = (summary.managerBreakdown || []).length
+                ? summary.managerBreakdown.map(item => `<tr>
+                    <td>${escapeHtml(item.managerName)}</td>
+                    <td>${item.booked}</td>
+                    <td>${item.delivered}</td>
+                    <td>${item.cancelled}</td>
+                    <td>${formatCurrency(item.codBookedAmount)}</td>
+                    <td>${formatCurrency(item.cashReceivedAmount)}</td>
+                </tr>`).join('')
+                : '<tr><td colspan="6" style="text-align:center; color:#64748b;">No manager activity for this day.</td></tr>';
+
+            const statusBadges = (summary.statusSnapshot || []).length
+                ? summary.statusSnapshot.map(item => `<span class="badge badge-warning" style="font-size:0.8rem; padding:8px 12px;">${escapeHtml(item.status)}: ${item.count}</span>`).join(' ')
+                : '<span style="color:#64748b;">No status data</span>';
+
+            const bookingRows = (summary.recentBookings || []).length
+                ? summary.recentBookings.map(item => `<tr>
+                    <td>${escapeHtml(item.trackingId)}</td>
+                    <td>${escapeHtml(item.customerName)}</td>
+                    <td>${escapeHtml(item.managerName)}</td>
+                    <td>${escapeHtml(item.currentStatus)}</td>
+                    <td>${item.paymentMethod === 'COD' ? `COD ${formatCurrency(item.billAmount)}` : 'Prepaid'}</td>
+                    <td>${formatDateTimeToIST(item.createdAt)}</td>
+                </tr>`).join('')
+                : '<tr><td colspan="6" style="text-align:center; color:#64748b;">No bookings created on this date.</td></tr>';
+
+            const cashRows = (summary.recentCashClosures || []).length
+                ? summary.recentCashClosures.map(item => `<tr>
+                    <td>${escapeHtml(item.trackingId)}</td>
+                    <td>${escapeHtml(item.customerName)}</td>
+                    <td>${escapeHtml(item.managerName)}</td>
+                    <td>${formatCurrency(item.billAmount)}</td>
+                    <td>${formatDateTimeToIST(item.cashReceivedAt)}</td>
+                </tr>`).join('')
+                : '<tr><td colspan="5" style="text-align:center; color:#64748b;">No cash closures on this date.</td></tr>';
+
+            container.innerHTML = `
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px;">
+                    <div class="card" style="margin:0; padding:16px;"><small style="color:var(--text-muted);">Booked Today</small><div style="font-size:1.8rem; font-weight:800;">${m.bookedToday || 0}</div></div>
+                    <div class="card" style="margin:0; padding:16px;"><small style="color:var(--text-muted);">Completed Today</small><div style="font-size:1.8rem; font-weight:800;">${m.completedToday || 0}</div><div style="font-size:0.82rem; color:var(--text-muted);">Delivered ${m.deliveredToday || 0} • Cancelled ${m.cancelledToday || 0}</div></div>
+                    <div class="card" style="margin:0; padding:16px;"><small style="color:var(--text-muted);">Margmart Drafts</small><div style="font-size:1.8rem; font-weight:800;">${m.draftsImportedToday || 0}</div><div style="font-size:0.82rem; color:var(--text-muted);">Pincode ${escapeHtml(summary.targetPincode || '-')}</div></div>
+                    <div class="card" style="margin:0; padding:16px;"><small style="color:var(--text-muted);">COD Booked Amount</small><div style="font-size:1.8rem; font-weight:800;">${formatCurrency(m.codBookedAmount)}</div><div style="font-size:0.82rem; color:var(--text-muted);">COD ${m.codBookingsToday || 0} • Prepaid ${m.prepaidBookingsToday || 0}</div></div>
+                    <div class="card" style="margin:0; padding:16px;"><small style="color:var(--text-muted);">Cash Received</small><div style="font-size:1.8rem; font-weight:800;">${formatCurrency(m.cashCollectedToday)}</div><div style="font-size:0.82rem; color:var(--text-muted);">Online COD ${formatCurrency(m.onlineCollectedToday)}</div></div>
+                    <div class="card" style="margin:0; padding:16px;"><small style="color:var(--text-muted);">Pending Cash</small><div style="font-size:1.8rem; font-weight:800;">${m.pendingCashCount || 0}</div><div style="font-size:0.82rem; color:var(--text-muted);">${formatCurrency(m.pendingCashAmount)} pending</div></div>
+                </div>
+
+                <div style="margin-bottom:18px;">
+                    <h3 style="margin:0 0 10px 0;">Current Status Snapshot</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px;">${statusBadges}</div>
+                </div>
+
+                <div style="margin-bottom:18px; overflow-x:auto;">
+                    <h3 style="margin:0 0 10px 0;">Manager-wise Breakdown</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Manager</th>
+                                <th>Booked</th>
+                                <th>Delivered</th>
+                                <th>Cancelled</th>
+                                <th>COD Booked</th>
+                                <th>Cash Received</th>
+                            </tr>
+                        </thead>
+                        <tbody>${managerRows}</tbody>
+                    </table>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px;">
+                    <div style="overflow-x:auto;">
+                        <h3 style="margin:0 0 10px 0;">Recent Bookings</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tracking ID</th>
+                                    <th>Customer</th>
+                                    <th>Manager</th>
+                                    <th>Status</th>
+                                    <th>Payment</th>
+                                    <th>Booked At</th>
+                                </tr>
+                            </thead>
+                            <tbody>${bookingRows}</tbody>
+                        </table>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <h3 style="margin:0 0 10px 0;">Cash Closures</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tracking ID</th>
+                                    <th>Customer</th>
+                                    <th>Manager</th>
+                                    <th>Amount</th>
+                                    <th>Received At</th>
+                                </tr>
+                            </thead>
+                            <tbody>${cashRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadDailySummary() {
+            const dateInput = document.getElementById('daily-summary-date');
+            const container = document.getElementById('daily-summary-content');
+            if (!dateInput || !container) return;
+            if (!dateInput.value) dateInput.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+            container.innerHTML = '<p style="color:var(--text-muted); margin:0;">Loading daily summary...</p>';
+            try {
+                const r = await fetch(`${API_BASE}/admin/daily-summary?date=${encodeURIComponent(dateInput.value)}`, { headers });
+                if (!r.ok) throw new Error('Failed to load daily summary');
+                dailySummaryData = await r.json();
+                renderDailySummary(dailySummaryData);
+            } catch (e) {
+                console.error('Failed to load daily summary:', e);
+                container.innerHTML = '<p style="color:#dc2626; margin:0;">Unable to load daily summary right now.</p>';
+            }
         }
 
         // --- Handlers ---
@@ -1731,6 +1882,7 @@
                 },
                 'refresh-cash-orders-btn': loadCashOrders,
                 'refresh-completed-deliveries-btn': loadCompletedDeliveries,
+                'refresh-daily-summary-btn': loadDailySummary,
                 'dispatch-scan-btn': () => {
                     const v = document.getElementById('dispatch-scan-input').value.trim().toUpperCase();
                     if (v && !dispatchIds.includes(v)) { dispatchIds.push(v); updateScanList('dispatch-list', dispatchIds, 'dispatch-count'); }
@@ -1743,7 +1895,10 @@
 
             for (let id in actions) { let el = document.getElementById(id); if (el) el.onclick = actions[id]; }
 
-            loadManagersForDropdown(); loadAllDeliveries(); loadDrafts(); loadBusinessSettings();
+            const summaryDateInput = document.getElementById('daily-summary-date');
+            if (summaryDateInput) summaryDateInput.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+            loadManagersForDropdown(); loadAllDeliveries(); loadDrafts(); loadBusinessSettings(); loadDailySummary();
         });
 
         setInterval(loadDrafts, 60000);

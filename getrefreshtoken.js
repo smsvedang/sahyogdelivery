@@ -1,11 +1,16 @@
+import 'dotenv/config';
 import { google } from 'googleapis';
 import readline from 'readline';
 
 const oAuth2Client = new google.auth.OAuth2(
-  "1064383914642-dagne0o1dnm206kqdeus7qskot8ajqrc.apps.googleusercontent.com",
-  "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",
-  "http://localhost:3000/oauth2callback"
+  process.env.GMAIL_CLIENT_ID,
+  process.env.GMAIL_CLIENT_SECRET,
+  process.env.GMAIL_REDIRECT_URI || "http://localhost:3000/oauth2callback"
 );
+
+if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET) {
+  throw new Error('Missing GMAIL_CLIENT_ID or GMAIL_CLIENT_SECRET in environment.');
+}
 
 const authUrl = oAuth2Client.generateAuthUrl({
   access_type: 'offline',
