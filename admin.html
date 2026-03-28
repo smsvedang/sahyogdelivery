@@ -1243,6 +1243,7 @@
             const tb = document.getElementById('drafts-body');
             try {
                 const r = await fetch(`${API_BASE}/api/drafts`, { headers });
+                if (!r.ok) throw new Error('Failed to load drafts');
                 draftsData = await r.json();
                 tb.innerHTML = draftsData.map(d => `<tr>
                     <td>${d.orderNumber}</td>
@@ -1251,7 +1252,27 @@
                     <td>₹${d.amount}</td>
                     <td><button class="btn btn-success btn-sm" onclick="prefillFromDraft('${d._id}')">Complete</button></td>
                 </tr>`).join('');
-            } catch (e) { }
+            } catch (e) {
+                draftsData = [];
+                tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626;">Unable to load draft orders.</td></tr>';
+                console.error('Failed to load drafts:', e);
+            }
+        }
+
+        async function fetchMargmartOrders() {
+            try {
+                const r = await fetch(`${API_BASE}/api/fetch-margmart-orders`, {
+                    method: 'POST',
+                    headers
+                });
+                const res = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(res.message || 'Failed to fetch Margmart orders');
+                await loadDrafts();
+                alert(res.message || 'Margmart orders fetched successfully.');
+            } catch (e) {
+                console.error('Failed to fetch Margmart orders:', e);
+                alert(e.message || 'Unable to fetch Margmart orders right now.');
+            }
         }
 
         async function loadManagersForDropdown() {
