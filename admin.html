@@ -683,13 +683,19 @@
 
             <div id="tab-deliveries" class="tab-content">
                 <div class="card" style="min-width: 95%;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
-                        <h2 style="margin:0;">Daily Summary</h2>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <button id="toggle-daily-summary-btn" class="btn btn-secondary" style="padding:8px 12px; min-width:44px;" aria-expanded="false" title="Expand daily summary">▸</button>
+                            <h2 style="margin:0;">Daily Summary</h2>
+                        </div>
                         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                             <input type="date" id="daily-summary-date" style="width:auto; margin:0;">
                             <button id="refresh-daily-summary-btn" class="btn btn-secondary">Refresh Summary</button>
                             <button id="print-daily-summary-btn" class="btn btn-primary">Print Summary</button>
                         </div>
+                    </div>
+                    <div id="daily-summary-mini" style="color:var(--text-muted); font-size:0.92rem; margin-bottom:0;">
+                        Summary hidden. Choose a date and use the arrow to expand, or print directly.
                     </div>
                     <div id="daily-summary-content">
                         <p style="color:var(--text-muted); margin:0;">Choose a date to view the full-day summary.</p>
@@ -1039,6 +1045,7 @@
         let draftsData = [];
         let businessSettings = {};
         let dailySummaryData = null;
+        let isDailySummaryExpanded = false;
 
         // --- Auth Check ---
         if (!token || role !== 'admin') { window.location.href = 'login.html'; }
@@ -1320,15 +1327,51 @@
             } catch (e) { }
         }
 
+        function updateDailySummaryVisibility() {
+            const content = document.getElementById('daily-summary-content');
+            const toggleBtn = document.getElementById('toggle-daily-summary-btn');
+            if (!content || !toggleBtn) return;
+            content.style.display = isDailySummaryExpanded ? 'block' : 'none';
+            toggleBtn.textContent = isDailySummaryExpanded ? '▾' : '▸';
+            toggleBtn.setAttribute('aria-expanded', String(isDailySummaryExpanded));
+            toggleBtn.title = isDailySummaryExpanded ? 'Collapse daily summary' : 'Expand daily summary';
+        }
+
+        function toggleDailySummary() {
+            isDailySummaryExpanded = !isDailySummaryExpanded;
+            updateDailySummaryVisibility();
+        }
+
+        function renderDailySummaryMini(summary) {
+            const mini = document.getElementById('daily-summary-mini');
+            if (!mini) return;
+            if (!summary) {
+                mini.innerHTML = 'Summary hidden. Choose a date and use the arrow to expand, or print directly.';
+                return;
+            }
+            const m = summary.metrics || {};
+            mini.innerHTML = `
+                <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+                    <span><strong>Date:</strong> ${escapeHtml(summary.date || '-')}</span>
+                    <span><strong>Booked:</strong> ${m.bookedToday || 0}</span>
+                    <span><strong>Completed:</strong> ${m.completedToday || 0}</span>
+                    <span><strong>Cash Received:</strong> ${formatCurrency(m.cashCollectedToday)}</span>
+                    <span><strong>Pending Cash:</strong> ${formatCurrency(m.pendingCashAmount)}</span>
+                </div>
+            `;
+        }
+
         function renderDailySummary(summary) {
             const container = document.getElementById('daily-summary-content');
             if (!container) return;
             if (!summary) {
                 container.innerHTML = '<p style="color:var(--text-muted); margin:0;">Summary unavailable.</p>';
+                renderDailySummaryMini(null);
                 return;
             }
 
             const m = summary.metrics || {};
+            renderDailySummaryMini(summary);
             const managerRows = (summary.managerBreakdown || []).length
                 ? summary.managerBreakdown.map(item => `<tr>
                     <td>${escapeHtml(item.managerName)}</td>
@@ -1567,6 +1610,7 @@
             if (!dateInput || !container) return;
             if (!dateInput.value) dateInput.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
+            renderDailySummaryMini(null);
             container.innerHTML = '<p style="color:var(--text-muted); margin:0;">Loading daily summary...</p>';
             try {
                 const r = await fetch(`${API_BASE}/admin/daily-summary?date=${encodeURIComponent(dateInput.value)}`, { headers });
@@ -1575,6 +1619,7 @@
                 renderDailySummary(dailySummaryData);
             } catch (e) {
                 console.error('Failed to load daily summary:', e);
+                renderDailySummaryMini(null);
                 container.innerHTML = '<p style="color:#dc2626; margin:0;">Unable to load daily summary right now.</p>';
             }
         }
@@ -2013,6 +2058,7 @@
                 'refresh-completed-deliveries-btn': loadCompletedDeliveries,
                 'refresh-daily-summary-btn': loadDailySummary,
                 'print-daily-summary-btn': printDailySummary,
+                'toggle-daily-summary-btn': toggleDailySummary,
                 'dispatch-scan-btn': () => {
                     const v = document.getElementById('dispatch-scan-input').value.trim().toUpperCase();
                     if (v && !dispatchIds.includes(v)) { dispatchIds.push(v); updateScanList('dispatch-list', dispatchIds, 'dispatch-count'); }
@@ -2027,6 +2073,7 @@
 
             const summaryDateInput = document.getElementById('daily-summary-date');
             if (summaryDateInput) summaryDateInput.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+            updateDailySummaryVisibility();
 
             loadManagersForDropdown(); loadAllDeliveries(); loadDrafts(); loadBusinessSettings(); loadDailySummary();
         });
