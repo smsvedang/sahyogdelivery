@@ -688,7 +688,7 @@
                         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                             <input type="date" id="daily-summary-date" style="width:auto; margin:0;">
                             <button id="refresh-daily-summary-btn" class="btn btn-secondary">Refresh Summary</button>
-                            <button id="download-daily-summary-btn" class="btn btn-primary">Download Summary</button>
+                            <button id="print-daily-summary-btn" class="btn btn-primary">Print Summary</button>
                         </div>
                     </div>
                     <div id="daily-summary-content">
@@ -1433,7 +1433,7 @@
             `;
         }
 
-        function buildDailySummaryDownloadHtml(summary) {
+        function buildDailySummaryPrintHtml(summary) {
             const m = summary.metrics || {};
             const statusItems = (summary.statusSnapshot || []).map(item => `<li><strong>${escapeHtml(item.status)}:</strong> ${item.count}</li>`).join('') || '<li>No status data</li>';
             const managerRows = (summary.managerBreakdown || []).map(item => `<tr>
@@ -1544,21 +1544,21 @@
 </html>`;
         }
 
-        function downloadDailySummary() {
+        function printDailySummary() {
             if (!dailySummaryData) {
                 alert('Load the daily summary first.');
                 return;
             }
-            const html = buildDailySummaryDownloadHtml(dailySummaryData);
-            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `sahyog-daily-summary-${dailySummaryData.date || 'report'}.html`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
+            const html = buildDailySummaryPrintHtml(dailySummaryData);
+            const win = window.open('', '_blank');
+            if (!win) {
+                alert('Popup blocked. Please allow popups and try again.');
+                return;
+            }
+            win.document.write(html);
+            win.document.close();
+            win.focus();
+            setTimeout(() => win.print(), 500);
         }
 
         async function loadDailySummary() {
@@ -2012,7 +2012,7 @@
                 'refresh-cash-orders-btn': loadCashOrders,
                 'refresh-completed-deliveries-btn': loadCompletedDeliveries,
                 'refresh-daily-summary-btn': loadDailySummary,
-                'download-daily-summary-btn': downloadDailySummary,
+                'print-daily-summary-btn': printDailySummary,
                 'dispatch-scan-btn': () => {
                     const v = document.getElementById('dispatch-scan-input').value.trim().toUpperCase();
                     if (v && !dispatchIds.includes(v)) { dispatchIds.push(v); updateScanList('dispatch-list', dispatchIds, 'dispatch-count'); }
