@@ -678,13 +678,16 @@ function saveTokenToServer(token) {
             try {
                 const r = await fetch(`${API_BASE}/manager/all-pending-deliveries`, { headers });
                 allPendingDeliveries = await r.json();
+                const canReassignStatuses = ['Boy Assigned', 'Picked Up', 'Out for Delivery'];
                 tbody.innerHTML = allPendingDeliveries.length ? allPendingDeliveries.map(d => `<tr>
                     <td>${d.trackingId}</td>
                     <td>${d.customerName}</td>
                     <td><strong>${d.currentStatus}</strong></td>
                     <td>${d.assignedTo?.name || '-'}</td>
                     <td>${d.paymentMethod}</td>
-                    <td><button class="btn btn-primary btn-sm" onclick="openReassignModal('${d._id}', '${d.assignedTo?.name || 'N/A'}')">Reassign</button></td>
+                    <td>${canReassignStatuses.includes(d.currentStatus)
+                        ? `<button class="btn btn-primary btn-sm" onclick="openReassignModal('${d._id}', '${d.assignedTo?.name || 'N/A'}')">Reassign</button>`
+                        : '<span style="color:#64748b; font-size:0.85rem;">Not available</span>'}</td>
                 </tr>`).join('') : '<tr><td colspan="6">No active deliveries</td></tr>';
             } catch(e) {}
         }

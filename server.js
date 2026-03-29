@@ -335,37 +335,30 @@ app.get('/admin/daily-summary', auth(['admin']), async (req, res) => {
   const range = getISTDateRange(selectedDate);
   if (!range) return res.status(400).json({ message: 'Invalid date. Use YYYY-MM-DD.' });
 
-  const [{ deliveredToday, cancelledToday }, bookingsToday, cashReceivedToday, draftsToday, statusSnapshot] = await Promise.all([
-    Delivery.aggregate([
-      {
-        $facet: {
-          delivered: [
-            { $match: { completedAt: { $gte: range.start, $lte: range.end }, 'statusUpdates.status': 'Delivered' } },
-            { $count: 'count' }
-          ],
-          cancelled: [
-            {
-              $match: {
-                updatedAt: { $gte: range.start, $lte: range.end },
-                $expr: { $eq: [{ $arrayElemAt: ['$statusUpdates.status', -1] }, 'Cancelled'] }
-              }
-            },
-            { $count: 'count' }
-          ]
-        }
-      },
-      {
-        $project: {
-          deliveredToday: { $ifNull: [{ $arrayElemAt: ['$delivered.count', 0] }, 0] },
-          cancelledToday: { $ifNull: [{ $arrayElemAt: ['$cancelled.count', 0] }, 0] }
-        }
-      }
-    ]).then((rows) => rows[0] || { deliveredToday: 0, cancelledToday: 0 }),
-    Delivery.find({ createdAt: { $gte: range.start, $lte: range.end } }).populate('assignedByManager', 'name'),
-    Delivery.find({ cashReceivedAt: { $gte: range.start, $lte: range.end } }).populate('assignedByManager', 'name'),
-    DraftOrder.find({ createdAt: { $gte: range.start, $lte: range.end }, pincode: TARGET_MARGMART_PINCODE }),
-    Delivery.find({}).populate('assignedByManager', 'name').sort({ createdAt: -1 })
+  const isWithinRange = (dateValue) => {
+    if (!dateValue) return false;
+    const date = new Date(dateValue);
+    return !Number.isNaN(date.getTime()) && date >= range.start && date <= range.end;
+  };
+
+  const [allDeliveries, allDrafts] = await Promise.all([
+    Delivery.find({}).populate('assignedByManager', 'name').sort({ createdAt: -1 }),
+    DraftOrder.find({ pincode: TARGET_MARGMART_PINCODE }).sort({ createdAt: -1 })
   ]);
+
+  const statusSnapshot = allDeliveries;
+  const bookingsToday = allDeliveries.filter(d => isWithinRange(d.createdAt));
+  const deliveredTodayList = allDeliveries.filter(d => d.currentStatus === 'Delivered' && isWithinRange(d.completedAt));
+  const cancelledTodayList = allDeliveries.filter(d => d.currentStatus === 'Cancelled' && isWithinRange(d.updatedAt));
+  const cashReceivedToday = allDeliveries.filter(d =>
+    d.paymentMethod === 'COD' &&
+    d.codPaymentStatus === 'Paid - Cash' &&
+    isWithinRange(d.cashReceivedAt)
+  );
+  const draftsToday = allDrafts.filter(d => d.status === 'DRAFT' && isWithinRange(d.createdAt));
+
+  const deliveredToday = deliveredTodayList.length;
+  const cancelledToday = cancelledTodayList.length;
 
   const bookedToday = bookingsToday.length;
   const codBookings = bookingsToday.filter(d => d.paymentMethod === 'COD');
@@ -526,7 +519,13 @@ app.get('/manager/rto-parcels', auth(['manager']), async (req, res) => {
 });
 
 app.get('/manager/all-pending-deliveries', auth(['manager']), async (req, res) => {
-  res.json(await Delivery.find({ assignedByManager: req.user.userId, 'statusUpdates.status': { $ne: 'Delivered' } }).populate('assignedTo', 'name').sort({ createdAt: -1 }));
+  const activeStatuses = ['Boy Assigned', 'Picked Up', 'Out for Delivery'];
+  res.json(await Delivery.find({
+    assignedByManager: req.user.userId,
+    assignedTo: { $ne: null },
+    $or: activeStatuses.map(status => ({ 'statusUpdates.status': status })),
+    'statusUpdates.status': { $nin: ['Delivered', 'Cancelled'] }
+  }).populate('assignedTo', 'name').sort({ createdAt: -1 }));
 });
 
 app.post('/manager/receive-bulk', auth(['manager']), async (req, res) => {
@@ -552,7 +551,23 @@ app.post('/manager/bulk-assign-deliveries', auth(['manager']), async (req, res) 
 
 app.post('/manager/reassign-delivery/:id', auth(['manager']), async (req, res) => {
   const boy = await User.findById(req.body.newDeliveryBoyId);
-  await Delivery.findOneAndUpdate({ _id: req.params.id, assignedByManager: req.user.userId }, { $set: { assignedTo: boy._id, assignedBoyDetails: { name: boy.name, phone: boy.phone } }, $push: { statusUpdates: { status: 'Boy Assigned', remarks: 'Reassigned' } } });
+  if (!boy) return res.status(404).json({ message: 'Boy not found' });
+  const activeStatuses = ['Boy Assigned', 'Picked Up', 'Out for Delivery'];
+  const delivery = await Delivery.findOne({
+    _id: req.params.id,
+    assignedByManager: req.user.userId,
+    assignedTo: { $ne: null },
+    $or: activeStatuses.map(status => ({ 'statusUpdates.status': status })),
+    'statusUpdates.status': { $nin: ['Delivered', 'Cancelled'] }
+  });
+  if (!delivery || !activeStatuses.includes(delivery.currentStatus)) {
+    return res.status(400).json({ message: 'Reassign allowed only for active deliveries after branch assignment.' });
+  }
+
+  await Delivery.findByIdAndUpdate(req.params.id, {
+    $set: { assignedTo: boy._id, assignedBoyDetails: { name: boy.name, phone: boy.phone } },
+    $push: { statusUpdates: { status: 'Boy Assigned', remarks: 'Reassigned' } }
+  });
   res.sendStatus(200);
 });
 
@@ -643,7 +658,35 @@ app.post('/delivery/complete', auth(['delivery', 'admin', 'manager']), async (re
 
 app.post('/delivery/request-cancel-otp', auth(['delivery']), async (req, res) => {
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
-  await Delivery.findOneAndUpdate({ trackingId: req.body.trackingId, assignedTo: req.user.userId }, { cancellationOtp: otp });
+  const d = await Delivery.findOneAndUpdate(
+    { trackingId: req.body.trackingId, assignedTo: req.user.userId },
+    { cancellationOtp: otp },
+    { new: true }
+  ).populate('assignedByManager', 'name');
+  if (!d) return res.status(404).json({ message: 'Delivery not found' });
+
+  const admins = await User.find({ role: 'admin', isActive: true });
+  const title = 'Cancel OTP Requested';
+  const paymentText = d.paymentMethod === 'COD' ? `COD ₹${d.billAmount || 0}` : 'Prepaid';
+  const body = [
+    `Tracking: ${d.trackingId}`,
+    `Customer: ${d.customerName || '-'}`,
+    `Phone: ${d.customerPhone || '-'}`,
+    `Manager: ${d.assignedByManager?.name || 'Unassigned'}`,
+    `Boy: ${req.user.name || 'Delivery Boy'}`,
+    `Status: ${d.currentStatus || '-'}`,
+    `Payment: ${paymentText}`,
+    `Cancel OTP: ${otp}`
+  ].join(' | ');
+
+  await Promise.allSettled([
+    sendNotificationToUsers(admins, title, body, {
+      tag: `cancel-otp-${d._id}`,
+      link: 'https://sahyogdelivery.vercel.app/admin.html',
+      requireInteraction: true
+    })
+  ]);
+
   res.json({ success: true });
 });
 

@@ -740,7 +740,7 @@
                     <div class="address"><i class="fas fa-location-dot"></i> ${d.customerAddress}</div>
                     <div class="payment-label">
                         <i class="fas fa-indian-rupee-sign"></i> 
-                        ${d.paymentMethod} (₹${d.billAmount})
+                        ${d.paymentMethod === 'COD' ? `COD (₹${d.billAmount || 0})` : 'Prepaid'}
                         ${(d.codPaymentStatus || '').includes('Paid') ? '<span class="badge badge-success" style="font-size:0.6rem;">PAID</span>' : ''}
                     </div>
                     <div class="action-row">
