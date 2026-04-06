@@ -107,6 +107,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --sidebar-width: 260px;
@@ -526,6 +527,94 @@
             }
         }
 
+        /* Dashboard Specific Styles */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .stat-card .icon-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .stat-card .label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 4px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .stat-card .sub-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .bg-primary { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .bg-success { background: linear-gradient(135deg, #10b981, #047857); }
+        .bg-warning { background: linear-gradient(135deg, #f59e0b, #b45309); }
+        .bg-danger { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+        .bg-info { background: linear-gradient(135deg, #6366f1, #4338ca); }
+
+        .pulse-warning {
+            animation: pulse-warning 2s infinite;
+            border: 2px solid #f59e0b;
+        }
+
+        @keyframes pulse-warning {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .dashboard-row {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-col-8 { flex: 2; min-width: 400px; }
+        .dashboard-col-4 { flex: 1; min-width: 300px; }
+
+        @media (max-width: 768px) {
+            .dashboard-col-8, .dashboard-col-4 { flex: 1 1 100%; min-width: 100%; }
+        }
+
         .pending-cash-row {
             background: #fffbeb;
         }
@@ -574,7 +663,9 @@
             <h2>Sahyog Admin</h2>
         </div>
         <div class="sidebar-nav">
-            <div class="nav-item tab-link active" onclick="openTab(event, 'tab-book')"><i
+            <div class="nav-item tab-link active" onclick="openTab(event, 'tab-dashboard')"><i
+                    class="fas fa-th-large"></i> Dashboard</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-book')"><i
                     class="fas fa-plus-circle"></i> Book Courier</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-drafts')"><i class="fas fa-file-invoice"></i>
                 Draft Orders</div>
@@ -615,7 +706,99 @@
         </div>
         <div class="content-area">
 
-            <div id="tab-book" class="tab-content active">
+            <div id="tab-dashboard" class="tab-content active">
+                <div class="dashboard-grid" id="dashboard-stats">
+                    <!-- Stats will be loaded here -->
+                    <div class="card stat-card bg-primary">
+                        <div class="icon-box"><i class="fas fa-box"></i></div>
+                        <div>
+                            <div class="label">Total Bookings</div>
+                            <div class="value" id="dash-total-bookings">0</div>
+                            <div class="sub-label">Today's total parcels</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card bg-success">
+                        <div class="icon-box"><i class="fas fa-check-circle"></i></div>
+                        <div>
+                            <div class="label">Delivered</div>
+                            <div class="value" id="dash-delivered">0</div>
+                            <div class="sub-label" id="dash-completed-sub">0 Completed</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card bg-warning pulse-warning" id="dash-pending-cash-card">
+                        <div class="icon-box"><i class="fas fa-money-bill-wave"></i></div>
+                        <div>
+                            <div class="label">Pending Cash</div>
+                            <div class="value" id="dash-pending-cash-amount">₹0</div>
+                            <div class="sub-label" id="dash-pending-cash-count">0 Orders pending</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card bg-info">
+                        <div class="icon-box"><i class="fas fa-wallet"></i></div>
+                        <div>
+                            <div class="label">Cash Collected</div>
+                            <div class="value" id="dash-cash-collected">₹0</div>
+                            <div class="sub-label" id="dash-online-collected">₹0 Online</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-row">
+                    <div class="dashboard-col-8">
+                        <div class="card">
+                            <h2><i class="fas fa-chart-bar"></i> Bookings vs Deliveries</h2>
+                            <div class="chart-container">
+                                <canvas id="bookingsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-col-4">
+                        <div class="card">
+                            <h2><i class="fas fa-pie-chart"></i> Status Distribution</h2>
+                            <div class="chart-container">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-row">
+                    <div class="dashboard-col-8">
+                        <div class="card">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                <h2 style="margin:0;"><i class="fas fa-history"></i> Recent Transactions</h2>
+                                <button class="btn btn-secondary btn-sm" onclick="openTab(null, 'tab-deliveries')">View All</button>
+                            </div>
+                            <div style="overflow-x:auto;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Tracking ID</th>
+                                            <th>Customer</th>
+                                            <th>Status</th>
+                                            <th>Amount</th>
+                                            <th>Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dash-recent-bookings">
+                                        <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-col-4">
+                        <div class="card">
+                            <h2><i class="fas fa-users"></i> Manager Performance</h2>
+                            <div id="dash-manager-performance" style="display:flex; flex-direction:column; gap:12px;">
+                                <p style="color:var(--text-muted); text-align:center;">Loading performance data...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-book" class="tab-content">
                 <div class="container">
                     <div class="card" id="booking-area">
                         <h2>Book New Courier</h2>
@@ -1072,6 +1255,7 @@
             document.getElementById(tabId).classList.add('active');
             if (event) event.currentTarget.classList.add('active');
 
+            if (tabId === 'tab-dashboard') loadDashboardData();
             if (tabId === 'tab-deliveries') { loadAllDeliveries(); loadDailySummary(); }
             if (tabId === 'tab-summary') loadDailySummary();
             if (tabId === 'tab-cash-orders') loadCashOrders();
@@ -1486,6 +1670,146 @@
 
             renderDailySummaryMini(summary);
             container.innerHTML = buildDailySummaryDetailedHtml(summary);
+            
+            // If we are on the dashboard tab, update dashboard UI too
+            if (document.getElementById('tab-dashboard').classList.contains('active')) {
+                updateDashboardUI(summary);
+            }
+        }
+
+        let bookingsChart = null;
+        let statusChart = null;
+
+        async function loadDashboardData() {
+            const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            try {
+                const r = await fetch(`${API_BASE}/admin/daily-summary?date=${today}`, { headers });
+                if (!r.ok) throw new Error('Failed to load dashboard data');
+                const summary = await r.json();
+                updateDashboardUI(summary);
+            } catch (e) {
+                console.error('Dashboard load error:', e);
+            }
+        }
+
+        function updateDashboardUI(summary) {
+            const m = summary.metrics || {};
+            
+            // Update Stats
+            document.getElementById('dash-total-bookings').textContent = m.bookedToday || 0;
+            document.getElementById('dash-delivered').textContent = m.deliveredToday || 0;
+            document.getElementById('dash-completed-sub').textContent = `${m.completedToday || 0} Completed Total`;
+            
+            document.getElementById('dash-pending-cash-amount').textContent = formatCurrency(m.pendingCashAmount);
+            document.getElementById('dash-pending-cash-count').textContent = `${m.pendingCashCount || 0} Orders pending`;
+            
+            document.getElementById('dash-cash-collected').textContent = formatCurrency(m.cashCollectedToday);
+            document.getElementById('dash-online-collected').textContent = `${formatCurrency(m.onlineCollectedToday)} Online`;
+
+            // Pending Cash Animation Pulse
+            const cashCard = document.getElementById('dash-pending-cash-card');
+            if (m.pendingCashAmount > 0) {
+                cashCard.classList.add('pulse-warning');
+            } else {
+                cashCard.classList.remove('pulse-warning');
+            }
+
+            // Recent Transactions
+            const recentTbody = document.getElementById('dash-recent-bookings');
+            recentTbody.innerHTML = (summary.recentBookings || []).slice(0, 6).map(b => `
+                <tr>
+                    <td><strong>${b.trackingId}</strong></td>
+                    <td>${escapeHtml(b.customerName)}</td>
+                    <td><span class="badge ${b.currentStatus === 'Delivered' ? 'badge-success' : 'badge-warning'}">${b.currentStatus}</span></td>
+                    <td>${b.paymentMethod === 'COD' ? formatCurrency(b.billAmount) : 'Prepaid'}</td>
+                    <td>${new Date(b.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" style="text-align:center;">No transactions today</td></tr>';
+
+            // Manager Performance
+            const managerPerf = document.getElementById('dash-manager-performance');
+            managerPerf.innerHTML = (summary.managerBreakdown || []).slice(0, 5).map(mgr => {
+                const total = mgr.booked || 1;
+                const deliveredPct = Math.round((mgr.delivered / total) * 100);
+                return `
+                    <div style="background:rgba(255,255,255,0.5); padding:12px; border-radius:12px; border:1px solid var(--border);">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <strong>${escapeHtml(mgr.managerName)}</strong>
+                            <span style="font-size:0.8rem; font-weight:700;">${mgr.booked} Booked</span>
+                        </div>
+                        <div style="height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                            <div style="width:${deliveredPct}%; height:100%; background:var(--success); border-radius:4px; transition:width 1s ease-out;"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.75rem; color:var(--text-muted);">
+                            <span>${mgr.delivered} Delivered</span>
+                            <span>${deliveredPct}% Success</span>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p style="text-align:center; color:var(--text-muted);">No manager data</p>';
+
+            // Charts
+            initCharts(summary);
+        }
+
+        function initCharts(summary) {
+            const m = summary.metrics || {};
+            const statusData = summary.statusSnapshot || [];
+            
+            // Bookings Chart
+            const ctx1 = document.getElementById('bookingsChart').getContext('2d');
+            if (bookingsChart) bookingsChart.destroy();
+            bookingsChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Booked', 'Delivered', 'Cancelled', 'COD Bookings', 'Prepaid'],
+                    datasets: [{
+                        label: 'Count',
+                        data: [m.bookedToday, m.deliveredToday, m.cancelledToday, m.codBookingsToday, m.prepaidBookingsToday],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(99, 102, 241, 0.7)'
+                        ],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                }
+            });
+
+            // Status Pie Chart
+            const ctx2 = document.getElementById('statusChart').getContext('2d');
+            if (statusChart) statusChart.destroy();
+            statusChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: statusData.map(s => s.status),
+                    datasets: [{
+                        data: statusData.map(s => s.count),
+                        backgroundColor: [
+                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1', 
+                            '#8b5cf6', '#ec4899', '#06b6d4', '#475569'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } }
+                    },
+                    cutout: '70%'
+                }
+            });
         }
 
         function buildDailySummaryPrintHtml(summary) {
@@ -2105,7 +2429,7 @@
             const summaryDateInputFull = document.getElementById('daily-summary-date-full');
             if (summaryDateInputFull) summaryDateInputFull.value = summaryDateInput?.value || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
-            loadManagersForDropdown(); loadAllDeliveries(); loadDrafts(); loadBusinessSettings(); loadDailySummary();
+            loadManagersForDropdown(); loadAllDeliveries(); loadDrafts(); loadBusinessSettings(); loadDailySummary(); loadDashboardData();
         });
 
         setInterval(loadDrafts, 60000);
