@@ -684,6 +684,7 @@
             <!-- Staff Management removed as per user request -->
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-users')"><i class="fas fa-users"></i> User
                 Management</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-logs')"><i class="fas fa-terminal"></i> User Logs</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-settings')"><i class="fas fa-cog"></i> Settings
             </div>
         </div>
@@ -1166,6 +1167,41 @@
                 </div>
             </div>
 
+            <div id="tab-logs" class="tab-content">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h2 style="margin:0;"><i class="fas fa-terminal" style="color:var(--primary);"></i> User Activity Log</h2>
+                        <div style="display:flex; gap:10px;">
+                            <div style="position:relative;">
+                                <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+                                <input type="text" id="log-search" placeholder="Search activity..." oninput="filterLogs()" style="margin-bottom:0; min-width:240px; padding-left:35px; background:white;">
+                            </div>
+                            <button class="btn btn-secondary" onclick="loadLogs()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        </div>
+                    </div>
+                    <div style="background:#eff6ff; border-left:4px solid var(--primary); padding:12px 16px; border-radius:8px; margin-bottom:24px; font-size:0.875rem; color:#1e40af; display:flex; align-items:center; gap:12px;">
+                        <i class="fas fa-info-circle" style="font-size:1.2rem;"></i>
+                        <span>Activity logs are automatically cleared after <strong>3 days</strong> to maintain performance and privacy.</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="min-width:160px;">Time</th>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Action</th>
+                                    <th style="min-width:200px;">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-body">
+                                <tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading latest logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div> <!-- Close content-area -->
         <footer class="dashboard-footer">
             Copyright © <span id="footer-year"></span> Sahyog Medical Delivery Platform. All Rights Reserved. Built by Vedang Soni.
@@ -1261,6 +1297,7 @@
             if (tabId === 'tab-cash-orders') loadCashOrders();
             if (tabId === 'tab-completed-deliveries') loadCompletedDeliveries();
             if (tabId === 'tab-users') loadAllUsers();
+            if (tabId === 'tab-logs') loadLogs();
             if (tabId === 'tab-drafts') loadDrafts();
             if (tabId === 'tab-settings') loadBusinessSettings();
             if (tabId === 'tab-ho-dispatch') loadPendingDispatch();
@@ -1393,6 +1430,42 @@
                 allUsersData = await r.json();
                 renderUsers();
             } catch (e) { }
+        }
+
+        let allLogsData = [];
+        async function loadLogs() {
+            const tbody = document.getElementById('logs-body');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Fetching activity records...</td></tr>';
+            try {
+                const r = await fetch(`${API_BASE}/admin/logs`, { headers });
+                allLogsData = await r.json();
+                renderLogs(allLogsData);
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626;">Failed to load logs</td></tr>';
+            }
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logs-body');
+            tbody.innerHTML = logs.map(log => `
+                <tr>
+                    <td style="white-space:nowrap;">${formatDateTimeToIST(log.createdAt)}</td>
+                    <td><strong>${escapeHtml(log.userName)}</strong><br><small style="color:var(--text-muted);">${log.role}</small></td>
+                    <td><span class="badge ${log.role === 'admin' ? 'badge-danger' : (log.role === 'manager' ? 'badge-warning' : 'badge-success')}">${log.role.toUpperCase()}</span></td>
+                    <td style="font-weight:600;">${escapeHtml(log.action)}</td>
+                    <td style="font-size:0.85rem;">${escapeHtml(log.details)}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" style="text-align:center;">No activity logs found.</td></tr>';
+        }
+
+        function filterLogs() {
+            const query = document.getElementById('log-search').value.toLowerCase();
+            const filtered = allLogsData.filter(l => 
+                l.userName.toLowerCase().includes(query) || 
+                l.action.toLowerCase().includes(query) || 
+                l.details.toLowerCase().includes(query)
+            );
+            renderLogs(filtered);
         }
 
         function getManagerNameForUser(user) {
