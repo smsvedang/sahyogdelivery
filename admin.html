@@ -684,6 +684,7 @@
             <!-- Staff Management removed as per user request -->
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-users')"><i class="fas fa-users"></i> User
                 Management</div>
+            <div class="nav-item tab-link" onclick="openTab(event, 'tab-customers')"><i class="fas fa-address-book"></i> Customers</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-logs')"><i class="fas fa-terminal"></i> User Logs</div>
             <div class="nav-item tab-link" onclick="openTab(event, 'tab-settings')"><i class="fas fa-cog"></i> Settings
             </div>
@@ -1143,6 +1144,37 @@
                 </div>
             </div>
 
+            <div id="tab-customers" class="tab-content">
+                <div class="card" style="min-width: 95%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h2><i class="fas fa-address-book" style="color:var(--primary);"></i> Customer Database</h2>
+                        <button class="btn btn-secondary" onclick="loadCustomers()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    </div>
+                    <div class="filter-box">
+                        <div style="position:relative; flex:1;">
+                            <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+                            <input type="text" id="customer-search" placeholder="Search by name or phone..." oninput="filterCustomers()" style="margin-bottom:0; padding-left:35px; background:white;">
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto; margin-top:20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Customer Name</th>
+                                    <th>Phone Number</th>
+                                    <th>Last Address</th>
+                                    <th>Last Order</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-body">
+                                <tr><td colspan="5" style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading customers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div id="tab-settings" class="tab-content">
                 <div class="card" style="min-width: 95%;">
                     <h2>Business Settings</h2>
@@ -1267,6 +1299,31 @@
         </div>
     </div>
 
+    <div id="customer-details-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close-button" onclick="closeModal('customer-details-modal')">&times;</span>
+            <h2 id="modal-customer-name">Customer Report</h2>
+            <div id="customer-info-summary" style="background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:20px; display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                <!-- Summary info here -->
+            </div>
+            <h3>Order History</h3>
+            <div style="overflow-x:auto; max-height: 400px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Tracking ID</th>
+                            <th>Status</th>
+                            <th>Amount</th>
+                            <th>Mode</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customer-history-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'https://sahyogdeliverybackend.onrender.com';
         const token = localStorage.getItem('authToken');
@@ -1275,6 +1332,7 @@
 
         let allDeliveriesData = [];
         let allUsersData = [];
+        let allCustomersData = [];
         let cashOrdersData = [];
         let draftsData = [];
         let businessSettings = {};
@@ -1302,6 +1360,7 @@
             if (tabId === 'tab-settings') loadBusinessSettings();
             if (tabId === 'tab-ho-dispatch') loadPendingDispatch();
             if (tabId === 'tab-admin-receive') loadRtoPendingReturns();
+            if (tabId === 'tab-customers') loadCustomers();
 
             if (window.innerWidth <= 992) toggleSidebar();
         }
@@ -1340,6 +1399,123 @@
                     Html5QrcodeSupportedFormats.UPC_E
                 ]
             };
+        }
+
+        // --- Customers Management ---
+        async function loadCustomers() {
+            try {
+                const r = await fetch(`${API_BASE}/admin/customers`, { headers });
+                allCustomersData = await r.json();
+                renderCustomers(allCustomersData);
+            } catch (e) {
+                console.error("Load customers error", e);
+            }
+        }
+
+        function renderCustomers(data) {
+            const tbody = document.getElementById('customers-body');
+            if (!data || !data.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">No customers found in database.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(c => `
+                <tr>
+                    <td><strong>${escapeHtml(c.name)}</strong></td>
+                    <td>${escapeHtml(c.phone)}</td>
+                    <td style="max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(c.address)}">${escapeHtml(c.address)}</td>
+                    <td>${formatDateToYYYYMMDD(c.lastOrderAt)}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="viewCustomerReport('${c.phone}')">
+                            <i class="fas fa-file-alt"></i> Report
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterCustomers() {
+            const q = document.getElementById('customer-search').value.toLowerCase();
+            const filtered = allCustomersData.filter(c => 
+                (c.name || '').toLowerCase().includes(q) || 
+                (c.phone || '').toLowerCase().includes(q)
+            );
+            renderCustomers(filtered);
+        }
+
+        async function viewCustomerReport(phone) {
+            try {
+                const r = await fetch(`${API_BASE}/admin/customer/${phone}`, { headers });
+                const { customer, history } = await r.json();
+                
+                document.getElementById('modal-customer-name').textContent = `Report: ${customer.name}`;
+                
+                document.getElementById('customer-info-summary').innerHTML = `
+                    <div><strong>Phone:</strong> ${customer.phone}</div>
+                    <div><strong>Last Order:</strong> ${formatDateToYYYYMMDD(customer.lastOrderAt)}</div>
+                    <div style="grid-column: span 2;"><strong>Last Address:</strong><br>${escapeHtml(customer.address)}</div>
+                    <div><strong>Total Orders:</strong> ${history.length}</div>
+                    <div><strong>Total Value:</strong> ${formatCurrency(history.reduce((s, h) => s + (h.billAmount || 0), 0))}</div>
+                `;
+                
+                document.getElementById('customer-history-body').innerHTML = history.map(h => `
+                    <tr>
+                        <td>${formatDateToYYYYMMDD(h.createdAt)}</td>
+                        <td><span style="font-weight:600; color:var(--primary);cursor:pointer;" onclick="viewTrackingDetail('${h.trackingId}')">${h.trackingId}</span></td>
+                        <td><span class="badge ${h.currentStatus === 'Delivered' ? 'badge-success' : 'badge-warning'}">${h.currentStatus}</span></td>
+                        <td>${formatCurrency(h.billAmount)}</td>
+                        <td>${h.paymentMethod}</td>
+                    </tr>
+                `).join('');
+                
+                openModal('customer-details-modal');
+            } catch (e) {
+                alert("Failed to load customer report");
+            }
+        }
+
+        async function viewTrackingDetail(tid) {
+            try {
+                // Try to find in allDeliveriesData first
+                let d = allDeliveriesData.find(x => x.trackingId === tid);
+                if (!d) {
+                    const r = await fetch(`${API_BASE}/track/${tid}`);
+                    d = await r.json();
+                }
+                if (!d) return alert("Tracking ID not found");
+                
+                const updates = (d.statusUpdates || []).map(s => 
+                    `[${formatDateTimeToIST(s.timestamp)}] ${s.status} ${s.remarks ? '('+s.remarks+')' : ''}`
+                ).join('\n');
+                
+                alert(`Tracking: ${d.trackingId}\nCustomer: ${d.customerName}\nStatus: ${d.currentStatus}\nPayment: ${d.paymentMethod} (${formatCurrency(d.billAmount)})\n\nTimeline:\n${updates}`);
+            } catch (e) {
+                alert("Error fetching tracking details");
+            }
+        }
+
+        // Autofill for Phone
+        async function handlePhoneAutofill(e) {
+            const phone = e.target.value.trim();
+            if (phone.length >= 10) {
+                try {
+                    const r = await fetch(`${API_BASE}/api/get-customer-details/${phone}`, { headers });
+                    if (r.ok) {
+                        const customer = await r.json();
+                        const nameInput = document.getElementById('name');
+                        const addrInput = document.getElementById('address');
+                        if (!nameInput.value) nameInput.value = customer.name;
+                        if (!addrInput.value) addrInput.value = customer.address;
+                        
+                        // Highlight fields briefly
+                        nameInput.style.backgroundColor = '#f0f9ff';
+                        addrInput.style.backgroundColor = '#f0f9ff';
+                        setTimeout(() => {
+                            nameInput.style.backgroundColor = '';
+                            addrInput.style.backgroundColor = '';
+                        }, 1000);
+                    }
+                } catch (e) {}
+            }
         }
 
         // --- Label Generation ---
@@ -2435,6 +2611,10 @@
             };
 
             document.getElementById('booking-form').onsubmit = handleBookingSubmit;
+            // Autofill listener
+            const phoneField = document.getElementById('phone');
+            if (phoneField) phoneField.addEventListener('input', handlePhoneAutofill);
+
             document.getElementById('add-user-form').onsubmit = handleAddUserSubmit;
             document.getElementById('edit-user-form').onsubmit = handleEditUserSubmit;
             document.getElementById('business-settings-form').onsubmit = async (e) => {
