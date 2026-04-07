@@ -1148,7 +1148,10 @@
                 <div class="card" style="min-width: 95%;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                         <h2><i class="fas fa-address-book" style="color:var(--primary);"></i> Customer Database</h2>
-                        <button class="btn btn-secondary" onclick="loadCustomers()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-warning btn-sm" onclick="migrateExistingData()"><i class="fas fa-magic"></i> Help Migration (One-time)</button>
+                            <button class="btn btn-secondary btn-sm" onclick="loadCustomers()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        </div>
                     </div>
                     <div class="filter-box">
                         <div style="position:relative; flex:1;">
@@ -1440,6 +1443,31 @@
                 (c.phone || '').toLowerCase().includes(q)
             );
             renderCustomers(filtered);
+        }
+
+        async function migrateExistingData() {
+            if (!confirm("Are you sure you want to create customer records from all past bookings? This will take a few seconds.")) return;
+            
+            const btn = event.currentTarget;
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Migrating...';
+            btn.disabled = true;
+
+            try {
+                const r = await fetch(`${API_BASE}/admin/migrate-customers`, { method: 'POST', headers });
+                const d = await r.json();
+                if (r.ok) {
+                    alert(`${d.message}`);
+                    loadCustomers();
+                } else {
+                    alert("Migration failed: " + d.message);
+                }
+            } catch (e) {
+                alert("An error occurred during migration.");
+            } finally {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
         }
 
         async function viewCustomerReport(phone) {
